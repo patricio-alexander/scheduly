@@ -7,6 +7,7 @@ import CircleCheck from "@gravity-ui/icons/CircleCheck";
 import TriangleExclamation from "@gravity-ui/icons/TriangleExclamation";
 import CircleXmark from "@gravity-ui/icons/CircleXmark";
 import Info from "@gravity-ui/icons/CircleInfo";
+import { ComponentProps } from "react";
 
 const typeIcon = {
   info: Info,
@@ -15,13 +16,15 @@ const typeIcon = {
   error: CircleXmark,
 };
 
-const typeColor: Record<string, "primary" | "success" | "warning" | "danger"> =
-  {
-    info: "primary",
-    success: "success",
-    warning: "warning",
-    danger: "danger",
-  };
+const typeColor: Record<
+  NotificationItem["type"],
+  ComponentProps<typeof Chip>["color"]
+> = {
+  info: "default",
+  success: "success",
+  warning: "warning",
+  error: "danger",
+};
 
 interface Props {
   notifications: NotificationItem[];
@@ -51,8 +54,7 @@ export function NotificationsList({
     <div className="flex flex-col gap-3">
       {notifications.map((n) => {
         const Icon = typeIcon[n.type] ?? Bell;
-        const color =
-          typeColor[n.type === "error" ? "danger" : n.type] ?? "primary";
+        const color = typeColor[n.type];
 
         return (
           <div
@@ -72,7 +74,7 @@ export function NotificationsList({
                   {n.title}
                 </p>
                 {!n.read && (
-                  <Chip color={color} variant="primary" size="sm">
+                  <Chip color={color} variant="soft" size="sm">
                     Nueva
                   </Chip>
                 )}
