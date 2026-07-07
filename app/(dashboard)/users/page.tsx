@@ -2,8 +2,9 @@
 
 import { apiUrl } from "@/shared/utils/api";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Button, Modal, useOverlayState, Input, Label, toast, Table, Pagination, SearchField } from "@heroui/react";
+import { Button, Modal, useOverlayState, Input, Label, toast, Table, Pagination, SearchField, Chip } from "@heroui/react";
 import { useAuth } from "@/src/features/auth";
+import { ContentCard, EmptyState, PageHeader, TableSkeleton } from "@/shared/components/ui";
 import Shield from "@gravity-ui/icons/Shield";
 import Pencil from "@gravity-ui/icons/PencilToSquare";
 import TrashBin from "@gravity-ui/icons/TrashBin";
@@ -23,6 +24,16 @@ interface UserData {
 }
 
 const PAGE_SIZE = 10;
+
+const roleLabel: Record<string, string> = {
+  admin: "Admin",
+  user: "Usuario",
+};
+
+const roleColor: Record<string, "accent" | "default"> = {
+  admin: "accent",
+  user: "default",
+};
 
 export default function UsersPage() {
   const { user } = useAuth();
@@ -147,102 +158,133 @@ export default function UsersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Usuarios</h1>
-        <Button variant="primary" onPress={openCreate}>
-          <Plus width={16} height={16} />
-          Agregar usuario
-        </Button>
-      </div>
+      <PageHeader
+        icon={<Shield width={24} height={24} />}
+        title="Usuarios"
+        description="Administra los accesos y roles del equipo"
+        action={
+          <Button variant="primary" onPress={openCreate}>
+            <Plus width={16} height={16} />
+            Agregar usuario
+          </Button>
+        }
+      />
 
       {loading ? (
-        <p className="text-muted">Cargando...</p>
+        <ContentCard>
+          <TableSkeleton />
+        </ContentCard>
       ) : visibleUsers.length === 0 && !search ? (
-        <div className="flex flex-col items-center gap-4 py-12">
-          <p className="text-muted">No hay usuarios registrados</p>
-        </div>
+        <ContentCard>
+          <EmptyState
+            icon={<Shield width={40} height={40} />}
+            title="No hay otros usuarios"
+            description="Crea cuentas para que tu equipo acceda a Scheduly."
+            actionLabel="Agregar usuario"
+            onAction={openCreate}
+          />
+        </ContentCard>
       ) : (
-        <div className="flex flex-col gap-4">
-          <SearchField value={search} onChange={setSearch}>
-            <Label>Buscar usuario</Label>
-            <SearchField.Group>
-              <SearchField.SearchIcon />
-              <SearchField.Input className="w-[280px]" placeholder="Usuario, nombre o correo..." />
-              <SearchField.ClearButton />
-            </SearchField.Group>
-          </SearchField>
-          <Table>
-            <Table.ScrollContainer>
-              <Table.Content aria-label="Usuarios" className="min-w-[500px]">
-                <Table.Header>
-                  <Table.Column isRowHeader>Usuario</Table.Column>
-                  <Table.Column>Nombre</Table.Column>
-                  <Table.Column>Correo</Table.Column>
-                  <Table.Column>Rol</Table.Column>
-                  <Table.Column>Acciones</Table.Column>
-                </Table.Header>
-                <Table.Body>
-                  {table.getRowModel().rows.map((row) => {
-                    const u = row.original;
-                    return (
-                      <Table.Row key={u.id}>
-                        <Table.Cell>{u.username}</Table.Cell>
-                        <Table.Cell>{u.name}</Table.Cell>
-                        <Table.Cell>{u.email}</Table.Cell>
-                        <Table.Cell>{u.role}</Table.Cell>
-                        <Table.Cell>
-                          <div className="flex gap-1">
-                            <Button isIconOnly size="sm" variant="ghost" onPress={() => openEdit(u)}>
-                              <Pencil width={16} height={16} />
-                            </Button>
-                            <Button isIconOnly size="sm" variant="danger" onPress={() => handleDelete(u.id)}>
-                              <TrashBin width={16} height={16} />
-                            </Button>
+        <ContentCard>
+          <div className="flex flex-col gap-4 p-6">
+            <SearchField value={search} onChange={setSearch}>
+              <Label>Buscar usuario</Label>
+              <SearchField.Group>
+                <SearchField.SearchIcon />
+                <SearchField.Input className="w-full sm:w-[320px]" placeholder="Usuario, nombre o correo..." />
+                <SearchField.ClearButton />
+              </SearchField.Group>
+            </SearchField>
+            <Table>
+              <Table.ScrollContainer>
+                <Table.Content aria-label="Usuarios" className="min-w-[500px]">
+                  <Table.Header>
+                    <Table.Column isRowHeader>Usuario</Table.Column>
+                    <Table.Column>Nombre</Table.Column>
+                    <Table.Column>Correo</Table.Column>
+                    <Table.Column>Rol</Table.Column>
+                    <Table.Column>Acciones</Table.Column>
+                  </Table.Header>
+                  <Table.Body>
+                    {table.getRowModel().rows.length === 0 ? (
+                      <Table.Row>
+                        <Table.Cell colSpan={5}>
+                          <div className="py-8 text-center text-sm text-muted">
+                            No se encontraron usuarios con &quot;{search}&quot;
                           </div>
                         </Table.Cell>
                       </Table.Row>
-                    );
-                  })}
-                </Table.Body>
-              </Table.Content>
-            </Table.ScrollContainer>
-          </Table>
-          <div className="flex items-center justify-between text-sm text-muted pt-2">
-            <span>
-              {table.getState().pagination.pageIndex * PAGE_SIZE + 1} a{" "}
-              {Math.min((table.getState().pagination.pageIndex + 1) * PAGE_SIZE, visibleUsers.length)} de{" "}
-              {visibleUsers.length} resultados
-            </span>
-            <div className="flex items-center gap-1">
-              <Button
-                variant="ghost"
-                size="sm"
-                isDisabled={!table.getCanPreviousPage()}
-                onPress={() => table.previousPage()}
-              >
-                Anterior
-              </Button>
-              {Array.from({ length: table.getPageCount() }, (_, i) => i + 1).map((p) => (
-                <Button
-                  key={p}
-                  variant={p === page ? "secondary" : "ghost"}
-                  size="sm"
-                  onPress={() => setPage(p)}
-                >
-                  {p}
-                </Button>
-              ))}
-              <Button
-                variant="ghost"
-                size="sm"
-                isDisabled={!table.getCanNextPage()}
-                onPress={() => table.nextPage()}
-              >
-                Siguiente
-              </Button>
-            </div>
+                    ) : (
+                      table.getRowModel().rows.map((row) => {
+                        const u = row.original;
+                        return (
+                          <Table.Row key={u.id}>
+                            <Table.Cell>
+                              <span className="font-medium">{u.username}</span>
+                            </Table.Cell>
+                            <Table.Cell>{u.name}</Table.Cell>
+                            <Table.Cell className="text-muted">{u.email}</Table.Cell>
+                            <Table.Cell>
+                              <Chip color={roleColor[u.role] ?? "default"} variant="soft" size="sm">
+                                {roleLabel[u.role] ?? u.role}
+                              </Chip>
+                            </Table.Cell>
+                            <Table.Cell>
+                              <div className="flex gap-1">
+                                <Button isIconOnly size="sm" variant="ghost" onPress={() => openEdit(u)}>
+                                  <Pencil width={16} height={16} />
+                                </Button>
+                                <Button isIconOnly size="sm" variant="danger" onPress={() => handleDelete(u.id)}>
+                                  <TrashBin width={16} height={16} />
+                                </Button>
+                              </div>
+                            </Table.Cell>
+                          </Table.Row>
+                        );
+                      })
+                    )}
+                  </Table.Body>
+                </Table.Content>
+              </Table.ScrollContainer>
+            </Table>
+            {visibleUsers.length > PAGE_SIZE && (
+              <Table.Footer>
+                <Pagination size="sm">
+                  <Pagination.Summary>
+                    {table.getState().pagination.pageIndex * PAGE_SIZE + 1} a{" "}
+                    {Math.min((table.getState().pagination.pageIndex + 1) * PAGE_SIZE, visibleUsers.length)} de{" "}
+                    {visibleUsers.length} resultados
+                  </Pagination.Summary>
+                  <Pagination.Content>
+                    <Pagination.Item>
+                      <Pagination.Previous
+                        isDisabled={!table.getCanPreviousPage()}
+                        onPress={() => table.previousPage()}
+                      >
+                        <Pagination.PreviousIcon />
+                      </Pagination.Previous>
+                    </Pagination.Item>
+                    {Array.from({ length: table.getPageCount() }, (_, i) => i + 1).map((p) => (
+                      <Pagination.Item key={p}>
+                        <Pagination.Link isActive={p === page} onPress={() => setPage(p)}>
+                          {p}
+                        </Pagination.Link>
+                      </Pagination.Item>
+                    ))}
+                    <Pagination.Item>
+                      <Pagination.Next
+                        isDisabled={!table.getCanNextPage()}
+                        onPress={() => table.nextPage()}
+                      >
+                        <Pagination.NextIcon />
+                      </Pagination.Next>
+                    </Pagination.Item>
+                  </Pagination.Content>
+                </Pagination>
+              </Table.Footer>
+            )}
           </div>
-        </div>
+        </ContentCard>
       )}
 
       <Modal state={modal}>

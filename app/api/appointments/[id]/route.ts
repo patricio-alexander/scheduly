@@ -10,7 +10,7 @@ export async function GET(
     const appointment = await prisma.appointment.findUnique({
       where: { id: Number(id) },
       include: {
-        customer: { select: { id: true, name: true, lastnames: true } },
+        customer: { select: { id: true, name: true, lastnames: true, phone: true, email: true } },
         user: { select: { id: true, name: true } },
         services: {
           include: { service: { select: { id: true, name: true, price: true } } },

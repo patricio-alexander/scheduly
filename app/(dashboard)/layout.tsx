@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/src/features/auth";
 import { Sidebar } from "@/shared/components/Sidebar";
+import { LayoutSkeleton } from "@/shared/components/ui";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -16,11 +17,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   }, [user, loading, router]);
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <p className="text-muted">Cargando...</p>
-      </div>
-    );
+    return <LayoutSkeleton />;
   }
 
   if (!user) return null;
@@ -37,7 +34,7 @@ export default function DashboardLayout({
     <AuthGuard>
       <div className="flex min-h-screen">
         <Sidebar />
-        <main className="flex-1 p-8 bg-background">{children}</main>
+        <main className="flex-1 p-6 sm:p-8 bg-background">{children}</main>
       </div>
     </AuthGuard>
   );

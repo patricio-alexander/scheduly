@@ -6,7 +6,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const userId = url.searchParams.get("userId");
 
-    const [unreadNotifications, customers, services, appointments] =
+    const [unreadNotifications, customers, services, totalAppointments, appointments] =
       await Promise.all([
         userId
           ? prisma.notification.count({
@@ -15,6 +15,7 @@ export async function GET(request: Request) {
           : Promise.resolve(0),
         prisma.customer.count(),
         prisma.service.count(),
+        prisma.appointment.count(),
         prisma.appointment.findMany({
           include: {
             customer: { select: { name: true, lastnames: true } },
@@ -77,7 +78,7 @@ export async function GET(request: Request) {
       unreadNotifications,
       totalCustomers: customers,
       totalServices: services,
-      totalAppointments: appointments.length,
+      totalAppointments,
       scheduled: statusCounts[0],
       completed: statusCounts[1],
       cancelled: statusCounts[2],

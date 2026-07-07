@@ -11,6 +11,7 @@ import {
 import type { Customer } from "@/src/features/customers";
 import type { CustomerFormData } from "@/src/features/customers";
 import * as customerService from "@/src/features/customers/services/customer-service";
+import { PageHeader } from "@/shared/components/ui";
 import Plus from "@gravity-ui/icons/Plus";
 import Person from "@gravity-ui/icons/Person";
 
@@ -77,13 +78,17 @@ export default function CustomersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Clientes</h1>
-        <Button variant="primary" onPress={openCreate}>
-          <Plus width={16} height={16} />
-          Agregar cliente
-        </Button>
-      </div>
+      <PageHeader
+        icon={<Person width={24} height={24} />}
+        title="Clientes"
+        description="Gestiona tu base de clientes y sus datos de contacto"
+        action={
+          <Button variant="primary" onPress={openCreate}>
+            <Plus width={16} height={16} />
+            Agregar cliente
+          </Button>
+        }
+      />
 
       <CustomerList
         customers={customers}

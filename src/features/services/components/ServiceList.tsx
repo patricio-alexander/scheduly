@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button, Table, Pagination, SearchField, Label } from "@heroui/react";
-import Plus from "@gravity-ui/icons/Plus";
+import Gear from "@gravity-ui/icons/Gear";
 import Pencil from "@gravity-ui/icons/PencilToSquare";
 import TrashBin from "@gravity-ui/icons/TrashBin";
 import {
@@ -10,6 +10,7 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
 } from "@tanstack/react-table";
+import { ContentCard, EmptyState, TableSkeleton } from "@/shared/components/ui";
 import type { Service } from "../types";
 
 interface Props {
@@ -27,12 +28,8 @@ export function ServiceList({ services, onEdit, onDelete, onAdd, loading }: Prop
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(
-    () =>
-      services.filter(
-        (s) =>
-          s.name.toLowerCase().includes(search.toLowerCase())
-      ),
-    [services, search]
+    () => services.filter((s) => s.name.toLowerCase().includes(search.toLowerCase())),
+    [services, search],
   );
 
   const columns = useMemo(
@@ -40,7 +37,7 @@ export function ServiceList({ services, onEdit, onDelete, onAdd, loading }: Prop
       { accessorKey: "name" as const, header: "Nombre" },
       { accessorKey: "price" as const, header: "Precio" },
     ],
-    []
+    [],
   );
 
   const table = useReactTable({
@@ -70,111 +67,126 @@ export function ServiceList({ services, onEdit, onDelete, onAdd, loading }: Prop
     }).format(price);
 
   if (loading) {
-    return <p className="text-muted">Cargando...</p>;
+    return (
+      <ContentCard>
+        <TableSkeleton rows={4} />
+      </ContentCard>
+    );
   }
 
   if (services.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-4 py-12">
-        <p className="text-muted">No hay servicios registrados</p>
-        {onAdd && (
-          <Button variant="primary" onPress={onAdd}>
-            <Plus width={16} height={16} />
-            Agregar servicio
-          </Button>
-        )}
-      </div>
+      <ContentCard>
+        <EmptyState
+          icon={<Gear width={40} height={40} />}
+          title="No hay servicios registrados"
+          description="Define los servicios que ofreces para asociarlos a los turnos."
+          actionLabel="Agregar servicio"
+          onAction={onAdd}
+        />
+      </ContentCard>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <SearchField value={search} onChange={setSearch}>
-        <Label>Buscar servicio</Label>
-        <SearchField.Group>
-          <SearchField.SearchIcon />
-          <SearchField.Input className="w-[280px]" placeholder="Nombre del servicio..." />
-          <SearchField.ClearButton />
-        </SearchField.Group>
-      </SearchField>
+    <ContentCard>
+      <div className="flex flex-col gap-4 p-6">
+        <SearchField value={search} onChange={setSearch}>
+          <Label>Buscar servicio</Label>
+          <SearchField.Group>
+            <SearchField.SearchIcon />
+            <SearchField.Input className="w-full sm:w-[320px]" placeholder="Nombre del servicio..." />
+            <SearchField.ClearButton />
+          </SearchField.Group>
+        </SearchField>
 
-      <Table>
-        <Table.ScrollContainer>
-          <Table.Content aria-label="Servicios" className="min-w-[400px]">
-            <Table.Header>
-              <Table.Column isRowHeader>Nombre</Table.Column>
-              <Table.Column>Precio</Table.Column>
-              <Table.Column>Acciones</Table.Column>
-            </Table.Header>
-            <Table.Body>
-              {pageRows.length === 0 ? (
-                <Table.Row>
-                  <Table.Cell colSpan={3} className="text-center text-muted py-4">
-                    Sin resultados
-                  </Table.Cell>
-                </Table.Row>
-              ) : (
-                pageRows.map((row) => {
-                  const service = row.original;
-                  return (
-                    <Table.Row key={service.id}>
-                      <Table.Cell>{service.name}</Table.Cell>
-                      <Table.Cell>{formatPrice(service.price)}</Table.Cell>
-                      <Table.Cell>
-                        <div className="flex gap-1">
-                          <Button isIconOnly size="sm" variant="ghost" onPress={() => onEdit(service)}>
-                            <Pencil width={16} height={16} />
-                          </Button>
-                          <Button isIconOnly size="sm" variant="danger" onPress={() => onDelete(service.id)}>
-                            <TrashBin width={16} height={16} />
-                          </Button>
-                        </div>
-                      </Table.Cell>
-                    </Table.Row>
-                  );
-                })
-              )}
-            </Table.Body>
-          </Table.Content>
-        </Table.ScrollContainer>
-      </Table>
-      <Table.Footer>
-        <Pagination size="sm">
-          <Pagination.Summary>
-            {table.getState().pagination.pageIndex * PAGE_SIZE + 1} a{" "}
-            {Math.min(
-              (table.getState().pagination.pageIndex + 1) * PAGE_SIZE,
-              filtered.length
-            )}{" "}
-            de {filtered.length} resultados
-          </Pagination.Summary>
-          <Pagination.Content>
-            <Pagination.Item>
-              <Pagination.Previous
-                isDisabled={!table.getCanPreviousPage()}
-                onPress={() => table.previousPage()}
-              >
-                <Pagination.PreviousIcon />
-              </Pagination.Previous>
-            </Pagination.Item>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <Pagination.Item key={p}>
-                <Pagination.Link isActive={p === page} onPress={() => setPage(p)}>
-                  {p}
-                </Pagination.Link>
-              </Pagination.Item>
-            ))}
-            <Pagination.Item>
-              <Pagination.Next
-                isDisabled={!table.getCanNextPage()}
-                onPress={() => table.nextPage()}
-              >
-                <Pagination.NextIcon />
-              </Pagination.Next>
-            </Pagination.Item>
-          </Pagination.Content>
-        </Pagination>
-      </Table.Footer>
-    </div>
+        <Table>
+          <Table.ScrollContainer>
+            <Table.Content aria-label="Servicios" className="min-w-[400px]">
+              <Table.Header>
+                <Table.Column isRowHeader>Nombre</Table.Column>
+                <Table.Column>Precio</Table.Column>
+                <Table.Column>Acciones</Table.Column>
+              </Table.Header>
+              <Table.Body>
+                {pageRows.length === 0 ? (
+                  <Table.Row>
+                    <Table.Cell colSpan={3}>
+                      <div className="py-8 text-center text-sm text-muted">
+                        No se encontraron servicios con &quot;{search}&quot;
+                      </div>
+                    </Table.Cell>
+                  </Table.Row>
+                ) : (
+                  pageRows.map((row) => {
+                    const service = row.original;
+                    return (
+                      <Table.Row key={service.id}>
+                        <Table.Cell>
+                          <span className="font-medium">{service.name}</span>
+                        </Table.Cell>
+                        <Table.Cell>
+                          <span className="font-medium tabular-nums">{formatPrice(service.price)}</span>
+                        </Table.Cell>
+                        <Table.Cell>
+                          <div className="flex gap-1">
+                            <Button isIconOnly size="sm" variant="ghost" onPress={() => onEdit(service)}>
+                              <Pencil width={16} height={16} />
+                            </Button>
+                            <Button isIconOnly size="sm" variant="danger" onPress={() => onDelete(service.id)}>
+                              <TrashBin width={16} height={16} />
+                            </Button>
+                          </div>
+                        </Table.Cell>
+                      </Table.Row>
+                    );
+                  })
+                )}
+              </Table.Body>
+            </Table.Content>
+          </Table.ScrollContainer>
+        </Table>
+
+        {filtered.length > PAGE_SIZE && (
+          <Table.Footer>
+            <Pagination size="sm">
+              <Pagination.Summary>
+                {table.getState().pagination.pageIndex * PAGE_SIZE + 1} a{" "}
+                {Math.min(
+                  (table.getState().pagination.pageIndex + 1) * PAGE_SIZE,
+                  filtered.length,
+                )}{" "}
+                de {filtered.length} resultados
+              </Pagination.Summary>
+              <Pagination.Content>
+                <Pagination.Item>
+                  <Pagination.Previous
+                    isDisabled={!table.getCanPreviousPage()}
+                    onPress={() => table.previousPage()}
+                  >
+                    <Pagination.PreviousIcon />
+                  </Pagination.Previous>
+                </Pagination.Item>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <Pagination.Item key={p}>
+                    <Pagination.Link isActive={p === page} onPress={() => setPage(p)}>
+                      {p}
+                    </Pagination.Link>
+                  </Pagination.Item>
+                ))}
+                <Pagination.Item>
+                  <Pagination.Next
+                    isDisabled={!table.getCanNextPage()}
+                    onPress={() => table.nextPage()}
+                  >
+                    <Pagination.NextIcon />
+                  </Pagination.Next>
+                </Pagination.Item>
+              </Pagination.Content>
+            </Pagination>
+          </Table.Footer>
+        )}
+      </div>
+    </ContentCard>
   );
 }

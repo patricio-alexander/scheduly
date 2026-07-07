@@ -7,6 +7,7 @@ import { ServiceList, ServiceForm, useServices } from "@/src/features/services";
 import type { Service } from "@/src/features/services";
 import type { ServiceFormData } from "@/src/features/services";
 import * as serviceService from "@/src/features/services/services/service-service";
+import { PageHeader } from "@/shared/components/ui";
 import Plus from "@gravity-ui/icons/Plus";
 import Gear from "@gravity-ui/icons/Gear";
 
@@ -73,18 +74,23 @@ export default function ServicesPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Servicios</h1>
-        <Button variant="primary" onPress={openCreate}>
-          <Plus width={16} height={16} />
-          Agregar servicio
-        </Button>
-      </div>
+      <PageHeader
+        icon={<Gear width={24} height={24} />}
+        title="Servicios"
+        description="Define los servicios y precios de tu negocio"
+        action={
+          <Button variant="primary" onPress={openCreate}>
+            <Plus width={16} height={16} />
+            Agregar servicio
+          </Button>
+        }
+      />
 
       <ServiceList
         services={services}
         onEdit={openEdit}
         onDelete={handleDelete}
+        onAdd={openCreate}
         loading={loading}
       />
 

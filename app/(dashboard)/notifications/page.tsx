@@ -3,8 +3,10 @@
 import { useAuth } from "@/src/features/auth";
 import { NotificationsList, type NotificationItem } from "@/src/features/notifications";
 import { apiUrl } from "@/shared/utils/api";
+import { PageHeader } from "@/shared/components/ui";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
+import { Button } from "@heroui/react";
 import Bell from "@gravity-ui/icons/Bell";
 
 export default function NotificationsPage() {
@@ -30,35 +32,42 @@ export default function NotificationsPage() {
   const handleMarkRead = useCallback(async (id: number) => {
     await fetch(apiUrl(`/api/notifications/${id}?userId=${user!.id}`), { method: "PATCH" });
     setNotifications((prev) =>
-      prev.map((n) => (n.id === id ? { ...n, read: true } : n))
+      prev.map((n) => (n.id === id ? { ...n, read: true } : n)),
     );
   }, [user]);
 
+  const handleMarkAllRead = useCallback(async () => {
+    const unread = notifications.filter((n) => !n.read);
+    await Promise.all(
+      unread.map((n) =>
+        fetch(apiUrl(`/api/notifications/${n.id}?userId=${user!.id}`), { method: "PATCH" }),
+      ),
+    );
+    setNotifications((prev) => prev.map((n) => ({ ...n, read: true })));
+  }, [notifications, user]);
+
   const unreadCount = notifications.filter((n) => !n.read).length;
 
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-muted">Cargando...</p>
-      </div>
-    );
-  }
+  if (authLoading) return null;
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl">
-      <div className="flex items-center gap-3">
-        <div className="bg-accent/10 rounded-xl p-3">
-          <Bell width={24} height={24} className="text-accent" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">Notificaciones</h1>
-          <p className="text-muted text-sm">
-            {unreadCount > 0
-              ? `Tienes ${unreadCount} notificaciones sin leer`
-              : "No tienes notificaciones pendientes"}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={<Bell width={24} height={24} />}
+        title="Notificaciones"
+        description={
+          unreadCount > 0
+            ? `Tienes ${unreadCount} notificación${unreadCount === 1 ? "" : "es"} sin leer`
+            : "Estás al día con todas tus notificaciones"
+        }
+        action={
+          unreadCount > 0 ? (
+            <Button variant="secondary" size="sm" onPress={handleMarkAllRead}>
+              Marcar todas como leídas
+            </Button>
+          ) : undefined
+        }
+      />
 
       <NotificationsList
         notifications={notifications}

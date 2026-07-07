@@ -3,16 +3,36 @@
 import { useAuth } from "@/src/features/auth";
 import { ProfileForm, type ProfileData } from "@/src/features/profile";
 import { apiUrl } from "@/shared/utils/api";
+import { ContentCard, PageHeader, Skeleton } from "@/shared/components/ui";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
-import User from "@gravity-ui/icons/Person";
+import { toast } from "@heroui/react";
+
+function ProfileSkeleton() {
+  return (
+    <div className="flex flex-col gap-6 max-w-2xl">
+      <div className="flex items-center gap-3">
+        <Skeleton className="h-12 w-12 rounded-xl" />
+        <div className="space-y-2">
+          <Skeleton className="h-7 w-36" />
+          <Skeleton className="h-4 w-52" />
+        </div>
+      </div>
+      <ContentCard className="p-6 space-y-4">
+        {Array.from({ length: 4 }).map((_, i) => (
+          <Skeleton key={i} className="h-10 w-full" />
+        ))}
+        <Skeleton className="h-10 w-32" />
+      </ContentCard>
+    </div>
+  );
+}
 
 export default function ProfilePage() {
   const { user, loading: authLoading } = useAuth();
   const router = useRouter();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [saved, setSaved] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -37,62 +57,52 @@ export default function ProfilePage() {
     if (res.ok) {
       const updated = await res.json();
       setProfile(updated);
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
+      toast.success("Perfil actualizado correctamente");
+    } else {
+      toast.danger("Error al guardar el perfil");
     }
-  }, []);
+  }, [user]);
 
   if (authLoading || loading || !profile) {
-    return (
-      <div className="flex items-center justify-center min-h-[60vh]">
-        <p className="text-muted">Cargando...</p>
-      </div>
-    );
+    return <ProfileSkeleton />;
   }
+
+  const initials = profile.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 
   return (
     <div className="flex flex-col gap-6 max-w-2xl">
-      <div className="flex items-center gap-3">
-        <div className="bg-accent/10 rounded-xl p-3">
-          <User width={24} height={24} className="text-accent" />
-        </div>
-        <div>
-          <h1 className="text-2xl font-bold">Mi Perfil</h1>
-          <p className="text-muted text-sm">
-            Administra tu información personal
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={<span className="text-sm font-bold">{initials}</span>}
+        title="Mi perfil"
+        description="Administra tu información personal y de contacto"
+      />
 
-      {saved && (
-        <div className="bg-success/10 border border-success/20 rounded-xl px-4 py-3">
-          <p className="text-success text-sm">
-            Cambios guardados correctamente
-          </p>
-        </div>
-      )}
-
-      <div className="bg-surface rounded-xl border border-separator p-6">
+      <ContentCard className="p-6">
         <ProfileForm profile={profile} onSave={handleSave} />
-      </div>
+      </ContentCard>
 
-      <div className="bg-surface rounded-xl border border-separator p-6">
-        <h2 className="text-lg font-semibold mb-2">Información de la cuenta</h2>
-        <div className="flex flex-col gap-2 text-sm">
-          <div className="flex justify-between py-2 border-b border-separator">
+      <ContentCard className="p-6">
+        <h2 className="text-lg font-semibold mb-4">Información de la cuenta</h2>
+        <div className="flex flex-col gap-1 text-sm">
+          <div className="flex justify-between py-3 border-b border-separator">
             <span className="text-muted">Usuario</span>
             <span className="font-medium">{profile.username}</span>
           </div>
-          <div className="flex justify-between py-2 border-b border-separator">
+          <div className="flex justify-between py-3 border-b border-separator">
             <span className="text-muted">Rol</span>
-            <span className="font-medium capitalize">{profile.role}</span>
+            <span className="font-medium capitalize">{profile.role === "admin" ? "Administrador" : "Usuario"}</span>
           </div>
-          <div className="flex justify-between py-2">
+          <div className="flex justify-between py-3">
             <span className="text-muted">ID</span>
-            <span className="font-medium">#{profile.id}</span>
+            <span className="font-medium tabular-nums">#{profile.id}</span>
           </div>
         </div>
-      </div>
+      </ContentCard>
     </div>
   );
 }

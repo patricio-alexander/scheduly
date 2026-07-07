@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { Button, Table, Pagination, SearchField, Label } from "@heroui/react";
-import Plus from "@gravity-ui/icons/Plus";
+import Person from "@gravity-ui/icons/Person";
 import Pencil from "@gravity-ui/icons/PencilToSquare";
 import TrashBin from "@gravity-ui/icons/TrashBin";
 import {
@@ -10,6 +10,7 @@ import {
   getCoreRowModel,
   getPaginationRowModel,
 } from "@tanstack/react-table";
+import { ContentCard, EmptyState, TableSkeleton } from "@/shared/components/ui";
 import type { Customer } from "../types";
 
 interface Props {
@@ -33,9 +34,9 @@ export function CustomerList({ customers, onEdit, onDelete, onAdd, loading }: Pr
           c.name.toLowerCase().includes(search.toLowerCase()) ||
           c.lastnames.toLowerCase().includes(search.toLowerCase()) ||
           c.phone.includes(search) ||
-          c.email.toLowerCase().includes(search.toLowerCase())
+          c.email.toLowerCase().includes(search.toLowerCase()),
       ),
-    [customers, search]
+    [customers, search],
   );
 
   const columns = useMemo(
@@ -45,7 +46,7 @@ export function CustomerList({ customers, onEdit, onDelete, onAdd, loading }: Pr
       { accessorKey: "phone" as const, header: "Teléfono" },
       { accessorKey: "email" as const, header: "Correo" },
     ],
-    []
+    [],
   );
 
   const table = useReactTable({
@@ -69,115 +70,128 @@ export function CustomerList({ customers, onEdit, onDelete, onAdd, loading }: Pr
   const pageRows = table.getRowModel().rows;
 
   if (loading) {
-    return <p className="text-muted">Cargando...</p>;
+    return (
+      <ContentCard>
+        <TableSkeleton />
+      </ContentCard>
+    );
   }
 
   if (customers.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-4 py-12">
-        <p className="text-muted">No hay clientes registrados</p>
-        {onAdd && (
-          <Button variant="primary" onPress={onAdd}>
-            <Plus width={16} height={16} />
-            Agregar cliente
-          </Button>
-        )}
-      </div>
+      <ContentCard>
+        <EmptyState
+          icon={<Person width={40} height={40} />}
+          title="No hay clientes registrados"
+          description="Agrega tu primer cliente para poder agendar turnos en la agenda."
+          actionLabel="Agregar cliente"
+          onAction={onAdd}
+        />
+      </ContentCard>
     );
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <SearchField value={search} onChange={setSearch}>
-        <Label>Buscar cliente</Label>
-        <SearchField.Group>
-          <SearchField.SearchIcon />
-          <SearchField.Input className="w-[280px]" placeholder="Nombre, teléfono o correo..." />
-          <SearchField.ClearButton />
-        </SearchField.Group>
-      </SearchField>
+    <ContentCard>
+      <div className="flex flex-col gap-4 p-6">
+        <SearchField value={search} onChange={setSearch}>
+          <Label>Buscar cliente</Label>
+          <SearchField.Group>
+            <SearchField.SearchIcon />
+            <SearchField.Input className="w-full sm:w-[320px]" placeholder="Nombre, teléfono o correo..." />
+            <SearchField.ClearButton />
+          </SearchField.Group>
+        </SearchField>
 
-      <Table>
-        <Table.ScrollContainer>
-          <Table.Content aria-label="Clientes" className="min-w-[600px]">
-            <Table.Header>
-              <Table.Column isRowHeader>Nombre</Table.Column>
-              <Table.Column>Apellidos</Table.Column>
-              <Table.Column>Teléfono</Table.Column>
-              <Table.Column>Correo</Table.Column>
-              <Table.Column>Acciones</Table.Column>
-            </Table.Header>
-            <Table.Body>
-              {pageRows.length === 0 ? (
-                <Table.Row>
-                  <Table.Cell colSpan={5} className="text-center text-muted py-4">
-                    Sin resultados
-                  </Table.Cell>
-                </Table.Row>
-              ) : (
-                pageRows.map((row) => {
-                  const customer = row.original;
-                  return (
-                    <Table.Row key={customer.id}>
-                      <Table.Cell>{customer.name}</Table.Cell>
-                      <Table.Cell>{customer.lastnames}</Table.Cell>
-                      <Table.Cell>{customer.phone}</Table.Cell>
-                      <Table.Cell>{customer.email}</Table.Cell>
-                      <Table.Cell>
-                        <div className="flex gap-1">
-                          <Button isIconOnly size="sm" variant="ghost" onPress={() => onEdit(customer)}>
-                            <Pencil width={16} height={16} />
-                          </Button>
-                          <Button isIconOnly size="sm" variant="danger" onPress={() => onDelete(customer.id)}>
-                            <TrashBin width={16} height={16} />
-                          </Button>
-                        </div>
-                      </Table.Cell>
-                    </Table.Row>
-                  );
-                })
-              )}
-            </Table.Body>
-          </Table.Content>
-        </Table.ScrollContainer>
-      </Table>
-      <Table.Footer>
-        <Pagination size="sm">
-          <Pagination.Summary>
-            {table.getState().pagination.pageIndex * PAGE_SIZE + 1} a{" "}
-            {Math.min(
-              (table.getState().pagination.pageIndex + 1) * PAGE_SIZE,
-              filtered.length
-            )}{" "}
-            de {filtered.length} resultados
-          </Pagination.Summary>
-          <Pagination.Content>
-            <Pagination.Item>
-              <Pagination.Previous
-                isDisabled={!table.getCanPreviousPage()}
-                onPress={() => table.previousPage()}
-              >
-                <Pagination.PreviousIcon />
-              </Pagination.Previous>
-            </Pagination.Item>
-            {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-              <Pagination.Item key={p}>
-                <Pagination.Link isActive={p === page} onPress={() => setPage(p)}>
-                  {p}
-                </Pagination.Link>
-              </Pagination.Item>
-            ))}
-            <Pagination.Item>
-              <Pagination.Next
-                isDisabled={!table.getCanNextPage()}
-                onPress={() => table.nextPage()}
-              >
-                <Pagination.NextIcon />
-              </Pagination.Next>
-            </Pagination.Item>
-          </Pagination.Content>
-        </Pagination>
-      </Table.Footer>
-    </div>
+        <Table>
+          <Table.ScrollContainer>
+            <Table.Content aria-label="Clientes" className="min-w-[600px]">
+              <Table.Header>
+                <Table.Column isRowHeader>Nombre</Table.Column>
+                <Table.Column>Apellidos</Table.Column>
+                <Table.Column>Teléfono</Table.Column>
+                <Table.Column>Correo</Table.Column>
+                <Table.Column>Acciones</Table.Column>
+              </Table.Header>
+              <Table.Body>
+                {pageRows.length === 0 ? (
+                  <Table.Row>
+                    <Table.Cell colSpan={5}>
+                      <div className="py-8 text-center text-sm text-muted">
+                        No se encontraron clientes con &quot;{search}&quot;
+                      </div>
+                    </Table.Cell>
+                  </Table.Row>
+                ) : (
+                  pageRows.map((row) => {
+                    const customer = row.original;
+                    return (
+                      <Table.Row key={customer.id}>
+                        <Table.Cell>
+                          <span className="font-medium">{customer.name}</span>
+                        </Table.Cell>
+                        <Table.Cell>{customer.lastnames}</Table.Cell>
+                        <Table.Cell className="text-muted">{customer.phone}</Table.Cell>
+                        <Table.Cell className="text-muted">{customer.email}</Table.Cell>
+                        <Table.Cell>
+                          <div className="flex gap-1">
+                            <Button isIconOnly size="sm" variant="ghost" onPress={() => onEdit(customer)}>
+                              <Pencil width={16} height={16} />
+                            </Button>
+                            <Button isIconOnly size="sm" variant="danger" onPress={() => onDelete(customer.id)}>
+                              <TrashBin width={16} height={16} />
+                            </Button>
+                          </div>
+                        </Table.Cell>
+                      </Table.Row>
+                    );
+                  })
+                )}
+              </Table.Body>
+            </Table.Content>
+          </Table.ScrollContainer>
+        </Table>
+
+        {filtered.length > PAGE_SIZE && (
+          <Table.Footer>
+            <Pagination size="sm">
+              <Pagination.Summary>
+                {table.getState().pagination.pageIndex * PAGE_SIZE + 1} a{" "}
+                {Math.min(
+                  (table.getState().pagination.pageIndex + 1) * PAGE_SIZE,
+                  filtered.length,
+                )}{" "}
+                de {filtered.length} resultados
+              </Pagination.Summary>
+              <Pagination.Content>
+                <Pagination.Item>
+                  <Pagination.Previous
+                    isDisabled={!table.getCanPreviousPage()}
+                    onPress={() => table.previousPage()}
+                  >
+                    <Pagination.PreviousIcon />
+                  </Pagination.Previous>
+                </Pagination.Item>
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                  <Pagination.Item key={p}>
+                    <Pagination.Link isActive={p === page} onPress={() => setPage(p)}>
+                      {p}
+                    </Pagination.Link>
+                  </Pagination.Item>
+                ))}
+                <Pagination.Item>
+                  <Pagination.Next
+                    isDisabled={!table.getCanNextPage()}
+                    onPress={() => table.nextPage()}
+                  >
+                    <Pagination.NextIcon />
+                  </Pagination.Next>
+                </Pagination.Item>
+              </Pagination.Content>
+            </Pagination>
+          </Table.Footer>
+        )}
+      </div>
+    </ContentCard>
   );
 }
