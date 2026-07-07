@@ -1,0 +1,206 @@
+@import "tailwindcss";
+
+@import "@heroui/styles";
+
+:root,
+.light,
+.default,
+[data-theme="light"],
+[data-theme="default"] {
+  --accent: oklch(80.09% 0.194 140.04);
+  --accent-foreground: oklch(15% 0.03 140.04);
+  --background: oklch(97.02% 0.0015 140.04);
+  --border: oklch(90% 0.0015 140.04);
+  --danger: oklch(65.32% 0.2335 12.08);
+  --danger-foreground: oklch(99.11% 0 0);
+  --default: oklch(94% 0.0015 140.04);
+  --default-foreground: oklch(21.03% 0.0059 140.04);
+  --field-background: oklch(100% 0.0008 140.04);
+  --field-border: transparent;
+  --field-foreground: oklch(21.03% 0.0015 140.04);
+  --field-placeholder: oklch(55.17% 0.003 140.04);
+  --focus: oklch(80.09% 0.194 140.04);
+  --foreground: oklch(21.03% 0.0015 140.04);
+  --muted: oklch(55.17% 0.003 140.04);
+  --overlay: oklch(100% 0.0004 140.04);
+  --overlay-foreground: oklch(21.03% 0.0015 140.04);
+  --scrollbar: oklch(87.1% 0.0015 140.04);
+  --segment: oklch(100% 0.0015 140.04);
+  --segment-foreground: oklch(21.03% 0.0015 140.04);
+  --separator: oklch(92% 0.0015 140.04);
+  --success: oklch(73.29% 0.1941 137.15);
+  --success-foreground: oklch(21.03% 0.0059 137.15);
+  --surface: oklch(100% 0.0008 140.04);
+  --surface-foreground: oklch(21.03% 0.0015 140.04);
+  --surface-secondary: oklch(95.24% 0.0012 140.04);
+  --surface-secondary-foreground: oklch(21.03% 0.0015 140.04);
+  --surface-tertiary: oklch(93.73% 0.0012 140.04);
+  --surface-tertiary-foreground: oklch(21.03% 0.0015 140.04);
+  --warning: oklch(78.19% 0.159 58.67);
+  --warning-foreground: oklch(21.03% 0.0059 58.67);
+  --radius: 0.5rem;
+  --field-radius: 0.75rem;
+  --font-sans: var(--font-inter);
+}
+
+.dark,
+[data-theme="dark"] {
+  color-scheme: dark;
+  --accent: oklch(80.09% 0.194 140.04);
+  --accent-foreground: oklch(15% 0.03 140.04);
+  --background: oklch(12% 0.0015 140.04);
+  --border: oklch(28% 0.0015 140.04);
+  --danger: oklch(59.4% 0.1973 10.97);
+  --danger-foreground: oklch(99.11% 0 0);
+  --default: oklch(27.4% 0.0015 140.04);
+  --default-foreground: oklch(99.11% 0 0);
+  --field-background: oklch(21.03% 0.003 140.04);
+  --field-border: transparent;
+  --field-foreground: oklch(99.11% 0.0015 140.04);
+  --field-placeholder: oklch(70.5% 0.003 140.04);
+  --focus: oklch(80.09% 0.194 140.04);
+  --foreground: oklch(99.11% 0.0015 140.04);
+  --muted: oklch(70.5% 0.003 140.04);
+  --overlay: oklch(21.03% 0.003 140.04);
+  --overlay-foreground: oklch(99.11% 0.0015 140.04);
+  --scrollbar: oklch(70.5% 0.0015 140.04);
+  --segment: oklch(39.64% 0.0015 140.04);
+  --segment-foreground: oklch(99.11% 0.0015 140.04);
+  --separator: oklch(25% 0.0015 140.04);
+  --success: oklch(73.29% 0.1941 137.15);
+  --success-foreground: oklch(21.03% 0.0059 137.15);
+  --surface: oklch(21.03% 0.003 140.04);
+  --surface-foreground: oklch(99.11% 0.0015 140.04);
+  --surface-secondary: oklch(25.7% 0.0023 140.04);
+  --surface-secondary-foreground: oklch(99.11% 0.0015 140.04);
+  --surface-tertiary: oklch(27.21% 0.0023 140.04);
+  --surface-tertiary-foreground: oklch(99.11% 0.0015 140.04);
+  --warning: oklch(82.03% 0.1392 62.68);
+  --warning-foreground: oklch(21.03% 0.0059 62.68);
+}
+
+/* ── FullCalendar theme overrides ── */
+.fc {
+  --fc-border-color: var(--border);
+  --fc-button-text-color: var(--foreground);
+  --fc-button-bg-color: var(--surface-secondary);
+  --fc-button-border-color: var(--border);
+  --fc-button-hover-bg-color: var(--surface-tertiary);
+  --fc-button-hover-border-color: var(--border);
+  --fc-button-active-bg-color: var(--accent);
+  --fc-button-active-border-color: var(--accent);
+  --fc-today-bg-color: color-mix(in srgb, var(--accent) 10%, transparent);
+  --fc-event-bg-color: var(--accent);
+  --fc-event-border-color: var(--accent);
+  --fc-event-text-color: var(--accent-foreground);
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: var(--surface);
+  --fc-neutral-text-color: var(--foreground);
+  --fc-list-event-hover-bg-color: var(--surface-secondary);
+  font-family: var(--font-sans, inherit);
+}
+
+.fc .fc-toolbar-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+}
+
+.fc .fc-button {
+  border-radius: var(--field-radius);
+  font-size: 0.8125rem;
+  padding: 0.375rem 0.75rem;
+  font-weight: 500;
+  transition: background-color 0.15s, border-color 0.15s;
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active,
+.fc .fc-button-primary:not(:disabled):active {
+  background-color: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-foreground);
+}
+
+.fc .fc-daygrid-day.fc-day-today {
+  background-color: var(--fc-today-bg-color);
+}
+
+.fc .fc-daygrid-day-number {
+  color: var(--foreground);
+  font-size: 0.8125rem;
+  padding: 0.25rem 0.375rem;
+}
+
+.fc .fc-daygrid-more-link {
+  color: var(--accent);
+  font-size: 0.75rem;
+}
+
+.fc .fc-col-header-cell-cushion {
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  text-decoration: none;
+  padding: 0.5rem 0;
+}
+
+.fc .fc-daygrid-day-frame {
+  cursor: pointer;
+}
+
+.fc .fc-daygrid-event {
+  border-radius: 0.375rem;
+  font-size: 0.75rem;
+  padding: 1px 4px;
+  border: none;
+}
+
+.fc .fc-timegrid-slot {
+  height: 2.5rem;
+}
+
+.fc .fc-timegrid-col.fc-day-today {
+  background-color: var(--fc-today-bg-color);
+}
+
+.fc .fc-timegrid-axis-cushion,
+.fc .fc-timegrid-slot-label-cushion {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.fc .fc-popover {
+  background-color: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.fc .fc-popover-title {
+  color: var(--foreground);
+  font-size: 0.875rem;
+}
+
+.fc .fc-more-popover .fc-daygrid-event {
+  margin-bottom: 2px;
+}
+
+.fc .fc-non-business {
+  background-color: transparent;
+}
+
+.fc .fc-scrollgrid {
+  border-color: var(--border);
+}
+
+.fc .fc-scrollgrid-section > td {
+  border-color: var(--border);
+}
+
+.fc .fc-daygrid-day-events {
+  min-height: 2rem;
+}
+
+.fc .fc-view-harness {
+  background-color: var(--surface);
+  border-radius: var(--radius);
+}

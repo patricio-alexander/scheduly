@@ -1,0 +1,88 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+}
+
+enum AppointmentStatus {
+  scheduled
+  rescheduled
+  completed
+  cancelled
+}
+
+model User {
+  id       Int    @id @default(autoincrement())
+  username String @unique
+  name     String
+  email    String
+  password String
+  role     String
+  photo   String?
+
+  userRoles       UserRole[]
+  appointments    Appointment[]
+}
+
+model Role {
+  id   Int    @id @default(autoincrement())
+  name String
+
+  userRoles UserRole[]
+}
+
+model UserRole {
+  userId Int
+  roleId Int
+
+  user User @relation(fields: [userId], references: [id])
+  role Role @relation(fields: [roleId], references: [id])
+
+  @@id([userId, roleId])
+}
+
+model Customer {
+  id        Int    @id @default(autoincrement())
+  name      String
+  lastnames String
+  phone     String
+  email     String
+
+  appointments Appointment[]
+}
+
+model Service {
+  id    Int    @id @default(autoincrement())
+  name  String
+  price Float
+
+  appointmentsServices AppointmentsServices[]
+}
+
+model AppointmentsServices {
+  appointmentId Int
+  serviceId     Int
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  service     Service     @relation(fields: [serviceId], references: [id])
+
+  @@id([appointmentId, serviceId])
+}
+
+model Appointment {
+  id              Int               @id @default(autoincrement())
+  title           String
+  description     String
+  customerId      Int
+  userId          Int
+  appointmentDate DateTime
+  status          AppointmentStatus
+  reminderSent    String
+
+  customer  Customer              @relation(fields: [customerId], references: [id])
+  user      User                  @relation(fields: [userId], references: [id])
+  services  AppointmentsServices[]
+}
