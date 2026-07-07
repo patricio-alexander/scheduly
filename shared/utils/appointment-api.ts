@@ -1,6 +1,8 @@
-import { AppointmentStatus } from "@/generated/prisma/client";
+import { appointmentStatusOptions } from "@/shared/utils/appointment-status";
 
-const validStatuses = new Set<string>(Object.values(AppointmentStatus));
+export type AppointmentStatusValue = (typeof appointmentStatusOptions)[number];
+
+const validStatuses = new Set<string>(appointmentStatusOptions);
 
 export function parseAppointmentDate(value: string) {
   const date = new Date(value);
@@ -10,10 +12,10 @@ export function parseAppointmentDate(value: string) {
   return date;
 }
 
-export function parseAppointmentStatus(value: unknown): AppointmentStatus {
+export function parseAppointmentStatus(value: unknown): AppointmentStatusValue {
   const status = String(value ?? "scheduled");
   if (!validStatuses.has(status)) {
     throw new Error(`Estado de turno inválido: ${status}`);
   }
-  return status as AppointmentStatus;
+  return status as AppointmentStatusValue;
 }

@@ -1,18 +1,21 @@
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
+import { hashPassword } from "../shared/utils/password";
 
 async function main() {
   const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
   const prisma = new PrismaClient({ adapter });
 
+  const adminPassword = await hashPassword("123456");
+
   const admin = await prisma.user.upsert({
     where: { username: "admin" },
-    update: {},
+    update: { password: adminPassword },
     create: {
       username: "admin",
       name: "Administrador",
       email: "admin@scheduly.cl",
-      password: "123456",
+      password: adminPassword,
       role: "admin",
     },
   });
@@ -30,7 +33,7 @@ async function seedTestData(prisma: PrismaClient) {
       username: "jperez",
       name: "Juan Pérez",
       email: "juan.perez@example.com",
-      password: "123456",
+      password: await hashPassword("123456"),
       role: "employee",
       phone: "+56 9 1234 5678",
       bio: "Recepcionista principal, encargado de agendar citas.",
@@ -40,7 +43,7 @@ async function seedTestData(prisma: PrismaClient) {
       username: "mgarcia",
       name: "María García",
       email: "maria.garcia@example.com",
-      password: "123456",
+      password: await hashPassword("123456"),
       role: "employee",
       phone: "+56 9 8765 4321",
       bio: "Asistente administrativa, maneja la agenda de servicios.",
@@ -161,6 +164,28 @@ async function seedTestData(prisma: PrismaClient) {
     ),
   );
 
+  // --- Productos de prueba ---
+  const productsData = [
+    { name: "Shampoo profesional", price: 12000, stock: 45 },
+    { name: "Acondicionador reparador", price: 14000, stock: 38 },
+    { name: "Cera para barba", price: 9500, stock: 22 },
+    { name: "Gel fijador", price: 8000, stock: 15 },
+    { name: "Mascarilla capilar", price: 18000, stock: 8 },
+    { name: "Aceite para barba", price: 11000, stock: 30 },
+    { name: "Spray termoprotector", price: 13500, stock: 4 },
+    { name: "Tinte retail", price: 22000, stock: 12 },
+  ];
+
+  const products = await Promise.all(
+    productsData.map((p) =>
+      prisma.product.create({ data: p }).catch(() =>
+        prisma.product.findFirst({ where: { name: p.name } }).then((existing) =>
+          existing ?? prisma.product.create({ data: p }),
+        ),
+      ),
+    ),
+  );
+
   // --- Turnos de prueba (últimos 30 días) ---
   const now = new Date();
   const statuses = [
@@ -232,6 +257,19 @@ async function seedTestData(prisma: PrismaClient) {
           data: {
             appointmentId: apt.id,
             serviceId: svc.id,
+          },
+        })
+        .catch(() => {});
+    }
+
+    if (i % 3 === 0) {
+      const product = products[i % products.length];
+      await prisma.appointmentsProducts
+        .create({
+          data: {
+            appointmentId: apt.id,
+            productId: product.id,
+            quantity: 1 + (i % 2),
           },
         })
         .catch(() => {});

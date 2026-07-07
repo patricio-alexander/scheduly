@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { parseAppointmentDate, parseAppointmentStatus } from "@/shared/utils/appointment-api";
+import {
+  deductStockForAppointment,
+  parseAppointmentProducts,
+  validateProductStock,
+} from "@/shared/utils/appointment-business";
 
 export async function GET() {
   try {
@@ -44,28 +49,52 @@ export async function POST(request: Request) {
       appointmentDate,
       status,
       serviceIds,
+      productIds,
+      products: productsInput,
     } = body;
 
-    const appointment = await prisma.appointment.create({
-      data: {
-        title,
-        description: description ?? "",
-        customerId: Number(customerId),
-        userId: Number(userId),
-        appointmentDate: parseAppointmentDate(appointmentDate),
-        status: parseAppointmentStatus(status),
-        reminderSent: "",
-      },
-    });
+    const appointment = await prisma.$transaction(async (tx) => {
+      const products = parseAppointmentProducts(productsInput, productIds);
+      await validateProductStock(tx, products);
 
-    if (serviceIds?.length > 0) {
-      await prisma.appointmentsServices.createMany({
-        data: serviceIds.map((serviceId: number) => ({
-          appointmentId: appointment.id,
-          serviceId: Number(serviceId),
-        })),
+      const created = await tx.appointment.create({
+        data: {
+          title,
+          description: description ?? "",
+          customerId: Number(customerId),
+          userId: Number(userId),
+          appointmentDate: parseAppointmentDate(appointmentDate),
+          status: parseAppointmentStatus(status),
+          reminderSent: "",
+        },
       });
-    }
+
+      if (serviceIds?.length > 0) {
+        await tx.appointmentsServices.createMany({
+          data: serviceIds.map((serviceId: number) => ({
+            appointmentId: created.id,
+            serviceId: Number(serviceId),
+          })),
+        });
+      }
+
+      if (products.length > 0) {
+        await tx.appointmentsProducts.createMany({
+          data: products.map(({ productId, quantity }) => ({
+            appointmentId: created.id,
+            productId,
+            quantity,
+          })),
+        });
+      }
+
+      const parsedStatus = parseAppointmentStatus(status);
+      if (parsedStatus === "completed") {
+        await deductStockForAppointment(tx, created.id);
+      }
+
+      return created;
+    });
 
     return NextResponse.json(appointment, { status: 201 });
   } catch (error) {

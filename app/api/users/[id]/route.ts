@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
+import { hashPassword } from "@/shared/utils/password";
 
 export async function PUT(
   request: Request,
@@ -21,7 +22,7 @@ export async function PUT(
     }
 
     const data: Record<string, string> = { username, name, email, role };
-    if (password) data.password = password;
+    if (password) data.password = await hashPassword(password);
 
     const user = await prisma.user.update({
       where: { id: Number(id) },

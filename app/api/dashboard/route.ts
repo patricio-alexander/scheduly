@@ -6,7 +6,7 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const userId = url.searchParams.get("userId");
 
-    const [unreadNotifications, customers, services, totalAppointments, appointments] =
+    const [unreadNotifications, customers, services, products, totalAppointments, appointments] =
       await Promise.all([
         userId
           ? prisma.notification.count({
@@ -15,12 +15,16 @@ export async function GET(request: Request) {
           : Promise.resolve(0),
         prisma.customer.count(),
         prisma.service.count(),
+        prisma.product.count(),
         prisma.appointment.count(),
         prisma.appointment.findMany({
           include: {
             customer: { select: { name: true, lastnames: true } },
             services: {
               include: { service: { select: { price: true } } },
+            },
+            products: {
+              include: { product: { select: { price: true } } },
             },
           },
           orderBy: { appointmentDate: "desc" },
@@ -43,15 +47,22 @@ export async function GET(request: Request) {
         services: {
           include: { service: { select: { price: true } } },
         },
+        products: {
+          include: { product: { select: { price: true } } },
+        },
       },
     });
 
     const revenue = completed.reduce((sum, apt) => {
-      const aptTotal = apt.services.reduce(
+      const servicesTotal = apt.services.reduce(
         (s, as) => s + Number(as.service.price),
         0,
       );
-      return sum + aptTotal;
+      const productsTotal = apt.products.reduce(
+        (p, ap) => p + Number(ap.product.price) * ap.quantity,
+        0,
+      );
+      return sum + servicesTotal + productsTotal;
     }, 0);
 
     // Appointments by day for the last 7 days
@@ -80,6 +91,7 @@ export async function GET(request: Request) {
       unreadNotifications,
       totalCustomers: customers,
       totalServices: services,
+      totalProducts: products,
       totalAppointments,
       scheduled: statusCounts[0],
       completed: statusCounts[1],
@@ -97,7 +109,8 @@ export async function GET(request: Request) {
         status: a.status,
       })),
     });
-  } catch {
+  } catch (error) {
+    console.error("GET /api/dashboard", error);
     return NextResponse.json(
       { message: "Error al obtener dashboard" },
       { status: 500 },

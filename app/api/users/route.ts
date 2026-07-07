@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
+import { hashPassword } from "@/shared/utils/password";
 
 export async function GET() {
   try {
@@ -30,7 +31,13 @@ export async function POST(request: Request) {
     }
 
     const user = await prisma.user.create({
-      data: { username, name, email, password, role: role ?? "user" },
+      data: {
+        username,
+        name,
+        email,
+        password: await hashPassword(password),
+        role: role ?? "user",
+      },
       select: { id: true, username: true, name: true, email: true, role: true },
     });
 

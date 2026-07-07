@@ -1,9 +1,9 @@
 "use client";
 
 import { apiUrl } from "@/shared/utils/api";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Table, Pagination } from "@heroui/react";
+import { Button, Table } from "@heroui/react";
 import { StatusChip } from "@/shared/components/StatusChip";
 import { StatusLegend } from "@/shared/components/StatusLegend";
 import { statusChartColor, statusLabel } from "@/shared/utils/appointment-status";
@@ -19,7 +19,6 @@ import Calendar from "@gravity-ui/icons/Calendar";
 import {
   useReactTable,
   getCoreRowModel,
-  getPaginationRowModel,
 } from "@tanstack/react-table";
 import {
   PieChart,
@@ -95,15 +94,15 @@ function StatCard({
   }[variant];
 
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-separator bg-surface p-5 shadow-sm">
-      <div className={`absolute inset-x-0 top-0 h-1 ${styles.bar}`} />
-      <div className="flex items-start justify-between gap-3">
+    <div className="relative overflow-hidden rounded-xl border border-separator bg-surface p-4 shadow-sm">
+      <div className={`absolute inset-x-0 top-0 h-0.5 ${styles.bar}`} />
+      <div className="flex items-start justify-between gap-2">
         <div className="min-w-0">
-          <p className="text-sm text-muted">{label}</p>
-          <p className="mt-1 text-2xl font-bold tracking-tight truncate">{value}</p>
-          {subtitle && <p className="mt-1 text-xs text-muted">{subtitle}</p>}
+          <p className="text-xs text-muted">{label}</p>
+          <p className="mt-0.5 text-xl font-bold tracking-tight truncate">{value}</p>
+          {subtitle && <p className="mt-0.5 text-[11px] text-muted truncate">{subtitle}</p>}
         </div>
-        <div className={`shrink-0 rounded-xl p-2.5 ${styles.bg} ${styles.icon}`}>
+        <div className={`shrink-0 rounded-lg p-2 ${styles.bg} ${styles.icon}`}>
           {icon}
         </div>
       </div>
@@ -113,21 +112,22 @@ function StatCard({
 
 function DashboardSkeleton() {
   return (
-    <div className="flex flex-col gap-6">
+    <div className="flex flex-col gap-5">
       <div className="space-y-2">
-        <Skeleton className="h-8 w-64" />
-        <Skeleton className="h-4 w-48" />
+        <Skeleton className="h-7 w-56" />
+        <Skeleton className="h-3 w-40" />
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
         {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-28" />
+          <Skeleton key={i} className="h-20" />
         ))}
       </div>
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Skeleton className="h-80" />
-        <Skeleton className="h-80" />
+      <Skeleton className="h-10" />
+      <Skeleton className="h-52" />
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+        <Skeleton className="h-72" />
+        <Skeleton className="h-72" />
       </div>
-      <Skeleton className="h-72" />
     </div>
   );
 }
@@ -136,8 +136,33 @@ export default function DashboardPage() {
   const { user } = useAuth();
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [page, setPage] = useState(1);
-  const PAGE_SIZE = 5;
+  const [loadError, setLoadError] = useState(false);
+
+  const loadDashboard = useCallback(async () => {
+    if (!user) return;
+    setLoading(true);
+    setLoadError(false);
+    try {
+      const res = await fetch(apiUrl(`/api/dashboard?userId=${user.id}`));
+      if (!res.ok) {
+        setData(null);
+        setLoadError(true);
+        return;
+      }
+      const json: unknown = await res.json();
+      if (json && typeof json === "object") {
+        setData(json as DashboardData);
+      } else {
+        setData(null);
+        setLoadError(true);
+      }
+    } catch {
+      setData(null);
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
+  }, [user]);
 
   const columns = useMemo(
     () => [
@@ -152,26 +177,12 @@ export default function DashboardPage() {
   const appointmentsTable = useReactTable({
     data: data?.recentAppointments ?? [],
     columns,
-    pageCount: Math.ceil((data?.recentAppointments.length ?? 0) / PAGE_SIZE),
-    state: { pagination: { pageIndex: page - 1, pageSize: PAGE_SIZE } },
-    onPaginationChange: (updater) => {
-      const next =
-        typeof updater === "function"
-          ? updater({ pageIndex: page - 1, pageSize: PAGE_SIZE })
-          : updater;
-      setPage(next.pageIndex + 1);
-    },
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    manualPagination: false,
   });
 
   useEffect(() => {
-    fetch(apiUrl(`/api/dashboard?userId=${user?.id ?? ""}`))
-      .then((r) => r.json())
-      .then(setData)
-      .finally(() => setLoading(false));
-  }, [user]);
+    loadDashboard();
+  }, [loadDashboard]);
 
   if (!user) return null;
 
@@ -204,17 +215,17 @@ export default function DashboardPage() {
       ].filter((item) => item.value > 0)
     : [];
 
-  const weekTotal = data?.appointmentsByDay.reduce((sum, d) => sum + d.count, 0) ?? 0;
+  const weekTotal = data?.appointmentsByDay?.reduce((sum, d) => sum + d.count, 0) ?? 0;
 
   return (
-    <div className="flex flex-col gap-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div className="flex flex-col gap-5">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
         <div>
-          <p className="text-sm font-medium text-accent capitalize">{todayLabel}</p>
-          <h1 className="text-3xl font-bold tracking-tight mt-1">
+          <p className="text-xs font-medium text-accent capitalize">{todayLabel}</p>
+          <h1 className="text-2xl font-bold tracking-tight mt-0.5">
             {getGreeting()}, {user.name.split(" ")[0]}
           </h1>
-          <p className="text-muted text-sm mt-1">
+          <p className="text-muted text-xs mt-0.5">
             Resumen de actividad y rendimiento de tu negocio
           </p>
         </div>
@@ -229,11 +240,22 @@ export default function DashboardPage() {
         )}
       </div>
 
+      {loadError && (
+        <div className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+          <p className="text-sm">
+            No se pudo cargar el resumen del dashboard. Recarga la página o intenta de nuevo.
+          </p>
+          <Button size="sm" variant="secondary" onPress={loadDashboard}>
+            Reintentar
+          </Button>
+        </div>
+      )}
+
       {loading ? (
         <DashboardSkeleton />
       ) : (
         <>
-          <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <StatCard
               label="Ingresos"
               value={formatCurrency(data?.revenue ?? 0)}
@@ -262,7 +284,7 @@ export default function DashboardPage() {
             />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
             {[
               { label: statusLabel.scheduled, value: data?.scheduled ?? 0, icon: Clock, color: "text-orange-500" },
               { label: statusLabel.paid_pending, value: data?.paid_pending ?? 0, icon: Calendar, color: "text-blue-500" },
@@ -275,37 +297,34 @@ export default function DashboardPage() {
               return (
                 <div
                   key={item.label}
-                  className="rounded-xl border border-separator bg-surface-secondary/60 px-4 py-3 flex items-center gap-3"
+                  className="rounded-lg border border-separator bg-surface-secondary/60 px-2.5 py-2 flex items-center gap-2"
                 >
-                  <Icon width={18} height={18} className={item.color} />
-                  <div>
-                    <p className="text-xs text-muted">{item.label}</p>
-                    <p className="text-lg font-semibold leading-tight">{item.value}</p>
+                  <Icon width={16} height={16} className={item.color} />
+                  <div className="min-w-0">
+                    <p className="text-[10px] text-muted truncate">{item.label}</p>
+                    <p className="text-base font-semibold leading-tight">{item.value}</p>
                   </div>
                 </div>
               );
             })}
           </div>
 
-          <StatusLegend className="rounded-xl border border-separator bg-surface-secondary/40 px-4 py-3" />
+          <StatusLegend title="" className="rounded-lg border border-separator bg-surface-secondary/40 px-3 py-2 [&_span]:text-xs" />
 
-          <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
-            <div className="lg:col-span-3 bg-surface rounded-2xl border border-separator p-6 shadow-sm">
-              <div className="flex items-start justify-between mb-6">
-                <div>
-                  <h2 className="text-lg font-semibold">Actividad semanal</h2>
-                  <p className="text-sm text-muted mt-0.5">
-                    Turnos registrados en los últimos 7 días
-                  </p>
-                </div>
-                <div className="text-right">
-                  <p className="text-2xl font-bold">{weekTotal}</p>
-                  <p className="text-xs text-muted">esta semana</p>
-                </div>
+          <div className="bg-surface rounded-xl border border-separator p-4 shadow-sm">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h2 className="text-base font-semibold">Actividad semanal</h2>
+                <p className="text-xs text-muted">Últimos 7 días</p>
               </div>
-              {data && (
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={data.appointmentsByDay} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+              <div className="text-right">
+                <p className="text-xl font-bold">{weekTotal}</p>
+                <p className="text-[10px] text-muted">esta semana</p>
+              </div>
+            </div>
+            {data && (
+              <ResponsiveContainer width="100%" height={200}>
+                  <BarChart data={data.appointmentsByDay ?? []} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
                     <defs>
                       <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
                         <stop offset="0%" stopColor="var(--accent)" stopOpacity={1} />
@@ -340,25 +359,26 @@ export default function DashboardPage() {
                   </BarChart>
                 </ResponsiveContainer>
               )}
-            </div>
+          </div>
 
-            <div className="lg:col-span-2 bg-surface rounded-2xl border border-separator p-6 shadow-sm">
-              <div className="mb-6">
-                <h2 className="text-lg font-semibold">Distribución por estado</h2>
-                <p className="text-sm text-muted mt-0.5">Proporción de turnos por categoría</p>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch">
+            <div className="bg-surface rounded-xl border border-separator p-4 shadow-sm flex flex-col">
+              <div className="mb-3">
+                <h2 className="text-base font-semibold">Distribución por estado</h2>
+                <p className="text-xs text-muted">Proporción por categoría</p>
               </div>
               {data && statusChartData.length > 0 ? (
-                <div className="flex flex-col items-center gap-6">
-                  <div className="relative">
-                    <ResponsiveContainer width={220} height={220}>
+                <div className="flex flex-1 flex-col sm:flex-row items-center gap-4">
+                  <div className="relative shrink-0">
+                    <ResponsiveContainer width={160} height={160}>
                       <PieChart>
                         <Pie
                           data={statusChartData}
                           cx="50%"
                           cy="50%"
-                          innerRadius={62}
-                          outerRadius={88}
-                          paddingAngle={4}
+                          innerRadius={48}
+                          outerRadius={68}
+                          paddingAngle={3}
                           dataKey="value"
                           stroke="none"
                         >
@@ -371,72 +391,63 @@ export default function DashboardPage() {
                             background: "var(--surface)",
                             border: "1px solid var(--separator)",
                             borderRadius: "12px",
-                            fontSize: 13,
+                            fontSize: 12,
                           }}
                         />
                       </PieChart>
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <span className="text-3xl font-bold">{totalStatus}</span>
-                      <span className="text-xs text-muted">turnos</span>
+                      <span className="text-2xl font-bold">{totalStatus}</span>
+                      <span className="text-[10px] text-muted">turnos</span>
                     </div>
                   </div>
-                  <div className="w-full grid grid-cols-2 gap-2">
+                  <div className="w-full flex-1 grid grid-cols-1 gap-1.5">
                     {statusChartData.map((entry) => (
                       <div
                         key={entry.name}
-                        className="flex items-center gap-2 rounded-lg bg-surface-secondary/60 px-3 py-2 text-sm"
+                        className="flex items-center gap-2 rounded-md bg-surface-secondary/60 px-2.5 py-1.5 text-xs"
                       >
                         <span
-                          className="w-2.5 h-2.5 rounded-full shrink-0"
+                          className="w-2 h-2 rounded-full shrink-0"
                           style={{ background: entry.color }}
                         />
                         <span className="text-muted truncate">{entry.name}</span>
-                        <span className="font-semibold ml-auto">{entry.value}</span>
+                        <span className="font-semibold ml-auto tabular-nums">{entry.value}</span>
                       </div>
                     ))}
                   </div>
                 </div>
               ) : (
-                <div className="flex flex-col items-center justify-center h-52 text-center">
-                  <Gear width={32} height={32} className="text-muted mb-3 opacity-40" />
-                  <p className="text-sm text-muted">Sin datos de turnos aún</p>
+                <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
+                  <Gear width={28} height={28} className="text-muted mb-2 opacity-40" />
+                  <p className="text-xs text-muted">Sin datos de turnos aún</p>
                 </div>
               )}
             </div>
-          </div>
 
-          <div className="bg-surface rounded-2xl border border-separator shadow-sm overflow-hidden">
-            <div className="flex items-center justify-between px-6 py-5 border-b border-separator">
-              <div>
-                <h2 className="text-lg font-semibold">Últimos turnos</h2>
-                <p className="text-sm text-muted mt-0.5">Actividad reciente en tu agenda</p>
-              </div>
-              <Link
-                href="/agenda"
-                className="text-sm font-medium text-accent hover:underline"
-              >
-                Ver agenda
-              </Link>
-            </div>
-
-            {data?.recentAppointments.length === 0 ? (
-              <div className="flex flex-col items-center justify-center py-16 px-6 text-center">
-                <Calendar width={36} height={36} className="text-muted mb-3 opacity-40" />
-                <p className="font-medium">Sin turnos recientes</p>
-                <p className="text-sm text-muted mt-1">Los nuevos turnos aparecerán aquí</p>
-                <Link
-                  href="/agenda"
-                  className="mt-4 text-sm font-medium text-accent hover:underline"
-                >
-                  Crear primer turno
+            <div className="bg-surface rounded-xl border border-separator shadow-sm overflow-hidden flex flex-col min-h-[280px]">
+              <div className="flex items-center justify-between px-4 py-3 border-b border-separator shrink-0">
+                <div>
+                  <h2 className="text-base font-semibold">Últimos turnos</h2>
+                  <p className="text-xs text-muted">Actividad reciente</p>
+                </div>
+                <Link href="/agenda" className="text-xs font-medium text-accent hover:underline">
+                  Ver agenda
                 </Link>
               </div>
-            ) : (
-              <div className="px-2 pb-4">
-                <Table>
-                  <Table.ScrollContainer>
-                    <Table.Content aria-label="Últimos turnos" className="min-w-[560px]">
+
+              {(data?.recentAppointments?.length ?? 0) === 0 ? (
+                <div className="flex flex-1 flex-col items-center justify-center py-10 px-4 text-center">
+                  <Calendar width={28} height={28} className="text-muted mb-2 opacity-40" />
+                  <p className="text-sm font-medium">Sin turnos recientes</p>
+                  <Link href="/agenda" className="mt-2 text-xs font-medium text-accent hover:underline">
+                    Crear turno
+                  </Link>
+                </div>
+              ) : (
+                <div className="flex-1 min-h-0 overflow-auto">
+                  <Table>
+                    <Table.Content aria-label="Últimos turnos" className="min-w-full text-sm">
                       <Table.Header>
                         <Table.Column isRowHeader>Título</Table.Column>
                         <Table.Column>Cliente</Table.Column>
@@ -450,14 +461,19 @@ export default function DashboardPage() {
                           return (
                             <Table.Row key={apt.id}>
                               <Table.Cell>
-                                <span className="font-medium">{apt.title}</span>
+                                <span className="font-medium text-sm truncate block max-w-[140px]">
+                                  {apt.title}
+                                </span>
                               </Table.Cell>
-                              <Table.Cell className="text-muted">{apt.customer}</Table.Cell>
                               <Table.Cell>
-                                <div className="flex flex-col">
-                                  <span className="text-sm">{date}</span>
-                                  <span className="text-xs text-muted">{time}</span>
-                                </div>
+                                <span className="text-muted text-xs truncate block max-w-[120px]">
+                                  {apt.customer}
+                                </span>
+                              </Table.Cell>
+                              <Table.Cell>
+                                <span className="text-xs whitespace-nowrap">
+                                  {date} · {time}
+                                </span>
                               </Table.Cell>
                               <Table.Cell>
                                 <StatusChip status={apt.status} />
@@ -467,51 +483,10 @@ export default function DashboardPage() {
                         })}
                       </Table.Body>
                     </Table.Content>
-                  </Table.ScrollContainer>
-                </Table>
-                {(data?.recentAppointments.length ?? 0) > PAGE_SIZE && (
-                  <Table.Footer className="px-4">
-                    <Pagination size="sm">
-                      <Pagination.Summary>
-                        {appointmentsTable.getState().pagination.pageIndex * PAGE_SIZE + 1} a{" "}
-                        {Math.min(
-                          (appointmentsTable.getState().pagination.pageIndex + 1) * PAGE_SIZE,
-                          data?.recentAppointments.length ?? 0,
-                        )}{" "}
-                        de {data?.recentAppointments.length ?? 0}
-                      </Pagination.Summary>
-                      <Pagination.Content>
-                        <Pagination.Item>
-                          <Pagination.Previous
-                            isDisabled={!appointmentsTable.getCanPreviousPage()}
-                            onPress={() => appointmentsTable.previousPage()}
-                          >
-                            <Pagination.PreviousIcon />
-                          </Pagination.Previous>
-                        </Pagination.Item>
-                        {Array.from({ length: appointmentsTable.getPageCount() }, (_, i) => i + 1).map(
-                          (p) => (
-                            <Pagination.Item key={p}>
-                              <Pagination.Link isActive={p === page} onPress={() => setPage(p)}>
-                                {p}
-                              </Pagination.Link>
-                            </Pagination.Item>
-                          ),
-                        )}
-                        <Pagination.Item>
-                          <Pagination.Next
-                            isDisabled={!appointmentsTable.getCanNextPage()}
-                            onPress={() => appointmentsTable.nextPage()}
-                          >
-                            <Pagination.NextIcon />
-                          </Pagination.Next>
-                        </Pagination.Item>
-                      </Pagination.Content>
-                    </Pagination>
-                  </Table.Footer>
-                )}
-              </div>
-            )}
+                  </Table>
+                </div>
+              )}
+            </div>
           </div>
         </>
       )}
