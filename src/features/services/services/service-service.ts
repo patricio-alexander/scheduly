@@ -1,7 +1,8 @@
+import { apiUrl } from "@/shared/utils/api";
 import type { Service } from "../types";
 import type { ServiceFormData } from "../lib/service-schema";
 
-const BASE = "/api/services";
+const BASE = apiUrl("/api/services");
 
 export async function getServices(): Promise<Service[]> {
   const res = await fetch(BASE);

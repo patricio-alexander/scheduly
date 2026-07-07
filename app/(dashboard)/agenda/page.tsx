@@ -1,5 +1,6 @@
 "use client";
 
+import { apiUrl } from "@/shared/utils/api";
 import { useEffect, useRef, useState, useCallback } from "react";
 import { useAuth } from "@/src/features/auth";
 import {
@@ -110,7 +111,7 @@ export default function AgendaPage() {
   });
 
   const fetchEvents = useCallback(() => {
-    fetch("/api/appointments")
+    fetch(apiUrl("/api/appointments"))
       .then((res) => res.json())
       .then(setEvents)
       .finally(() => setLoading(false));
@@ -121,8 +122,8 @@ export default function AgendaPage() {
   }, [fetchEvents]);
 
   useEffect(() => {
-    fetch("/api/customers").then((r) => r.json()).then(setCustomers);
-    fetch("/api/services").then((r) => r.json()).then(setServices);
+    fetch(apiUrl("/api/customers")).then((r) => r.json()).then(setCustomers);
+    fetch(apiUrl("/api/services")).then((r) => r.json()).then(setServices);
   }, []);
 
   if (!user) return null;
@@ -167,7 +168,7 @@ export default function AgendaPage() {
   const handleEdit = async () => {
     if (!selectedEvent?.id) return;
     try {
-      const res = await fetch(`/api/appointments/${selectedEvent.id}`);
+      const res = await fetch(apiUrl(`/api/appointments/${selectedEvent.id}`));
       const data = await res.json();
       const datePart = data.appointmentDate.slice(0, 10);
       const timePart = data.appointmentDate.slice(11, 16);
@@ -207,7 +208,7 @@ export default function AgendaPage() {
         serviceIds: selectedServiceIds,
         status: selectedStatus,
       };
-      await fetch(isEdit ? `/api/appointments/${selectedEvent.id}` : "/api/appointments", {
+      await fetch(apiUrl(isEdit ? `/api/appointments/${selectedEvent.id}` : "/api/appointments"), {
         method: isEdit ? "PUT" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload),

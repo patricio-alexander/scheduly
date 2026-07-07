@@ -1,10 +1,11 @@
+import { apiUrl } from "@/shared/utils/api";
 import type { AuthUser } from "../types";
 
 export async function loginUser(
   username: string,
   password: string
 ): Promise<AuthUser> {
-  const res = await fetch("/api/auth/login", {
+  const res = await fetch(apiUrl("/api/auth/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ username, password }),

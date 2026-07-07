@@ -1,7 +1,8 @@
+import { apiUrl } from "@/shared/utils/api";
 import type { Customer } from "../types";
 import type { CustomerFormData } from "../lib/customer-schema";
 
-const BASE = "/api/customers";
+const BASE = apiUrl("/api/customers");
 
 export async function getCustomers(): Promise<Customer[]> {
   const res = await fetch(BASE);

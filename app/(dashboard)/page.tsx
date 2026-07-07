@@ -1,5 +1,6 @@
 "use client";
 
+import { apiUrl } from "@/shared/utils/api";
 import { useEffect, useMemo, useState } from "react";
 import { Table, Pagination, Chip } from "@heroui/react";
 import { useAuth } from "@/src/features/auth";
@@ -94,7 +95,7 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
-    fetch("/api/dashboard")
+    fetch(apiUrl("/api/dashboard"))
       .then((r) => r.json())
       .then(setData)
       .finally(() => setLoading(false));

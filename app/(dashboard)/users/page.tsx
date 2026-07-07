@@ -1,5 +1,6 @@
 "use client";
 
+import { apiUrl } from "@/shared/utils/api";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button, Modal, useOverlayState, Input, Label, toast, Table, Pagination, SearchField } from "@heroui/react";
 import { useAuth } from "@/src/features/auth";
@@ -49,7 +50,7 @@ export default function UsersPage() {
 
   const fetchUsers = useCallback(async () => {
     try {
-      const res = await fetch("/api/users");
+      const res = await fetch(apiUrl("/api/users"));
       setUsers(await res.json());
     } finally {
       setLoading(false);
@@ -82,14 +83,14 @@ export default function UsersPage() {
     setPending(true);
     try {
       if (editing) {
-        await fetch(`/api/users/${editing.id}`, {
+        await fetch(apiUrl(`/api/users/${editing.id}`), {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),
         });
         toast.success("Usuario actualizado");
       } else {
-        await fetch("/api/users", {
+        await fetch(apiUrl("/api/users"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(form),
@@ -108,7 +109,7 @@ export default function UsersPage() {
   const handleDelete = async (id: number) => {
     if (!confirm("¿Eliminar este usuario?")) return;
     try {
-      await fetch(`/api/users/${id}`, { method: "DELETE" });
+      await fetch(apiUrl(`/api/users/${id}`), { method: "DELETE" });
       toast.success("Usuario eliminado");
       fetchUsers();
     } catch (e) {
