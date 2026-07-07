@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
+import { parseAppointmentDate, parseAppointmentStatus } from "@/shared/utils/appointment-api";
 
 export async function GET(
   _request: Request,
@@ -61,8 +62,8 @@ export async function PUT(
         description: description ?? "",
         customerId: Number(customerId),
         userId: Number(userId),
-        appointmentDate: new Date(appointmentDate),
-        status: status ?? "scheduled",
+        appointmentDate: parseAppointmentDate(appointmentDate),
+        status: parseAppointmentStatus(status),
       },
     });
 
@@ -81,10 +82,10 @@ export async function PUT(
     }
 
     return NextResponse.json(appointment);
-  } catch {
-    return NextResponse.json(
-      { message: "Error al actualizar el turno" },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error("PUT /api/appointments/[id]", error);
+    const message =
+      error instanceof Error ? error.message : "Error al actualizar el turno";
+    return NextResponse.json({ message }, { status: 500 });
   }
 }

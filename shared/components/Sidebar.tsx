@@ -76,8 +76,8 @@ export function Sidebar() {
     .toUpperCase();
 
   return (
-    <aside className="w-64 min-h-screen bg-surface border-r border-separator flex flex-col shrink-0">
-      <div className="p-6 border-b border-separator">
+    <aside className="sticky top-0 flex h-screen w-64 shrink-0 flex-col overflow-hidden bg-surface border-r border-separator">
+      <div className="shrink-0 p-6 border-b border-separator">
         <div className="flex items-center gap-3">
           <div className="bg-accent/10 rounded-xl p-2 text-accent">
             <Calendar width={20} height={20} />
@@ -89,7 +89,7 @@ export function Sidebar() {
         </div>
       </div>
 
-      <nav className="flex-1 p-4 flex flex-col gap-1">
+      <nav className="flex-1 min-h-0 overflow-y-auto p-4 flex flex-col gap-1">
         {navItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href;
@@ -114,7 +114,7 @@ export function Sidebar() {
         )}
       </nav>
 
-      <div className="p-4 border-t border-separator flex flex-col gap-2">
+      <div className="shrink-0 p-4 border-t border-separator flex flex-col gap-2">
         {user && (
           <NavButton isActive={pathname === "/profile"} onPress={() => router.push("/profile")}>
             <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/15 text-[10px] font-bold text-accent">

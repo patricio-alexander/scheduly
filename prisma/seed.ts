@@ -165,6 +165,8 @@ async function seedTestData(prisma: PrismaClient) {
   const now = new Date();
   const statuses = [
     "scheduled",
+    "paid_pending",
+    "pending_payment",
     "completed",
     "cancelled",
     "rescheduled",

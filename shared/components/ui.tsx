@@ -88,14 +88,14 @@ export function TableSkeleton({ rows = 5 }: { rows?: number }) {
 
 export function LayoutSkeleton() {
   return (
-    <div className="flex min-h-screen">
-      <div className="w-64 border-r border-separator bg-surface p-4 flex flex-col gap-3">
+    <div className="flex h-screen overflow-hidden">
+      <div className="w-64 shrink-0 border-r border-separator bg-surface p-4 flex flex-col gap-3 h-screen">
         <Skeleton className="h-8 w-32 mx-2" />
         {Array.from({ length: 6 }).map((_, i) => (
           <Skeleton key={i} className="h-10 w-full" />
         ))}
       </div>
-      <main className="flex-1 p-8 bg-background">
+      <main className="flex-1 min-h-0 overflow-y-auto p-8 bg-background">
         <Skeleton className="h-8 w-48 mb-6" />
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
           {Array.from({ length: 4 }).map((_, i) => (

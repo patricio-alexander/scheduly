@@ -32,9 +32,11 @@ export default function DashboardLayout({
 }) {
   return (
     <AuthGuard>
-      <div className="flex min-h-screen">
+      <div className="flex h-screen overflow-hidden">
         <Sidebar />
-        <main className="flex-1 p-6 sm:p-8 bg-background">{children}</main>
+        <main className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 bg-background">
+          {children}
+        </main>
       </div>
     </AuthGuard>
   );

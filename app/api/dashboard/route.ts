@@ -33,6 +33,8 @@ export async function GET(request: Request) {
       prisma.appointment.count({ where: { status: "completed" } }),
       prisma.appointment.count({ where: { status: "cancelled" } }),
       prisma.appointment.count({ where: { status: "rescheduled" } }),
+      prisma.appointment.count({ where: { status: "pending_payment" } }),
+      prisma.appointment.count({ where: { status: "paid_pending" } }),
     ]);
 
     const completed = await prisma.appointment.findMany({
@@ -83,6 +85,8 @@ export async function GET(request: Request) {
       completed: statusCounts[1],
       cancelled: statusCounts[2],
       rescheduled: statusCounts[3],
+      pending_payment: statusCounts[4],
+      paid_pending: statusCounts[5],
       revenue,
       appointmentsByDay,
       recentAppointments: appointments.map((a) => ({

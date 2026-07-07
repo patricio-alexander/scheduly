@@ -3,7 +3,10 @@
 import { apiUrl } from "@/shared/utils/api";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Table, Pagination, Chip } from "@heroui/react";
+import { Table, Pagination } from "@heroui/react";
+import { StatusChip } from "@/shared/components/StatusChip";
+import { StatusLegend } from "@/shared/components/StatusLegend";
+import { statusChartColor, statusLabel } from "@/shared/utils/appointment-status";
 import { useAuth } from "@/src/features/auth";
 import Person from "@gravity-ui/icons/Person";
 import Gear from "@gravity-ui/icons/Gear";
@@ -41,6 +44,8 @@ interface DashboardData {
   completed: number;
   cancelled: number;
   rescheduled: number;
+  pending_payment: number;
+  paid_pending: number;
   revenue: number;
   appointmentsByDay: { date: string; count: number }[];
   recentAppointments: Array<{
@@ -51,27 +56,6 @@ interface DashboardData {
     status: string;
   }>;
 }
-
-const statusLabel: Record<string, string> = {
-  scheduled: "Agendado",
-  rescheduled: "Reagendado",
-  completed: "Completado",
-  cancelled: "Cancelado",
-};
-
-const statusColor: Record<string, "accent" | "warning" | "success" | "danger"> = {
-  scheduled: "accent",
-  rescheduled: "warning",
-  completed: "success",
-  cancelled: "danger",
-};
-
-const CHART_COLORS = {
-  scheduled: "var(--accent)",
-  completed: "var(--success)",
-  cancelled: "var(--danger)",
-  rescheduled: "var(--warning)",
-};
 
 function getGreeting() {
   const hour = new Date().getHours();
@@ -202,17 +186,21 @@ export default function DashboardPage() {
     (data?.scheduled ?? 0) +
     (data?.completed ?? 0) +
     (data?.cancelled ?? 0) +
-    (data?.rescheduled ?? 0);
+    (data?.rescheduled ?? 0) +
+    (data?.pending_payment ?? 0) +
+    (data?.paid_pending ?? 0);
 
   const completionRate =
     totalStatus > 0 ? Math.round(((data?.completed ?? 0) / totalStatus) * 100) : 0;
 
   const statusChartData = data
     ? [
-        { name: "Agendados", value: data.scheduled, color: CHART_COLORS.scheduled },
-        { name: "Completados", value: data.completed, color: CHART_COLORS.completed },
-        { name: "Cancelados", value: data.cancelled, color: CHART_COLORS.cancelled },
-        { name: "Reagendados", value: data.rescheduled, color: CHART_COLORS.rescheduled },
+        { name: statusLabel.scheduled, value: data.scheduled, color: statusChartColor.scheduled },
+        { name: statusLabel.paid_pending, value: data.paid_pending, color: statusChartColor.paid_pending },
+        { name: statusLabel.pending_payment, value: data.pending_payment, color: statusChartColor.pending_payment },
+        { name: statusLabel.completed, value: data.completed, color: statusChartColor.completed },
+        { name: statusLabel.cancelled, value: data.cancelled, color: statusChartColor.cancelled },
+        { name: statusLabel.rescheduled, value: data.rescheduled, color: statusChartColor.rescheduled },
       ].filter((item) => item.value > 0)
     : [];
 
@@ -274,12 +262,14 @@ export default function DashboardPage() {
             />
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
             {[
-              { label: "Agendados", value: data?.scheduled ?? 0, icon: Clock, color: "text-accent" },
-              { label: "Completados", value: data?.completed ?? 0, icon: Check, color: "text-success" },
-              { label: "Reagendados", value: data?.rescheduled ?? 0, icon: Calendar, color: "text-warning" },
-              { label: "Cancelados", value: data?.cancelled ?? 0, icon: Xmark, color: "text-danger" },
+              { label: statusLabel.scheduled, value: data?.scheduled ?? 0, icon: Clock, color: "text-orange-500" },
+              { label: statusLabel.paid_pending, value: data?.paid_pending ?? 0, icon: Calendar, color: "text-blue-500" },
+              { label: statusLabel.pending_payment, value: data?.pending_payment ?? 0, icon: Bell, color: "text-yellow-500" },
+              { label: statusLabel.completed, value: data?.completed ?? 0, icon: Check, color: "text-green-500" },
+              { label: statusLabel.rescheduled, value: data?.rescheduled ?? 0, icon: Calendar, color: "text-muted" },
+              { label: statusLabel.cancelled, value: data?.cancelled ?? 0, icon: Xmark, color: "text-danger" },
             ].map((item) => {
               const Icon = item.icon;
               return (
@@ -296,6 +286,8 @@ export default function DashboardPage() {
               );
             })}
           </div>
+
+          <StatusLegend className="rounded-xl border border-separator bg-surface-secondary/40 px-4 py-3" />
 
           <div className="grid grid-cols-1 lg:grid-cols-5 gap-4">
             <div className="lg:col-span-3 bg-surface rounded-2xl border border-separator p-6 shadow-sm">
@@ -468,9 +460,7 @@ export default function DashboardPage() {
                                 </div>
                               </Table.Cell>
                               <Table.Cell>
-                                <Chip color={statusColor[apt.status] ?? "default"} variant="soft" size="sm">
-                                  {statusLabel[apt.status] ?? apt.status}
-                                </Chip>
+                                <StatusChip status={apt.status} />
                               </Table.Cell>
                             </Table.Row>
                           );

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
+import { parseAppointmentDate, parseAppointmentStatus } from "@/shared/utils/appointment-api";
 
 export async function GET() {
   try {
@@ -51,8 +52,8 @@ export async function POST(request: Request) {
         description: description ?? "",
         customerId: Number(customerId),
         userId: Number(userId),
-        appointmentDate: new Date(appointmentDate),
-        status: status ?? "scheduled",
+        appointmentDate: parseAppointmentDate(appointmentDate),
+        status: parseAppointmentStatus(status),
         reminderSent: "",
       },
     });
@@ -67,10 +68,10 @@ export async function POST(request: Request) {
     }
 
     return NextResponse.json(appointment, { status: 201 });
-  } catch {
-    return NextResponse.json(
-      { message: "Error al crear el turno" },
-      { status: 500 }
-    );
+  } catch (error) {
+    console.error("POST /api/appointments", error);
+    const message =
+      error instanceof Error ? error.message : "Error al crear el turno";
+    return NextResponse.json({ message }, { status: 500 });
   }
 }

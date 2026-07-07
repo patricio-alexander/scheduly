@@ -79,6 +79,55 @@
   --warning-foreground: oklch(21.03% 0.0059 62.68);
 }
 
+/* ── Colores de estado de turnos en calendario (estilo tarjeta) ── */
+.fc .fc-daygrid-event,
+.fc .fc-timegrid-event {
+  --apt-accent: var(--accent);
+  background: color-mix(in srgb, var(--apt-accent) 12%, var(--surface)) !important;
+  border: 1px solid color-mix(in srgb, var(--apt-accent) 22%, var(--border)) !important;
+  border-left-width: 3px !important;
+  border-left-color: var(--apt-accent) !important;
+  color: var(--foreground) !important;
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--apt-accent) 8%, transparent);
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+}
+
+.fc .fc-daygrid-event:hover,
+.fc .fc-timegrid-event:hover {
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--apt-accent) 16%, transparent);
+  z-index: 2;
+}
+
+.fc .fc-daygrid-event.apt-status-scheduled,
+.fc .fc-timegrid-event.apt-status-scheduled {
+  --apt-accent: #f97316;
+}
+
+.fc .fc-daygrid-event.apt-status-rescheduled,
+.fc .fc-timegrid-event.apt-status-rescheduled {
+  --apt-accent: #737373;
+}
+
+.fc .fc-daygrid-event.apt-status-pending-payment,
+.fc .fc-timegrid-event.apt-status-pending-payment {
+  --apt-accent: #ca8a04;
+}
+
+.fc .fc-daygrid-event.apt-status-paid-pending,
+.fc .fc-timegrid-event.apt-status-paid-pending {
+  --apt-accent: #2563eb;
+}
+
+.fc .fc-daygrid-event.apt-status-completed,
+.fc .fc-timegrid-event.apt-status-completed {
+  --apt-accent: #16a34a;
+}
+
+.fc .fc-daygrid-event.apt-status-cancelled,
+.fc .fc-timegrid-event.apt-status-cancelled {
+  --apt-accent: #dc2626;
+}
+
 /* ── FullCalendar theme overrides ── */
 .fc {
   --fc-border-color: var(--border);
@@ -92,7 +141,7 @@
   --fc-today-bg-color: color-mix(in srgb, var(--accent) 10%, transparent);
   --fc-event-bg-color: var(--accent);
   --fc-event-border-color: var(--accent);
-  --fc-event-text-color: var(--accent-foreground);
+  --fc-event-text-color: var(--foreground);
   --fc-page-bg-color: transparent;
   --fc-neutral-bg-color: var(--surface);
   --fc-neutral-text-color: var(--foreground);
@@ -148,10 +197,123 @@
 }
 
 .fc .fc-daygrid-event {
-  border-radius: 0.375rem;
+  border-radius: 0.5rem;
   font-size: 0.75rem;
-  padding: 1px 4px;
-  border: none;
+  padding: 0;
+  margin-bottom: 3px;
+}
+
+.fc .fc-daygrid-event .fc-event-main,
+.fc .fc-timegrid-event .fc-event-main {
+  overflow: hidden;
+  padding: 0;
+  color: var(--foreground) !important;
+}
+
+.fc .fc-daygrid-event .fc-event-title,
+.fc .fc-timegrid-event .fc-event-title,
+.fc .fc-daygrid-event .fc-event-time,
+.fc .fc-timegrid-event .fc-event-time {
+  color: var(--foreground) !important;
+}
+
+.fc .fc-timegrid-event {
+  border-radius: 0.5rem;
+  padding: 0;
+  min-height: 2.75rem;
+}
+
+.fc-event-custom {
+  display: flex;
+  min-width: 0;
+  width: 100%;
+  padding: 0.3125rem 0.4375rem 0.3125rem 0.375rem;
+  line-height: 1.25;
+  color: var(--foreground);
+}
+
+.fc-event-custom--month {
+  flex-direction: column;
+  gap: 0.125rem;
+}
+
+.fc-event-custom--timegrid {
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.375rem 0.5rem;
+}
+
+.fc-event-custom__header {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+}
+
+.fc-event-custom__time-badge {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.0625rem 0.3125rem;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.01em;
+  background: color-mix(in srgb, var(--apt-accent) 18%, transparent);
+  color: var(--apt-accent);
+}
+
+.fc-event-custom__title {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--foreground);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.fc-event-custom--timegrid .fc-event-custom__title {
+  font-size: 0.75rem;
+}
+
+.fc-event-custom__subtitle {
+  margin: 0;
+  font-size: 0.625rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fc-event-custom__details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.0625rem;
+  padding-top: 0.125rem;
+  border-top: 1px solid color-mix(in srgb, var(--apt-accent) 12%, var(--separator));
+}
+
+.fc-event-custom__detail {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 0.625rem;
+  color: var(--muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fc-event-custom__detail::before {
+  content: "";
+  flex-shrink: 0;
+  width: 0.25rem;
+  height: 0.25rem;
+  border-radius: 9999px;
+  background: color-mix(in srgb, var(--apt-accent) 55%, var(--muted));
 }
 
 .fc .fc-timegrid-slot {
@@ -171,17 +333,28 @@
 .fc .fc-popover {
   background-color: var(--surface);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  border-radius: 0.75rem;
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--foreground) 8%, transparent);
+  overflow: hidden;
+}
+
+.fc .fc-popover-header {
+  background: var(--surface-secondary);
+  padding: 0.5rem 0.75rem;
 }
 
 .fc .fc-popover-title {
   color: var(--foreground);
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.fc .fc-popover-body {
+  padding: 0.375rem;
 }
 
 .fc .fc-more-popover .fc-daygrid-event {
-  margin-bottom: 2px;
+  margin-bottom: 4px;
 }
 
 .fc .fc-non-business {

@@ -10,6 +10,8 @@ datasource db {
 enum AppointmentStatus {
   scheduled
   rescheduled
+  paid_pending
+  pending_payment
   completed
   cancelled
 }

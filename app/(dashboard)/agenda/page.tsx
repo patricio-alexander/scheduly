@@ -14,7 +14,6 @@ import {
   DatePicker,
   DateField,
   Calendar,
-  Chip,
   TimeField,
   toast,
 } from "@heroui/react";
@@ -28,8 +27,13 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import esLocale from "@fullcalendar/core/locales/es";
+import type { EventContentArg } from "@fullcalendar/core";
 import CalendarIcon from "@gravity-ui/icons/Calendar";
 import { PageHeader } from "@/shared/components/ui";
+import { StatusChip } from "@/shared/components/StatusChip";
+import { StatusLegend } from "@/shared/components/StatusLegend";
+import { statusCalendarClass, statusLabel, appointmentStatusOptions } from "@/shared/utils/appointment-status";
+import Plus from "@gravity-ui/icons/Plus";
 import Person from "@gravity-ui/icons/Person";
 import Bell from "@gravity-ui/icons/Bell";
 import Clock from "@gravity-ui/icons/Clock";
@@ -85,19 +89,13 @@ const appointmentSchema = z.object({
 
 type AppointmentFormData = z.infer<typeof appointmentSchema>;
 
-const statusLabel: Record<string, string> = {
-  scheduled: "Agendado",
-  rescheduled: "Reagendado",
-  completed: "Completado",
-  cancelled: "Cancelado",
-};
-
-const statusColor: Record<string, "accent" | "warning" | "success" | "danger"> = {
-  scheduled: "accent",
-  rescheduled: "warning",
-  completed: "success",
-  cancelled: "danger",
-};
+function getLocalDateKey(iso: string) {
+  const d = new Date(iso);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}-${m}-${day}`;
+}
 
 function formatAppointmentDate(isoDate: string) {
   const date = new Date(isoDate);
@@ -110,6 +108,51 @@ function formatAppointmentDate(isoDate: string) {
     }),
     time: date.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }),
   };
+}
+
+function parseEventTitle(fullTitle: string) {
+  const sep = fullTitle.indexOf(" - ");
+  if (sep === -1) return { title: fullTitle, customer: "" };
+  return {
+    title: fullTitle.slice(0, sep),
+    customer: fullTitle.slice(sep + 3),
+  };
+}
+
+function CalendarEventContent({ arg }: { arg: EventContentArg }) {
+  const { event, timeText, view } = arg;
+  const parsed = parseEventTitle(event.title);
+  const customer = String(event.extendedProps.customer ?? parsed.customer);
+  const title = parsed.title;
+  const professional = String(event.extendedProps.user ?? "");
+  const isTimeGrid = view.type.startsWith("timeGrid");
+
+  if (isTimeGrid) {
+    return (
+      <div className="fc-event-custom fc-event-custom--timegrid">
+        <div className="fc-event-custom__header">
+          {timeText ? <span className="fc-event-custom__time-badge">{timeText}</span> : null}
+          <span className="fc-event-custom__title">{title}</span>
+        </div>
+        {(customer || professional) && (
+          <div className="fc-event-custom__details">
+            {customer ? <span className="fc-event-custom__detail">{customer}</span> : null}
+            {professional ? <span className="fc-event-custom__detail">{professional}</span> : null}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  return (
+    <div className="fc-event-custom fc-event-custom--month">
+      <div className="fc-event-custom__header">
+        {timeText ? <span className="fc-event-custom__time-badge">{timeText}</span> : null}
+        <span className="fc-event-custom__title">{title}</span>
+      </div>
+      {customer ? <p className="fc-event-custom__subtitle">{customer}</p> : null}
+    </div>
+  );
 }
 
 function DetailSection({
@@ -139,7 +182,8 @@ export default function AgendaPage() {
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [detailData, setDetailData] = useState<AppointmentDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
-  const [viewMode, setViewMode] = useState<"detail" | "create" | "edit">("detail");
+  const [viewMode, setViewMode] = useState<"detail" | "create" | "edit" | "dayList">("detail");
+  const [selectedDayDate, setSelectedDayDate] = useState<string>("");
   const [customers, setCustomers] = useState<CustomerOption[]>([]);
   const [services, setServices] = useState<ServiceOption[]>([]);
   const [creating, setCreating] = useState(false);
@@ -170,7 +214,27 @@ export default function AgendaPage() {
     setSelectedEvent(null);
     setDetailData(null);
     setDetailLoading(false);
+    setSelectedDayDate("");
   }, [modal]);
+
+  const openCreate = useCallback((dateStr?: string) => {
+    const date = dateStr ? parseDate(dateStr.slice(0, 10)) : today(getLocalTimeZone());
+    setSelectedDate(date);
+    setSelectedTime(parseTime("09:00"));
+    setSelectedEvent({
+      id: "",
+      title: "",
+      start: date.toString(),
+      extendedProps: { description: "", customer: "", user: "", status: "scheduled" },
+    });
+    reset({ title: "", description: "" });
+    setSelectedServiceIds([]);
+    setSelectedCustomerId("");
+    setSelectedStatus("scheduled");
+    setSelectedDayDate("");
+    setViewMode("create");
+    modal.open();
+  }, [modal, reset]);
 
   const applyAppointmentToForm = useCallback((data: AppointmentDetail) => {
     const datePart = data.appointmentDate.slice(0, 10);
@@ -202,20 +266,15 @@ export default function AgendaPage() {
     fetch(apiUrl("/api/services")).then((r) => r.json()).then(setServices);
   }, []);
 
-  const handleEventClick = async (info: { event: { id: string; title: string; start: Date | null; extendedProps: Record<string, unknown> } }) => {
-    const e = info.event;
-    setSelectedEvent({
-      id: e.id,
-      title: e.title,
-      start: e.start?.toISOString() ?? "",
-      extendedProps: e.extendedProps as CalendarEvent["extendedProps"],
-    });
+  const openAppointmentDetail = async (event: CalendarEvent) => {
+    setSelectedEvent(event);
+    setSelectedDayDate(getLocalDateKey(event.start));
     setViewMode("detail");
     setDetailData(null);
     setDetailLoading(true);
     modal.open();
     try {
-      const res = await fetch(apiUrl(`/api/appointments/${e.id}`));
+      const res = await fetch(apiUrl(`/api/appointments/${event.id}`));
       if (res.ok) {
         setDetailData(await res.json());
       }
@@ -226,25 +285,39 @@ export default function AgendaPage() {
     }
   };
 
+  const handleEventClick = async (info: { event: { id: string; title: string; start: Date | null; extendedProps: Record<string, unknown> } }) => {
+    const e = info.event;
+    await openAppointmentDetail({
+      id: e.id,
+      title: e.title,
+      start: e.start?.toISOString() ?? "",
+      extendedProps: e.extendedProps as CalendarEvent["extendedProps"],
+    });
+  };
+
   const handleDateClick = (info: { dateStr: string }) => {
-    setSelectedDate(parseDate(info.dateStr.slice(0, 10)));
-    setSelectedTime(parseTime("09:00"));
-    setSelectedEvent({
-      id: "",
-      title: "",
-      start: info.dateStr,
-      extendedProps: { description: "", customer: "", user: "", status: "scheduled" },
-    });
-    reset({
-      title: "",
-      description: "",
-    });
-    setSelectedServiceIds([]);
-    setSelectedCustomerId("");
-    setSelectedStatus("scheduled");
-    setViewMode("create");
+    setSelectedDayDate(info.dateStr.slice(0, 10));
+    setSelectedEvent(null);
+    setDetailData(null);
+    setViewMode("dayList");
     modal.open();
   };
+
+  const getEventsForDay = useCallback(
+    (day: string) =>
+      events
+        .filter((e) => getLocalDateKey(e.start) === day)
+        .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()),
+    [events],
+  );
+
+  const formatDayLabel = (day: string) =>
+    new Date(`${day}T12:00:00`).toLocaleDateString("es-CL", {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+    });
 
   const handleEdit = async () => {
     if (!selectedEvent?.id) return;
@@ -315,9 +388,16 @@ export default function AgendaPage() {
         icon={<CalendarIcon width={24} height={24} />}
         title="Agenda"
         description="Visualiza y gestiona los turnos de tu negocio"
+        action={
+          <Button variant="primary" onPress={() => openCreate()}>
+            <Plus width={16} height={16} />
+            Agendar turno
+          </Button>
+        }
       />
 
       <div className="bg-surface rounded-2xl border border-separator shadow-sm p-4">
+        <StatusLegend className="mb-4 pb-4 border-b border-separator" />
         {loading ? (
           <p className="text-muted">Cargando agenda...</p>
         ) : (
@@ -334,8 +414,16 @@ export default function AgendaPage() {
             locale={esLocale}
             height="auto"
             dayMaxEvents={3}
+            displayEventTime
+            eventTimeFormat={{ hour: "2-digit", minute: "2-digit", hour12: false }}
+            eventDisplay="block"
             eventClick={handleEventClick}
             dateClick={handleDateClick}
+            eventContent={(arg) => <CalendarEventContent arg={arg} />}
+            eventClassNames={(arg) => {
+              const status = String(arg.event.extendedProps.status ?? "scheduled");
+              return [statusCalendarClass[status] ?? statusCalendarClass.scheduled];
+            }}
           />
         )}
       </div>
@@ -345,6 +433,76 @@ export default function AgendaPage() {
           <Modal.Container placement="center">
             <Modal.Dialog className="sm:max-w-lg">
               <Modal.CloseTrigger />
+
+              {/* ── Turnos del día ── */}
+              {viewMode === "dayList" && selectedDayDate && (
+                <>
+                  <Modal.Header>
+                    <Modal.Icon>
+                      <CalendarIcon width={20} height={20} />
+                    </Modal.Icon>
+                    <Modal.Heading className="capitalize">
+                      {formatDayLabel(selectedDayDate)}
+                    </Modal.Heading>
+                  </Modal.Header>
+                  <Modal.Body>
+                    {(() => {
+                      const dayEvents = getEventsForDay(selectedDayDate);
+                      if (dayEvents.length === 0) {
+                        return (
+                          <div className="flex flex-col items-center justify-center py-10 text-center">
+                            <CalendarIcon width={36} height={36} className="text-muted opacity-40 mb-3" />
+                            <p className="font-medium">Sin turnos este día</p>
+                            <p className="text-sm text-muted mt-1">
+                              Puedes agendar uno nuevo para esta fecha
+                            </p>
+                          </div>
+                        );
+                      }
+                      return (
+                        <ul className="flex flex-col gap-2 max-h-[60vh] overflow-y-auto">
+                          {dayEvents.map((event) => {
+                            const time = new Date(event.start).toLocaleTimeString("es-CL", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                            });
+                            const title = event.title.split(" - ")[0];
+                            return (
+                              <li key={event.id}>
+                                <button
+                                  type="button"
+                                  onClick={() => openAppointmentDetail(event)}
+                                  className="w-full text-left rounded-xl border border-separator bg-surface-secondary/50 p-3 hover:border-accent/50 hover:bg-surface-secondary transition-colors"
+                                >
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <p className="font-medium truncate">{title}</p>
+                                      <p className="text-sm text-muted mt-0.5 truncate">
+                                        {event.extendedProps.customer}
+                                      </p>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1.5 shrink-0">
+                                      <span className="text-sm font-medium tabular-nums">{time}</span>
+                                      <StatusChip status={event.extendedProps.status} />
+                                    </div>
+                                  </div>
+                                </button>
+                              </li>
+                            );
+                          })}
+                        </ul>
+                      );
+                    })()}
+                  </Modal.Body>
+                  <Modal.Footer>
+                    <Button variant="secondary" onPress={closeModal}>Cerrar</Button>
+                    <Button variant="primary" onPress={() => openCreate(selectedDayDate)}>
+                      <Plus width={16} height={16} />
+                      Agendar turno
+                    </Button>
+                  </Modal.Footer>
+                </>
+              )}
 
               {/* ── Detalle ── */}
               {viewMode === "detail" && selectedEvent && (
@@ -363,13 +521,7 @@ export default function AgendaPage() {
                     ) : detailData ? (
                       <div className="flex flex-col gap-3">
                         <div className="flex items-center justify-between">
-                          <Chip
-                            color={statusColor[detailData.status] ?? "default"}
-                            variant="soft"
-                            size="sm"
-                          >
-                            {statusLabel[detailData.status] ?? detailData.status}
-                          </Chip>
+                          <StatusChip status={detailData.status} />
                           <span className="text-xs text-muted">#{detailData.id}</span>
                         </div>
 
@@ -470,13 +622,16 @@ export default function AgendaPage() {
                           <CalendarIcon width={16} height={16} className="text-muted shrink-0" />
                           <span>{new Date(selectedEvent.start).toLocaleString("es-CL")}</span>
                         </div>
-                        <Chip color={statusColor[selectedEvent.extendedProps.status] ?? "default"} variant="soft" size="sm">
-                          {statusLabel[selectedEvent.extendedProps.status] ?? selectedEvent.extendedProps.status}
-                        </Chip>
+                        <StatusChip status={selectedEvent.extendedProps.status} />
                       </div>
                     )}
                   </Modal.Body>
                   <Modal.Footer>
+                    {selectedDayDate && (
+                      <Button variant="secondary" onPress={() => setViewMode("dayList")}>
+                        Volver al día
+                      </Button>
+                    )}
                     <Button variant="secondary" onPress={closeModal}>Cerrar</Button>
                     <Button variant="primary" onPress={handleEdit} isDisabled={detailLoading}>
                       Editar
@@ -631,9 +786,9 @@ export default function AgendaPage() {
                           </ComboBox.InputGroup>
                           <ComboBox.Popover>
                             <ListBox>
-                              {Object.entries(statusLabel).map(([key, label]) => (
-                                <ListBox.Item key={key} id={key} textValue={label}>
-                                  {label}
+                              {appointmentStatusOptions.map((key) => (
+                                <ListBox.Item key={key} id={key} textValue={statusLabel[key]}>
+                                  {statusLabel[key]}
                                   <ListBox.ItemIndicator />
                                 </ListBox.Item>
                               ))}
