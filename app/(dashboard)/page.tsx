@@ -10,6 +10,7 @@ import ChartColumn from "@gravity-ui/icons/ChartColumn";
 import Check from "@gravity-ui/icons/Check";
 import Xmark from "@gravity-ui/icons/Xmark";
 import Clock from "@gravity-ui/icons/Clock";
+import Bell from "@gravity-ui/icons/Bell";
 import {
   useReactTable,
   getCoreRowModel,
@@ -21,6 +22,7 @@ import {
 } from "recharts";
 
 interface DashboardData {
+  unreadNotifications: number;
   totalCustomers: number;
   totalServices: number;
   totalAppointments: number;
@@ -95,11 +97,11 @@ export default function DashboardPage() {
   });
 
   useEffect(() => {
-    fetch(apiUrl("/api/dashboard"))
+    fetch(apiUrl(`/api/dashboard?userId=${user?.id ?? ""}`))
       .then((r) => r.json())
       .then(setData)
       .finally(() => setLoading(false));
-  }, []);
+  }, [user]);
 
   if (!user) return null;
 

@@ -15,16 +15,19 @@ enum AppointmentStatus {
 }
 
 model User {
-  id       Int    @id @default(autoincrement())
-  username String @unique
+  id       Int     @id @default(autoincrement())
+  username String  @unique
   name     String
   email    String
   password String
   role     String
-  photo   String?
+  phone    String?
+  bio      String?
+  photo    String?
 
-  userRoles       UserRole[]
-  appointments    Appointment[]
+  userRoles     UserRole[]
+  appointments  Appointment[]
+  notifications Notification[]
 }
 
 model Role {
@@ -49,7 +52,7 @@ model Customer {
   name      String
   lastnames String
   phone     String
-  email     String
+  email     String @unique
 
   appointments Appointment[]
 }
@@ -82,7 +85,19 @@ model Appointment {
   status          AppointmentStatus
   reminderSent    String
 
-  customer  Customer              @relation(fields: [customerId], references: [id])
-  user      User                  @relation(fields: [userId], references: [id])
-  services  AppointmentsServices[]
+  customer Customer               @relation(fields: [customerId], references: [id])
+  user     User                   @relation(fields: [userId], references: [id])
+  services AppointmentsServices[]
+}
+
+model Notification {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  title     String
+  message   String
+  type      String   @default("info")
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
 }

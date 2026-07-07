@@ -7,6 +7,7 @@ import House from "@gravity-ui/icons/House";
 import Person from "@gravity-ui/icons/Person";
 import Gear from "@gravity-ui/icons/Gear";
 import Calendar from "@gravity-ui/icons/Calendar";
+import Bell from "@gravity-ui/icons/Bell";
 import Shield from "@gravity-ui/icons/Shield";
 import ArrowRightFromSquare from "@gravity-ui/icons/ArrowRightFromSquare";
 import Sun from "@gravity-ui/icons/Sun";
@@ -18,6 +19,7 @@ const navItems = [
   { href: "/customers", label: "Clientes", icon: Person },
   { href: "/services", label: "Servicios", icon: Gear },
   { href: "/agenda", label: "Agenda", icon: Calendar },
+  { href: "/notifications", label: "Notificaciones", icon: Bell },
 ];
 
 export function Sidebar() {
@@ -66,15 +68,18 @@ export function Sidebar() {
 
       <div className="p-4 border-t border-separator flex flex-col gap-2">
         {user && (
-          <div className="px-3 py-2 text-sm text-muted truncate">
-            {user.name}
-          </div>
+          <>
+            <Button
+              variant={pathname === "/profile" ? "secondary" : "ghost"}
+              className="justify-start"
+              onPress={() => router.push("/profile")}
+            >
+              <Person width={18} height={18} />
+              {user.name}
+            </Button>
+          </>
         )}
-        <Button
-          variant="ghost"
-          className="justify-start"
-          onPress={toggleTheme}
-        >
+        <Button variant="ghost" className="justify-start" onPress={toggleTheme}>
           {resolvedTheme === "dark" ? (
             <Sun width={16} height={16} />
           ) : (
@@ -82,11 +87,7 @@ export function Sidebar() {
           )}
           {resolvedTheme === "dark" ? "Modo claro" : "Modo oscuro"}
         </Button>
-        <Button
-          variant="ghost"
-          className="justify-start"
-          onPress={logout}
-        >
+        <Button variant="ghost" className="justify-start" onPress={logout}>
           <ArrowRightFromSquare width={16} height={16} />
           Cerrar sesión
         </Button>

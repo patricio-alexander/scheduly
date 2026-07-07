@@ -1,22 +1,31 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
-    const [customers, services, appointments] = await Promise.all([
-      prisma.customer.count(),
-      prisma.service.count(),
-      prisma.appointment.findMany({
-        include: {
-          customer: { select: { name: true, lastnames: true } },
-          services: {
-            include: { service: { select: { price: true } } },
+    const url = new URL(request.url);
+    const userId = url.searchParams.get("userId");
+
+    const [unreadNotifications, customers, services, appointments] =
+      await Promise.all([
+        userId
+          ? prisma.notification.count({
+              where: { userId: Number(userId), read: false },
+            })
+          : Promise.resolve(0),
+        prisma.customer.count(),
+        prisma.service.count(),
+        prisma.appointment.findMany({
+          include: {
+            customer: { select: { name: true, lastnames: true } },
+            services: {
+              include: { service: { select: { price: true } } },
+            },
           },
-        },
-        orderBy: { appointmentDate: "desc" },
-        take: 5,
-      }),
-    ]);
+          orderBy: { appointmentDate: "desc" },
+          take: 5,
+        }),
+      ]);
 
     const statusCounts = await Promise.all([
       prisma.appointment.count({ where: { status: "scheduled" } }),
@@ -37,7 +46,7 @@ export async function GET() {
     const revenue = completed.reduce((sum, apt) => {
       const aptTotal = apt.services.reduce(
         (s, as) => s + Number(as.service.price),
-        0
+        0,
       );
       return sum + aptTotal;
     }, 0);
@@ -58,13 +67,14 @@ export async function GET() {
       d.setDate(d.getDate() + i);
       const dateStr = d.toISOString().slice(0, 10);
       const count = recentAppointments.filter(
-        (a) => a.appointmentDate.toISOString().slice(0, 10) === dateStr
+        (a) => a.appointmentDate.toISOString().slice(0, 10) === dateStr,
       ).length;
       const dayName = d.toLocaleDateString("es-CL", { weekday: "short" });
       appointmentsByDay.push({ date: dayName, count });
     }
 
     return NextResponse.json({
+      unreadNotifications,
       totalCustomers: customers,
       totalServices: services,
       totalAppointments: appointments.length,
@@ -85,7 +95,7 @@ export async function GET() {
   } catch {
     return NextResponse.json(
       { message: "Error al obtener dashboard" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
