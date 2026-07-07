@@ -2,12 +2,15 @@
 
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { Button, Input, Label } from "@heroui/react";
+import { Button, Label } from "@heroui/react";
 import { loginSchema, type LoginFormData } from "../lib/auth-schema";
 import { useAuth } from "../hooks/useAuth";
 import { useState } from "react";
 import Person from "@gravity-ui/icons/Person";
 import Lock from "@gravity-ui/icons/Lock";
+
+const inputClassName =
+  "w-full pl-10 pr-3 py-2.5 rounded-xl border border-separator bg-field-background text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus focus:border-focus text-sm transition-shadow";
 
 export function LoginForm() {
   const { login } = useAuth();
@@ -42,22 +45,29 @@ export function LoginForm() {
         <Label htmlFor="username" className="text-sm font-medium">
           Usuario
         </Label>
-        <Controller
-          name="username"
-          control={control}
-          render={({ field }) => (
-            <Input
-              id="username"
-              placeholder="ej: admin"
-              autoComplete="username"
-              variant="secondary"
-              value={field.value}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              startContent={<Person width={16} height={16} className="text-muted" />}
-            />
-          )}
-        />
+        <div className="relative">
+          <Person
+            width={16}
+            height={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
+          />
+          <Controller
+            name="username"
+            control={control}
+            render={({ field }) => (
+              <input
+                id="username"
+                placeholder="ej: admin"
+                autoComplete="username"
+                className={inputClassName}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                ref={field.ref}
+              />
+            )}
+          />
+        </div>
         {errors.username && (
           <p className="text-danger text-sm">{String(errors.username.message ?? "")}</p>
         )}
@@ -67,33 +77,38 @@ export function LoginForm() {
         <Label htmlFor="password" className="text-sm font-medium">
           Contraseña
         </Label>
-        <Controller
-          name="password"
-          control={control}
-          render={({ field }) => (
-            <Input
-              id="password"
-              type={showPassword ? "text" : "password"}
-              placeholder="••••••••"
-              autoComplete="current-password"
-              variant="secondary"
-              value={field.value}
-              onChange={field.onChange}
-              onBlur={field.onBlur}
-              startContent={<Lock width={16} height={16} className="text-muted" />}
-              endContent={
-                <button
-                  type="button"
-                  onClick={() => setShowPassword((v) => !v)}
-                  className="text-xs font-medium text-muted hover:text-foreground transition-colors px-1"
-                  tabIndex={-1}
-                >
-                  {showPassword ? "Ocultar" : "Ver"}
-                </button>
-              }
-            />
-          )}
-        />
+        <div className="relative">
+          <Lock
+            width={16}
+            height={16}
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted pointer-events-none"
+          />
+          <Controller
+            name="password"
+            control={control}
+            render={({ field }) => (
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="••••••••"
+                autoComplete="current-password"
+                className={`${inputClassName} pr-16`}
+                value={field.value}
+                onChange={field.onChange}
+                onBlur={field.onBlur}
+                ref={field.ref}
+              />
+            )}
+          />
+          <button
+            type="button"
+            onClick={() => setShowPassword((v) => !v)}
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted hover:text-foreground transition-colors"
+            tabIndex={-1}
+          >
+            {showPassword ? "Ocultar" : "Ver"}
+          </button>
+        </div>
         {errors.password && (
           <p className="text-danger text-sm">{String(errors.password.message ?? "")}</p>
         )}
