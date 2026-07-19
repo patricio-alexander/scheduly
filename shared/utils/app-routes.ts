@@ -1,0 +1,117 @@
+/** Rutas de la app alineadas al mapa de módulos/secciones del entitlement */
+export const appRoutes = {
+  dashboard: "/",
+  operation: {
+    agenda: "/operacion/agenda",
+    cash: "/operacion/caja",
+    shifts: "/operacion/turno",
+    tasks: "/operacion/tareas",
+    posReceipts: "/operacion/comprobantes-pos",
+    shiftSupervision: "/operacion/supervision-caja",
+    multiCash: "/operacion/turno/multi-caja",
+  },
+  electronicDocs: {
+    hub: "/comprobantes-electronicos",
+    invoices: "/comprobantes-electronicos/facturas",
+    salesNotes: "/comprobantes-electronicos/notas-venta",
+    creditNotes: "/comprobantes-electronicos/notas-credito",
+    debitNotes: "/comprobantes-electronicos/notas-debito",
+    withholdings: "/comprobantes-electronicos/retenciones",
+    deliveryGuides: "/comprobantes-electronicos/guias-remision",
+    purchaseSettlement: "/comprobantes-electronicos/liquidacion-compras",
+    issued: "/comprobantes-electronicos/emitidos",
+    sriSettings: "/sistema/configuracion?tab=sri",
+  },
+  sales: {
+    orders: "/ventas/pedidos",
+    customers: "/ventas/clientes",
+    customerAccounts: "/ventas/clientes/cuentas",
+  },
+  inventory: {
+    products: "/inventario/productos",
+    movement: "/inventario/movimientos",
+    categories: "/inventario/categorias",
+    tierGroups: "/inventario/tramos",
+    units: "/inventario/unidades",
+    warehouses: "/inventario/bodegas",
+    batches: "/inventario/lotes",
+  },
+  admin: {
+    users: "/administracion/usuarios",
+    accounts: "/administracion/cuentas",
+    roles: "/administracion/roles",
+    controlPanel: "/administracion/panel-control",
+    notificationPrograms: "/administracion/programas-notificacion",
+  },
+  system: {
+    settings: "/sistema/configuracion",
+    plans: "/sistema/planes",
+    modules: "/sistema/modulos",
+    profile: "/sistema/perfil",
+    donations: "/sistema/donaciones",
+    notifications: "/sistema/notificaciones",
+  },
+} as const;
+
+export const electronicDocsSections = [
+  {
+    key: "hub",
+    href: appRoutes.electronicDocs.hub,
+    label: "Centro de comprobantes",
+    description: "Vista general de documentos electrónicos",
+  },
+  {
+    key: "invoices",
+    href: appRoutes.electronicDocs.invoices,
+    label: "Facturas",
+    description: "Emisión y consulta de facturas electrónicas",
+  },
+  {
+    key: "salesNotes",
+    href: appRoutes.electronicDocs.salesNotes,
+    label: "Notas de venta",
+    description: "Notas de venta electrónicas",
+  },
+  {
+    key: "creditNotes",
+    href: appRoutes.electronicDocs.creditNotes,
+    label: "Notas de crédito",
+    description: "Notas de crédito asociadas a facturas",
+  },
+  {
+    key: "debitNotes",
+    href: appRoutes.electronicDocs.debitNotes,
+    label: "Notas de débito",
+    description: "Notas de débito electrónicas",
+  },
+  {
+    key: "withholdings",
+    href: appRoutes.electronicDocs.withholdings,
+    label: "Retenciones",
+    description: "Comprobantes de retención",
+  },
+  {
+    key: "deliveryGuides",
+    href: appRoutes.electronicDocs.deliveryGuides,
+    label: "Guías de remisión",
+    description: "Guías de remisión electrónicas",
+  },
+  {
+    key: "purchaseSettlement",
+    href: appRoutes.electronicDocs.purchaseSettlement,
+    label: "Liquidación de compras",
+    description: "Liquidaciones de compra electrónicas",
+  },
+  {
+    key: "issued",
+    href: appRoutes.electronicDocs.issued,
+    label: "Emitidos",
+    description: "Historial de comprobantes emitidos",
+  },
+  {
+    key: "sriSettings",
+    href: appRoutes.electronicDocs.sriSettings,
+    label: "Configuración SRI",
+    description: "Parámetros de facturación electrónica",
+  },
+] as const;

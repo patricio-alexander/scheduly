@@ -1,12 +1,16 @@
 "use client";
 
 import { apiUrl } from "@/shared/utils/api";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Button, Table } from "@heroui/react";
+import { Button } from "@heroui/react";
 import { StatusChip } from "@/shared/components/StatusChip";
-import { StatusLegend } from "@/shared/components/StatusLegend";
-import { statusChartColor, statusLabel } from "@/shared/utils/appointment-status";
+import {
+  getStatusTone,
+  statusChartColor,
+  statusLabel,
+  statusLabelShort,
+} from "@/shared/utils/appointment-status";
 import { useAuth } from "@/src/features/auth";
 import Person from "@gravity-ui/icons/Person";
 import Gear from "@gravity-ui/icons/Gear";
@@ -16,10 +20,8 @@ import Xmark from "@gravity-ui/icons/Xmark";
 import Clock from "@gravity-ui/icons/Clock";
 import Bell from "@gravity-ui/icons/Bell";
 import Calendar from "@gravity-ui/icons/Calendar";
-import {
-  useReactTable,
-  getCoreRowModel,
-} from "@tanstack/react-table";
+import Boxes3 from "@gravity-ui/icons/Boxes3";
+import TriangleExclamation from "@gravity-ui/icons/TriangleExclamation";
 import {
   PieChart,
   Pie,
@@ -33,8 +35,16 @@ import {
   CartesianGrid,
 } from "recharts";
 import { Skeleton } from "@/shared/components/ui";
+import {
+  dashboardPeriodLabel,
+  dashboardPeriodOptions,
+  getDashboardPeriodDescription,
+  type DashboardPeriod,
+} from "@/shared/utils/dashboard-period";
+import { stockAlertLabel } from "@/shared/utils/stock";
 
 interface DashboardData {
+  period: DashboardPeriod;
   unreadNotifications: number;
   totalCustomers: number;
   totalServices: number;
@@ -46,6 +56,13 @@ interface DashboardData {
   pending_payment: number;
   paid_pending: number;
   revenue: number;
+  lowStockThreshold: number;
+  lowStockCount: number;
+  lowStockProducts: Array<{
+    id: number;
+    name: string;
+    stock: number;
+  }>;
   appointmentsByDay: { date: string; count: number }[];
   recentAppointments: Array<{
     id: number;
@@ -64,14 +81,24 @@ function getGreeting() {
 }
 
 function formatCurrency(n: number) {
-  return new Intl.NumberFormat("es-CL", { style: "currency", currency: "CLP" }).format(n);
+  return new Intl.NumberFormat("es-CL", {
+    style: "currency",
+    currency: "CLP",
+    maximumFractionDigits: 0,
+  }).format(n);
 }
 
 function formatDateTime(iso: string) {
   const date = new Date(iso);
   return {
-    date: date.toLocaleDateString("es-CL", { day: "numeric", month: "short", year: "numeric" }),
-    time: date.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" }),
+    date: date.toLocaleDateString("es-CL", {
+      day: "numeric",
+      month: "short",
+    }),
+    time: date.toLocaleTimeString("es-CL", {
+      hour: "2-digit",
+      minute: "2-digit",
+    }),
   };
 }
 
@@ -94,18 +121,45 @@ function StatCard({
   }[variant];
 
   return (
-    <div className="relative overflow-hidden rounded-xl border border-separator bg-surface p-4 shadow-sm">
+    <div className="relative min-w-0 overflow-hidden rounded-xl border border-separator bg-surface p-3.5 shadow-sm sm:p-4">
       <div className={`absolute inset-x-0 top-0 h-0.5 ${styles.bar}`} />
       <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0">
-          <p className="text-xs text-muted">{label}</p>
-          <p className="mt-0.5 text-xl font-bold tracking-tight truncate">{value}</p>
-          {subtitle && <p className="mt-0.5 text-[11px] text-muted truncate">{subtitle}</p>}
+        <div className="min-w-0 flex-1">
+          <p className="truncate text-xs text-muted">{label}</p>
+          <p className="mt-0.5 truncate text-lg font-bold tracking-tight sm:text-xl">
+            {value}
+          </p>
+          {subtitle ? (
+            <p className="mt-0.5 truncate text-[11px] text-muted">{subtitle}</p>
+          ) : null}
         </div>
         <div className={`shrink-0 rounded-lg p-2 ${styles.bg} ${styles.icon}`}>
           {icon}
         </div>
       </div>
+    </div>
+  );
+}
+
+function StatusCountCard({
+  status,
+  value,
+}: {
+  status: string;
+  value: number;
+}) {
+  const tone = getStatusTone(status);
+  const label = statusLabelShort[status] ?? statusLabel[status] ?? status;
+
+  return (
+    <div className="min-w-0 overflow-hidden rounded-xl border border-separator bg-surface px-3 py-2.5 shadow-sm">
+      <div className="flex min-w-0 items-center gap-2">
+        <span className={`h-2 w-2 shrink-0 rounded-full ${tone.dot}`} aria-hidden />
+        <p className={`min-w-0 flex-1 truncate text-[11px] font-medium ${tone.text}`}>
+          {label}
+        </p>
+      </div>
+      <p className="mt-1.5 text-xl font-bold tabular-nums leading-none">{value}</p>
     </div>
   );
 }
@@ -117,14 +171,18 @@ function DashboardSkeleton() {
         <Skeleton className="h-7 w-56" />
         <Skeleton className="h-3 w-40" />
       </div>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {Array.from({ length: 4 }).map((_, i) => (
           <Skeleton key={i} className="h-20" />
         ))}
       </div>
-      <Skeleton className="h-10" />
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <Skeleton key={i} className="h-16" />
+        ))}
+      </div>
       <Skeleton className="h-52" />
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
         <Skeleton className="h-72" />
         <Skeleton className="h-72" />
       </div>
@@ -132,8 +190,39 @@ function DashboardSkeleton() {
   );
 }
 
+function PeriodFilter({
+  value,
+  onChange,
+}: {
+  value: DashboardPeriod;
+  onChange: (period: DashboardPeriod) => void;
+}) {
+  return (
+    <div className="inline-flex max-w-full overflow-x-auto rounded-xl border border-separator bg-surface-secondary/60 p-1">
+      {dashboardPeriodOptions.map((periodOption) => {
+        const selected = value === periodOption;
+        return (
+          <button
+            key={periodOption}
+            type="button"
+            onClick={() => onChange(periodOption)}
+            className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              selected
+                ? "bg-accent text-accent-foreground shadow-sm"
+                : "text-muted hover:text-foreground"
+            }`}
+          >
+            {dashboardPeriodLabel[periodOption]}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
+  const [period, setPeriod] = useState<DashboardPeriod>("week");
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -143,7 +232,9 @@ export default function DashboardPage() {
     setLoading(true);
     setLoadError(false);
     try {
-      const res = await fetch(apiUrl(`/api/dashboard?userId=${user.id}`));
+      const res = await fetch(
+        apiUrl(`/api/dashboard?userId=${user.id}&period=${period}`),
+      );
       if (!res.ok) {
         setData(null);
         setLoadError(true);
@@ -162,26 +253,10 @@ export default function DashboardPage() {
     } finally {
       setLoading(false);
     }
-  }, [user]);
-
-  const columns = useMemo(
-    () => [
-      { accessorKey: "title" as const, header: "Título" },
-      { accessorKey: "customer" as const, header: "Cliente" },
-      { accessorKey: "date" as const, header: "Fecha" },
-      { accessorKey: "status" as const, header: "Estado" },
-    ],
-    [],
-  );
-
-  const appointmentsTable = useReactTable({
-    data: data?.recentAppointments ?? [],
-    columns,
-    getCoreRowModel: getCoreRowModel(),
-  });
+  }, [user, period]);
 
   useEffect(() => {
-    loadDashboard();
+    void loadDashboard();
   }, [loadDashboard]);
 
   if (!user) return null;
@@ -190,7 +265,6 @@ export default function DashboardPage() {
     weekday: "long",
     day: "numeric",
     month: "long",
-    year: "numeric",
   });
 
   const totalStatus =
@@ -202,48 +276,89 @@ export default function DashboardPage() {
     (data?.paid_pending ?? 0);
 
   const completionRate =
-    totalStatus > 0 ? Math.round(((data?.completed ?? 0) / totalStatus) * 100) : 0;
+    totalStatus > 0
+      ? Math.round(((data?.completed ?? 0) / totalStatus) * 100)
+      : 0;
 
   const statusChartData = data
     ? [
-        { name: statusLabel.scheduled, value: data.scheduled, color: statusChartColor.scheduled },
-        { name: statusLabel.paid_pending, value: data.paid_pending, color: statusChartColor.paid_pending },
-        { name: statusLabel.pending_payment, value: data.pending_payment, color: statusChartColor.pending_payment },
-        { name: statusLabel.completed, value: data.completed, color: statusChartColor.completed },
-        { name: statusLabel.cancelled, value: data.cancelled, color: statusChartColor.cancelled },
-        { name: statusLabel.rescheduled, value: data.rescheduled, color: statusChartColor.rescheduled },
+        {
+          key: "scheduled",
+          name: statusLabel.scheduled,
+          value: data.scheduled,
+          color: statusChartColor.scheduled,
+        },
+        {
+          key: "paid_pending",
+          name: statusLabel.paid_pending,
+          value: data.paid_pending,
+          color: statusChartColor.paid_pending,
+        },
+        {
+          key: "pending_payment",
+          name: statusLabel.pending_payment,
+          value: data.pending_payment,
+          color: statusChartColor.pending_payment,
+        },
+        {
+          key: "completed",
+          name: statusLabel.completed,
+          value: data.completed,
+          color: statusChartColor.completed,
+        },
+        {
+          key: "cancelled",
+          name: statusLabel.cancelled,
+          value: data.cancelled,
+          color: statusChartColor.cancelled,
+        },
+        {
+          key: "rescheduled",
+          name: statusLabel.rescheduled,
+          value: data.rescheduled,
+          color: statusChartColor.rescheduled,
+        },
       ].filter((item) => item.value > 0)
     : [];
 
-  const weekTotal = data?.appointmentsByDay?.reduce((sum, d) => sum + d.count, 0) ?? 0;
+  const periodDescription = getDashboardPeriodDescription(period);
+  const chartTotal =
+    data?.appointmentsByDay?.reduce((sum, d) => sum + d.count, 0) ?? 0;
 
   return (
-    <div className="flex flex-col gap-5">
-      <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-        <div>
-          <p className="text-xs font-medium text-accent capitalize">{todayLabel}</p>
-          <h1 className="text-2xl font-bold tracking-tight mt-0.5">
+    <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-5 overflow-x-hidden">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+        <div className="min-w-0">
+          <p className="truncate text-xs font-medium capitalize text-accent">
+            {todayLabel}
+          </p>
+          <h1 className="mt-0.5 truncate text-2xl font-bold tracking-tight">
             {getGreeting()}, {user.name.split(" ")[0]}
           </h1>
-          <p className="text-muted text-xs mt-0.5">
-            Resumen de actividad y rendimiento de tu negocio
+          <p className="mt-0.5 text-xs text-muted">
+            Resumen de actividad y rendimiento
           </p>
         </div>
-        {(data?.unreadNotifications ?? 0) > 0 && (
-          <Link
-            href="/notifications"
-            className="inline-flex items-center gap-2 self-start rounded-xl border border-separator bg-surface px-4 py-2.5 text-sm font-medium shadow-sm transition-colors hover:bg-surface-secondary"
-          >
-            <Bell width={16} height={16} />
-            {data?.unreadNotifications} notificación{data?.unreadNotifications === 1 ? "" : "es"} sin leer
-          </Link>
-        )}
+        <div className="flex min-w-0 flex-col gap-2 sm:items-end">
+          <PeriodFilter value={period} onChange={setPeriod} />
+          {(data?.unreadNotifications ?? 0) > 0 && (
+            <Link
+              href="/sistema/notificaciones"
+              className="inline-flex max-w-full items-center gap-2 self-start truncate rounded-xl border border-separator bg-surface px-3 py-2 text-sm font-medium shadow-sm transition-colors hover:bg-surface-secondary sm:self-end"
+            >
+              <Bell width={16} height={16} className="shrink-0" />
+              <span className="truncate">
+                {data?.unreadNotifications} sin leer
+              </span>
+            </Link>
+          )}
+        </div>
       </div>
 
       {loadError && (
-        <div className="rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+        <div className="flex flex-col gap-3 rounded-xl border border-danger/30 bg-danger/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm">
-            No se pudo cargar el resumen del dashboard. Recarga la página o intenta de nuevo.
+            No se pudo cargar el resumen. Intenta de nuevo.
           </p>
           <Button size="sm" variant="secondary" onPress={loadDashboard}>
             Reintentar
@@ -255,97 +370,198 @@ export default function DashboardPage() {
         <DashboardSkeleton />
       ) : (
         <>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {(data?.lowStockProducts?.length ?? 0) > 0 && (
+            <div className="overflow-hidden rounded-xl border border-warning/35 bg-warning/10 shadow-sm">
+              <div className="flex items-start justify-between gap-3 border-b border-warning/20 px-4 py-3">
+                <div className="flex min-w-0 items-start gap-3">
+                  <div className="shrink-0 rounded-lg bg-warning/20 p-2 text-warning">
+                    <TriangleExclamation width={18} height={18} />
+                  </div>
+                  <div className="min-w-0">
+                    <h2 className="text-sm font-semibold">
+                      Alertas de inventario
+                    </h2>
+                    <p className="text-xs text-muted">
+                      {data?.lowStockCount === 1
+                        ? "1 producto en stock mínimo o sin unidades"
+                        : `${data?.lowStockCount} productos en stock mínimo o sin unidades`}
+                      {data?.lowStockThreshold != null
+                        ? ` (≤ ${data.lowStockThreshold})`
+                        : ""}
+                      . También se generó una notificación.
+                    </p>
+                  </div>
+                </div>
+                <Link
+                  href="/inventario/productos"
+                  className="shrink-0 text-xs font-medium text-accent hover:underline"
+                >
+                  Ver inventario
+                </Link>
+              </div>
+              <ul className="divide-y divide-warning/15">
+                {data?.lowStockProducts.map((product) => {
+                  const label = stockAlertLabel(product.stock) ?? "Stock bajo";
+                  const out = product.stock <= 0;
+                  return (
+                    <li
+                      key={product.id}
+                      className="flex min-w-0 items-center gap-3 px-4 py-2.5"
+                    >
+                      <Boxes3
+                        width={16}
+                        height={16}
+                        className="shrink-0 text-muted opacity-70"
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-medium">
+                          {product.name}
+                        </p>
+                        <p className="text-[11px] text-muted">
+                          Stock actual:{" "}
+                          <span
+                            className={`font-semibold tabular-nums ${
+                              out ? "text-danger" : "text-warning"
+                            }`}
+                          >
+                            {product.stock}
+                          </span>
+                        </p>
+                      </div>
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-[10px] font-semibold ring-1 ring-inset ${
+                          out
+                            ? "bg-danger/15 text-danger ring-danger/25"
+                            : "bg-warning/20 text-warning ring-warning/30"
+                        }`}
+                      >
+                        {label}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
+
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
             <StatCard
               label="Ingresos"
               value={formatCurrency(data?.revenue ?? 0)}
-              icon={<ChartColumn width={22} height={22} />}
-              subtitle="Turnos completados"
+              icon={<ChartColumn width={20} height={20} />}
+              subtitle={`${periodDescription} · completados`}
             />
             <StatCard
-              label="Turnos totales"
+              label="Turnos"
               value={data?.totalAppointments ?? 0}
-              icon={<Calendar width={22} height={22} />}
+              icon={<Calendar width={20} height={20} />}
               subtitle={`${data?.scheduled ?? 0} agendados`}
             />
             <StatCard
               label="Clientes"
               value={data?.totalCustomers ?? 0}
-              icon={<Person width={22} height={22} />}
+              icon={<Person width={20} height={20} />}
               variant="success"
-              subtitle={`${data?.totalServices ?? 0} servicios activos`}
+              subtitle={`${data?.totalServices ?? 0} servicios`}
             />
             <StatCard
-              label="Tasa de completado"
+              label="Completado"
               value={`${completionRate}%`}
-              icon={<Check width={22} height={22} />}
+              icon={<Check width={20} height={20} />}
               variant="success"
-              subtitle={`${data?.completed ?? 0} de ${totalStatus} turnos`}
+              subtitle={`${data?.completed ?? 0} de ${totalStatus}`}
             />
           </div>
 
-          <div className="grid grid-cols-3 sm:grid-cols-6 gap-2">
-            {[
-              { label: statusLabel.scheduled, value: data?.scheduled ?? 0, icon: Clock, color: "text-orange-500" },
-              { label: statusLabel.paid_pending, value: data?.paid_pending ?? 0, icon: Calendar, color: "text-blue-500" },
-              { label: statusLabel.pending_payment, value: data?.pending_payment ?? 0, icon: Bell, color: "text-yellow-500" },
-              { label: statusLabel.completed, value: data?.completed ?? 0, icon: Check, color: "text-green-500" },
-              { label: statusLabel.rescheduled, value: data?.rescheduled ?? 0, icon: Calendar, color: "text-muted" },
-              { label: statusLabel.cancelled, value: data?.cancelled ?? 0, icon: Xmark, color: "text-danger" },
-            ].map((item) => {
-              const Icon = item.icon;
-              return (
-                <div
-                  key={item.label}
-                  className="rounded-lg border border-separator bg-surface-secondary/60 px-2.5 py-2 flex items-center gap-2"
-                >
-                  <Icon width={16} height={16} className={item.color} />
-                  <div className="min-w-0">
-                    <p className="text-[10px] text-muted truncate">{item.label}</p>
-                    <p className="text-base font-semibold leading-tight">{item.value}</p>
-                  </div>
-                </div>
-              );
-            })}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-3 lg:grid-cols-6">
+            <StatusCountCard status="scheduled" value={data?.scheduled ?? 0} />
+            <StatusCountCard status="paid_pending" value={data?.paid_pending ?? 0} />
+            <StatusCountCard
+              status="pending_payment"
+              value={data?.pending_payment ?? 0}
+            />
+            <StatusCountCard status="completed" value={data?.completed ?? 0} />
+            <StatusCountCard
+              status="rescheduled"
+              value={data?.rescheduled ?? 0}
+            />
+            <StatusCountCard status="cancelled" value={data?.cancelled ?? 0} />
           </div>
 
-          <StatusLegend title="" className="rounded-lg border border-separator bg-surface-secondary/40 px-3 py-2 [&_span]:text-xs" />
-
-          <div className="bg-surface rounded-xl border border-separator p-4 shadow-sm">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <h2 className="text-base font-semibold">Actividad semanal</h2>
-                <p className="text-xs text-muted">Últimos 7 días</p>
+          <div className="min-w-0 overflow-hidden rounded-xl border border-separator bg-surface p-4 shadow-sm">
+            <div className="mb-3 flex items-start justify-between gap-3">
+              <div className="min-w-0">
+                <h2 className="text-base font-semibold">Actividad</h2>
+                <p className="text-xs text-muted">{periodDescription}</p>
               </div>
-              <div className="text-right">
-                <p className="text-xl font-bold">{weekTotal}</p>
-                <p className="text-[10px] text-muted">esta semana</p>
+              <div className="shrink-0 text-right">
+                <p className="text-xl font-bold tabular-nums">{chartTotal}</p>
+                <p className="text-[10px] text-muted">en el período</p>
               </div>
             </div>
-            {data && (
-              <ResponsiveContainer width="100%" height={200}>
-                  <BarChart data={data.appointmentsByDay ?? []} margin={{ top: 8, right: 8, left: -16, bottom: 0 }}>
+            {data ? (
+              <div className="h-[200px] w-full min-w-0 sm:h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={data.appointmentsByDay ?? []}
+                    margin={{
+                      top: 8,
+                      right: 4,
+                      left: -20,
+                      bottom: data.period === "month" ? 8 : 0,
+                    }}
+                  >
                     <defs>
-                      <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="var(--accent)" stopOpacity={1} />
-                        <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.5} />
+                      <linearGradient
+                        id="barGradient"
+                        x1="0"
+                        y1="0"
+                        x2="0"
+                        y2="1"
+                      >
+                        <stop
+                          offset="0%"
+                          stopColor="var(--accent)"
+                          stopOpacity={1}
+                        />
+                        <stop
+                          offset="100%"
+                          stopColor="var(--accent)"
+                          stopOpacity={0.5}
+                        />
                       </linearGradient>
                     </defs>
-                    <CartesianGrid strokeDasharray="3 3" stroke="var(--separator)" vertical={false} />
+                    <CartesianGrid
+                      strokeDasharray="3 3"
+                      stroke="var(--separator)"
+                      vertical={false}
+                    />
                     <XAxis
                       dataKey="date"
-                      tick={{ fill: "var(--muted)", fontSize: 12 }}
+                      tick={{
+                        fill: "var(--muted)",
+                        fontSize: data.period === "month" ? 10 : 12,
+                      }}
                       axisLine={{ stroke: "var(--separator)" }}
                       tickLine={false}
+                      interval={
+                        data.period === "month" ? "preserveStartEnd" : 0
+                      }
+                      angle={data.period === "month" ? -30 : 0}
+                      textAnchor={data.period === "month" ? "end" : "middle"}
+                      height={data.period === "month" ? 40 : 28}
                     />
                     <YAxis
                       allowDecimals={false}
                       tick={{ fill: "var(--muted)", fontSize: 12 }}
                       axisLine={false}
                       tickLine={false}
+                      width={28}
                     />
                     <Tooltip
-                      cursor={{ fill: "color-mix(in srgb, var(--accent) 8%, transparent)" }}
+                      cursor={{
+                        fill: "color-mix(in srgb, var(--accent) 8%, transparent)",
+                      }}
                       contentStyle={{
                         background: "var(--surface)",
                         border: "1px solid var(--separator)",
@@ -355,22 +571,30 @@ export default function DashboardPage() {
                       }}
                       formatter={(value) => [`${value} turnos`, "Cantidad"]}
                     />
-                    <Bar dataKey="count" fill="url(#barGradient)" radius={[8, 8, 0, 0]} maxBarSize={48} />
+                    <Bar
+                      dataKey="count"
+                      fill="url(#barGradient)"
+                      radius={[8, 8, 0, 0]}
+                      maxBarSize={40}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
-              )}
+              </div>
+            ) : null}
           </div>
 
-          <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 items-stretch">
-            <div className="bg-surface rounded-xl border border-separator p-4 shadow-sm flex flex-col">
-              <div className="mb-3">
-                <h2 className="text-base font-semibold">Distribución por estado</h2>
-                <p className="text-xs text-muted">Proporción por categoría</p>
+          <div className="grid grid-cols-1 items-stretch gap-4 xl:grid-cols-2">
+            <div className="flex min-w-0 flex-col overflow-hidden rounded-xl border border-separator bg-surface p-4 shadow-sm">
+              <div className="mb-3 min-w-0">
+                <h2 className="text-base font-semibold">
+                  Distribución por estado
+                </h2>
+                <p className="text-xs text-muted">{periodDescription}</p>
               </div>
               {data && statusChartData.length > 0 ? (
-                <div className="flex flex-1 flex-col sm:flex-row items-center gap-4">
-                  <div className="relative shrink-0">
-                    <ResponsiveContainer width={160} height={160}>
+                <div className="flex flex-1 flex-col items-center gap-4 sm:flex-row sm:items-start">
+                  <div className="relative h-40 w-40 shrink-0">
+                    <ResponsiveContainer width="100%" height="100%">
                       <PieChart>
                         <Pie
                           data={statusChartData}
@@ -382,8 +606,8 @@ export default function DashboardPage() {
                           dataKey="value"
                           stroke="none"
                         >
-                          {statusChartData.map((entry, i) => (
-                            <Cell key={i} fill={entry.color} />
+                          {statusChartData.map((entry) => (
+                            <Cell key={entry.key} fill={entry.color} />
                           ))}
                         </Pie>
                         <Tooltip
@@ -396,95 +620,104 @@ export default function DashboardPage() {
                         />
                       </PieChart>
                     </ResponsiveContainer>
-                    <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                      <span className="text-2xl font-bold">{totalStatus}</span>
+                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center">
+                      <span className="text-2xl font-bold tabular-nums">
+                        {totalStatus}
+                      </span>
                       <span className="text-[10px] text-muted">turnos</span>
                     </div>
                   </div>
-                  <div className="w-full flex-1 grid grid-cols-1 gap-1.5">
+                  <div className="grid w-full min-w-0 flex-1 grid-cols-1 gap-1.5">
                     {statusChartData.map((entry) => (
                       <div
-                        key={entry.name}
-                        className="flex items-center gap-2 rounded-md bg-surface-secondary/60 px-2.5 py-1.5 text-xs"
+                        key={entry.key}
+                        className="flex min-w-0 items-center gap-2 rounded-lg bg-surface-secondary/60 px-2.5 py-1.5 text-xs"
                       >
                         <span
-                          className="w-2 h-2 rounded-full shrink-0"
+                          className="h-2 w-2 shrink-0 rounded-full"
                           style={{ background: entry.color }}
                         />
-                        <span className="text-muted truncate">{entry.name}</span>
-                        <span className="font-semibold ml-auto tabular-nums">{entry.value}</span>
+                        <span className="min-w-0 flex-1 truncate text-muted">
+                          {entry.name}
+                        </span>
+                        <span className="shrink-0 font-semibold tabular-nums">
+                          {entry.value}
+                        </span>
                       </div>
                     ))}
                   </div>
                 </div>
               ) : (
                 <div className="flex flex-1 flex-col items-center justify-center py-10 text-center">
-                  <Gear width={28} height={28} className="text-muted mb-2 opacity-40" />
+                  <Gear
+                    width={28}
+                    height={28}
+                    className="mb-2 text-muted opacity-40"
+                  />
                   <p className="text-xs text-muted">Sin datos de turnos aún</p>
                 </div>
               )}
             </div>
 
-            <div className="bg-surface rounded-xl border border-separator shadow-sm overflow-hidden flex flex-col min-h-[280px]">
-              <div className="flex items-center justify-between px-4 py-3 border-b border-separator shrink-0">
-                <div>
+            <div className="flex min-h-[280px] min-w-0 flex-col overflow-hidden rounded-xl border border-separator bg-surface shadow-sm">
+              <div className="flex shrink-0 items-center justify-between gap-3 border-b border-separator px-4 py-3">
+                <div className="min-w-0">
                   <h2 className="text-base font-semibold">Últimos turnos</h2>
-                  <p className="text-xs text-muted">Actividad reciente</p>
+                  <p className="text-xs text-muted">{periodDescription}</p>
                 </div>
-                <Link href="/agenda" className="text-xs font-medium text-accent hover:underline">
+                <Link
+                  href="/operacion/agenda"
+                  className="shrink-0 text-xs font-medium text-accent hover:underline"
+                >
                   Ver agenda
                 </Link>
               </div>
 
               {(data?.recentAppointments?.length ?? 0) === 0 ? (
-                <div className="flex flex-1 flex-col items-center justify-center py-10 px-4 text-center">
-                  <Calendar width={28} height={28} className="text-muted mb-2 opacity-40" />
+                <div className="flex flex-1 flex-col items-center justify-center px-4 py-10 text-center">
+                  <Calendar
+                    width={28}
+                    height={28}
+                    className="mb-2 text-muted opacity-40"
+                  />
                   <p className="text-sm font-medium">Sin turnos recientes</p>
-                  <Link href="/agenda" className="mt-2 text-xs font-medium text-accent hover:underline">
+                  <Link
+                    href="/operacion/agenda"
+                    className="mt-2 text-xs font-medium text-accent hover:underline"
+                  >
                     Crear turno
                   </Link>
                 </div>
               ) : (
-                <div className="flex-1 min-h-0 overflow-auto">
-                  <Table>
-                    <Table.Content aria-label="Últimos turnos" className="min-w-full text-sm">
-                      <Table.Header>
-                        <Table.Column isRowHeader>Título</Table.Column>
-                        <Table.Column>Cliente</Table.Column>
-                        <Table.Column>Fecha</Table.Column>
-                        <Table.Column>Estado</Table.Column>
-                      </Table.Header>
-                      <Table.Body>
-                        {appointmentsTable.getRowModel().rows.map((row) => {
-                          const apt = row.original;
-                          const { date, time } = formatDateTime(apt.date);
-                          return (
-                            <Table.Row key={apt.id}>
-                              <Table.Cell>
-                                <span className="font-medium text-sm truncate block max-w-[140px]">
-                                  {apt.title}
-                                </span>
-                              </Table.Cell>
-                              <Table.Cell>
-                                <span className="text-muted text-xs truncate block max-w-[120px]">
-                                  {apt.customer}
-                                </span>
-                              </Table.Cell>
-                              <Table.Cell>
-                                <span className="text-xs whitespace-nowrap">
-                                  {date} · {time}
-                                </span>
-                              </Table.Cell>
-                              <Table.Cell>
-                                <StatusChip status={apt.status} />
-                              </Table.Cell>
-                            </Table.Row>
-                          );
-                        })}
-                      </Table.Body>
-                    </Table.Content>
-                  </Table>
-                </div>
+                <ul className="min-h-0 flex-1 divide-y divide-separator overflow-y-auto">
+                  {data?.recentAppointments.map((apt) => {
+                    const { date, time } = formatDateTime(apt.date);
+                    return (
+                      <li
+                        key={apt.id}
+                        className="flex min-w-0 items-start gap-3 px-4 py-3"
+                      >
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">
+                            {apt.title}
+                          </p>
+                          <p className="mt-0.5 truncate text-xs text-muted">
+                            {apt.customer}
+                          </p>
+                          <p className="mt-1 text-[11px] text-muted">
+                            {date} · {time}
+                          </p>
+                        </div>
+                        <StatusChip
+                          status={apt.status}
+                          size="sm"
+                          compact
+                          className="max-w-[7.5rem] shrink-0"
+                        />
+                      </li>
+                    );
+                  })}
+                </ul>
               )}
             </div>
           </div>

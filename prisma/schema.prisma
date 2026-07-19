@@ -22,6 +22,11 @@ enum PaymentMethod {
   transfer
 }
 
+enum EntitlementStatus {
+  gestor_push
+  gestor_pull
+}
+
 model User {
   id       Int     @id @default(autoincrement())
   username String  @unique
@@ -74,12 +79,22 @@ model Service {
 }
 
 model Product {
-  id    Int    @id @default(autoincrement())
-  name  String
-  price Float
-  stock Int    @default(0)
+  id         Int       @id @default(autoincrement())
+  name       String
+  price      Float
+  stock      Int       @default(0)
+  categoryId Int?
 
+  category             Category?              @relation(fields: [categoryId], references: [id])
   appointmentsProducts AppointmentsProducts[]
+}
+
+model Category {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String  @default("")
+
+  products Product[]
 }
 
 model AppointmentsServices {
@@ -142,4 +157,13 @@ model Notification {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
+}
+
+model Entitlement {
+  id        Int               @id @default(autoincrement())
+  payload   Json
+  source    String
+  status    EntitlementStatus
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 }

@@ -7,6 +7,16 @@ export const statusLabel: Record<string, string> = {
   cancelled: "Cancelado",
 };
 
+/** Etiquetas cortas para espacios estrechos (tabla / cards) */
+export const statusLabelShort: Record<string, string> = {
+  scheduled: "Agendado",
+  rescheduled: "Reagendado",
+  paid_pending: "Pagado",
+  pending_payment: "Por pagar",
+  completed: "Hecho",
+  cancelled: "Cancelado",
+};
+
 /** Orden sugerido en selectores de estado */
 export const appointmentStatusOptions = [
   "scheduled",
@@ -16,6 +26,8 @@ export const appointmentStatusOptions = [
   "cancelled",
   "rescheduled",
 ] as const;
+
+export type AppointmentStatusOption = (typeof appointmentStatusOptions)[number];
 
 export const statusChartColor: Record<string, string> = {
   scheduled: "#f97316",
@@ -36,7 +48,44 @@ export const statusLegendItems = [
   "rescheduled",
 ] as const;
 
-/** HeroUI Chip color cuando aplica; `null` usa estilo custom */
+/** Tonos para badges de estado (pill + punto) */
+export const statusToneClass: Record<
+  string,
+  { pill: string; dot: string; text: string }
+> = {
+  scheduled: {
+    pill: "bg-orange-500/12 text-orange-700 dark:text-orange-300 ring-orange-500/25",
+    dot: "bg-orange-500",
+    text: "text-orange-600 dark:text-orange-400",
+  },
+  paid_pending: {
+    pill: "bg-blue-500/12 text-blue-700 dark:text-blue-300 ring-blue-500/25",
+    dot: "bg-blue-500",
+    text: "text-blue-600 dark:text-blue-400",
+  },
+  pending_payment: {
+    pill: "bg-amber-500/15 text-amber-800 dark:text-amber-300 ring-amber-500/30",
+    dot: "bg-amber-500",
+    text: "text-amber-600 dark:text-amber-400",
+  },
+  completed: {
+    pill: "bg-emerald-500/12 text-emerald-700 dark:text-emerald-300 ring-emerald-500/25",
+    dot: "bg-emerald-500",
+    text: "text-emerald-600 dark:text-emerald-400",
+  },
+  cancelled: {
+    pill: "bg-danger/12 text-danger ring-danger/25",
+    dot: "bg-danger",
+    text: "text-danger",
+  },
+  rescheduled: {
+    pill: "bg-neutral-500/12 text-neutral-700 dark:text-neutral-300 ring-neutral-500/25",
+    dot: "bg-neutral-400",
+    text: "text-neutral-600 dark:text-neutral-400",
+  },
+};
+
+/** @deprecated Prefer statusToneClass — se mantiene por compatibilidad */
 export const statusChipColor: Record<
   string,
   "accent" | "warning" | "success" | "danger" | "default" | null
@@ -49,17 +98,13 @@ export const statusChipColor: Record<
   cancelled: null,
 };
 
-const chipBase =
-  "inline-flex items-center rounded-full px-2 py-0.5 text-xs font-medium border";
-
-export const statusChipClass: Record<string, string> = {
-  scheduled: `${chipBase} bg-orange-500/15 text-orange-600 dark:text-orange-400 border-orange-500/30`,
-  paid_pending: `${chipBase} bg-blue-500/15 text-blue-600 dark:text-blue-400 border-blue-500/30`,
-  pending_payment: `${chipBase} bg-yellow-500/15 text-yellow-600 dark:text-yellow-400 border-yellow-500/30`,
-  completed: `${chipBase} bg-green-500/15 text-green-600 dark:text-green-400 border-green-500/30`,
-  cancelled: `${chipBase} bg-red-500/15 text-red-600 dark:text-red-400 border-red-500/30`,
-  rescheduled: `${chipBase} bg-neutral-500/15 text-neutral-600 dark:text-neutral-400 border-neutral-500/30`,
-};
+/** @deprecated Prefer statusToneClass */
+export const statusChipClass: Record<string, string> = Object.fromEntries(
+  Object.entries(statusToneClass).map(([key, tone]) => [
+    key,
+    `inline-flex items-center gap-1.5 rounded-full px-2 py-0.5 text-[11px] font-semibold ring-1 ring-inset ${tone.pill}`,
+  ]),
+);
 
 export const statusCalendarClass: Record<string, string> = {
   scheduled: "apt-status-scheduled",
@@ -69,3 +114,13 @@ export const statusCalendarClass: Record<string, string> = {
   completed: "apt-status-completed",
   cancelled: "apt-status-cancelled",
 };
+
+export function getStatusTone(status: string) {
+  return (
+    statusToneClass[status] ?? {
+      pill: "bg-surface-secondary text-muted ring-separator",
+      dot: "bg-muted",
+      text: "text-muted",
+    }
+  );
+}

@@ -1,6 +1,10 @@
 "use client";
 
 import { useAuth } from "@/src/features/auth";
+import {
+  SubscriptionProvider,
+  SubscriptionGate,
+} from "@/src/features/subscription";
 import { Sidebar } from "@/shared/components/Sidebar";
 import { LayoutSkeleton } from "@/shared/components/ui";
 import { useRouter } from "next/navigation";
@@ -32,12 +36,14 @@ export default function DashboardLayout({
 }) {
   return (
     <AuthGuard>
-      <div className="flex h-screen overflow-hidden">
-        <Sidebar />
-        <main className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 bg-background">
-          {children}
-        </main>
-      </div>
+      <SubscriptionProvider>
+        <div className="flex h-screen overflow-hidden">
+          <Sidebar />
+          <main className="flex-1 min-h-0 overflow-y-auto p-6 sm:p-8 bg-background">
+            <SubscriptionGate>{children}</SubscriptionGate>
+          </main>
+        </div>
+      </SubscriptionProvider>
     </AuthGuard>
   );
 }

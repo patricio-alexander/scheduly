@@ -1,6 +1,7 @@
 import type { PrismaClient } from "@/generated/prisma/client";
 import { lineTotal, toAmount } from "@/shared/utils/money";
 import { paymentMethodOptions, type PaymentMethodValue } from "@/shared/utils/payment-methods";
+import { isStockAlert, LOW_STOCK_THRESHOLD } from "@/shared/utils/stock";
 
 type Tx = Omit<
   PrismaClient,
@@ -104,22 +105,67 @@ export async function deductStockForAppointment(tx: Tx, appointmentId: number) {
     return;
   }
 
+  const lowStockProducts: Array<{ id: number; name: string; stock: number }> = [];
+
   for (const { productId, quantity } of appointment.products) {
     const product = await tx.product.findUnique({ where: { id: productId } });
     if (!product) continue;
     if (product.stock < quantity) {
       throw new Error(`Stock insuficiente para "${product.name}"`);
     }
-    await tx.product.update({
+    const updated = await tx.product.update({
       where: { id: productId },
       data: { stock: { decrement: quantity } },
     });
+    if (isStockAlert(updated.stock)) {
+      lowStockProducts.push(updated);
+    }
   }
 
   await tx.appointment.update({
     where: { id: appointmentId },
     data: { stockDeducted: true },
   });
+
+  if (lowStockProducts.length === 0) return;
+
+  const admins = await tx.user.findMany({
+    where: { role: "admin" },
+    select: { id: true },
+  });
+
+  for (const product of lowStockProducts) {
+    const title =
+      product.stock <= 0
+        ? `Sin stock: ${product.name}`
+        : `Stock bajo: ${product.name}`;
+    const message =
+      product.stock <= 0
+        ? `"${product.name}" se quedó sin unidades. Reponer inventario.`
+        : `"${product.name}" tiene solo ${product.stock} unidad(es) (mínimo ${LOW_STOCK_THRESHOLD}).`;
+
+    for (const admin of admins) {
+      const existing = await tx.notification.findFirst({
+        where: {
+          userId: admin.id,
+          type: "warning",
+          title,
+          read: false,
+        },
+        select: { id: true },
+      });
+      if (existing) continue;
+
+      await tx.notification.create({
+        data: {
+          userId: admin.id,
+          title,
+          message,
+          type: "warning",
+        },
+      });
+    }
+  }
 }
 
 export function parsePaymentMethod(value: unknown): PaymentMethodValue {
