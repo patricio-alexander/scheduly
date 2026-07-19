@@ -1,7 +1,12 @@
 /**
  * PM2 — Scheduly
  *
- * Build previo:  npm run build
+ * En el servidor (primera vez / deploy):
+ *   npm ci
+ *   npm run db:migrate
+ *   npm run build
+ *   pm2 start ecosystem.config.cjs
+ *
  * Arranque:      pm2 start ecosystem.config.cjs
  * Estado:        pm2 status
  * Logs:          pm2 logs scheduly
