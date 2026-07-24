@@ -2,6 +2,7 @@
 
 import { apiUrl } from "@/shared/utils/api";
 import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuth } from "@/src/features/auth";
 import {
   Button,
@@ -27,7 +28,7 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import interactionPlugin from "@fullcalendar/interaction";
 import esLocale from "@fullcalendar/core/locales/es";
-import type { EventContentArg } from "@fullcalendar/core";
+import type { EventContentArg, EventDropArg } from "@fullcalendar/core";
 import CalendarIcon from "@gravity-ui/icons/Calendar";
 import { PageHeader } from "@/shared/components/ui";
 import { StatusChip } from "@/shared/components/StatusChip";
@@ -41,18 +42,10 @@ import Smartphone from "@gravity-ui/icons/Smartphone";
 import CreditCard from "@gravity-ui/icons/CreditCard";
 import { paymentMethodLabel, paymentMethodOptions, type PaymentMethodValue } from "@/shared/utils/payment-methods";
 import { formatMoney, lineTotal, toAmount, toQuantity } from "@/shared/utils/money";
+import { useAppointmentSocket } from "@/src/features/appointments";
+import type { AppointmentCalendarEvent } from "@/src/features/appointments";
 
-interface CalendarEvent {
-  id: string;
-  title: string;
-  start: string;
-  extendedProps: {
-    description: string;
-    customer: string;
-    user: string;
-    status: string;
-  };
-}
+type CalendarEvent = AppointmentCalendarEvent;
 
 interface CustomerOption {
   id: number;
@@ -286,6 +279,7 @@ function LineItemRow({
 
 export default function AgendaPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -299,6 +293,7 @@ export default function AgendaPage() {
   const [creating, setCreating] = useState(false);
   const calendarRef = useRef<FullCalendar>(null);
   const formRef = useRef<HTMLFormElement>(null);
+  const spotlightAppliedRef = useRef<string | null>(null);
   const modal = useOverlayState();
   const [selectedDate, setSelectedDate] = useState<CalendarDate>(today(getLocalTimeZone()));
   const [selectedTime, setSelectedTime] = useState<TimeValue>(parseTime("09:00"));
@@ -309,6 +304,7 @@ export default function AgendaPage() {
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodValue>("cash");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [paying, setPaying] = useState(false);
+  const [spotlightId, setSpotlightId] = useState<string | null>(null);
 
   const {
     register,
@@ -380,6 +376,114 @@ export default function AgendaPage() {
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
+
+  useEffect(() => {
+    const raw = searchParams.get("appointmentId");
+    if (!raw) {
+      spotlightAppliedRef.current = null;
+      setSpotlightId(null);
+      return;
+    }
+    setSpotlightId(String(raw));
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (loading || !spotlightId) return;
+    if (spotlightAppliedRef.current === spotlightId) return;
+
+    const target = events.find((e) => e.id === spotlightId);
+    if (!target) return;
+
+    let clearTimer: number | undefined;
+    const applyTimer = window.setTimeout(() => {
+      const api = calendarRef.current?.getApi();
+      if (!api) return;
+
+      spotlightAppliedRef.current = spotlightId;
+      const start = new Date(target.start);
+      if (!Number.isNaN(start.getTime())) {
+        api.changeView("timeGridDay", start);
+        api.gotoDate(start);
+      }
+
+      clearTimer = window.setTimeout(() => {
+        setSpotlightId(null);
+        spotlightAppliedRef.current = null;
+      }, 4500);
+    }, 80);
+
+    return () => {
+      window.clearTimeout(applyTimer);
+      if (clearTimer) window.clearTimeout(clearTimer);
+    };
+  }, [loading, events, spotlightId]);
+
+  useAppointmentSocket({
+    onCreated: (event) => {
+      setEvents((prev) => {
+        if (prev.some((e) => e.id === event.id)) {
+          return prev.map((e) => (e.id === event.id ? { ...event } : e));
+        }
+        return [...prev, { ...event }];
+      });
+      requestAnimationFrame(() => {
+        const api = calendarRef.current?.getApi();
+        if (!api) return;
+        const existing = api.getEventById(event.id);
+        if (existing) {
+          existing.setProp("title", event.title);
+          existing.setStart(event.start);
+          existing.setExtendedProp("description", event.extendedProps.description);
+          existing.setExtendedProp("customer", event.extendedProps.customer);
+          existing.setExtendedProp("user", event.extendedProps.user);
+          existing.setExtendedProp("status", event.extendedProps.status);
+        } else {
+          api.addEvent({ ...event });
+        }
+      });
+    },
+    onUpdated: (event) => {
+      setEvents((prev) => {
+        if (prev.some((e) => e.id === event.id)) {
+          return prev.map((e) => (e.id === event.id ? { ...event } : e));
+        }
+        return [...prev, { ...event }];
+      });
+      setSelectedEvent((prev) => (prev?.id === event.id ? { ...event } : prev));
+      setDetailData((prev) => {
+        if (!prev || String(prev.id) !== event.id) return prev;
+        return {
+          ...prev,
+          description: event.extendedProps.description,
+          appointmentDate: event.start,
+          status: event.extendedProps.status,
+        };
+      });
+      requestAnimationFrame(() => {
+        const api = calendarRef.current?.getApi();
+        if (!api) return;
+        const existing = api.getEventById(event.id);
+        if (existing) {
+          existing.setProp("title", event.title);
+          existing.setStart(event.start);
+          existing.setExtendedProp("description", event.extendedProps.description);
+          existing.setExtendedProp("customer", event.extendedProps.customer);
+          existing.setExtendedProp("user", event.extendedProps.user);
+          existing.setExtendedProp("status", event.extendedProps.status);
+        } else {
+          api.addEvent({ ...event });
+        }
+      });
+    },
+    onDeleted: (id) => {
+      setEvents((prev) => prev.filter((e) => e.id !== id));
+      setSelectedEvent((prev) => (prev?.id === id ? null : prev));
+      setDetailData((prev) => (prev && String(prev.id) === id ? null : prev));
+      requestAnimationFrame(() => {
+        calendarRef.current?.getApi().getEventById(id)?.remove();
+      });
+    },
+  });
 
   useEffect(() => {
     fetchCatalog<CustomerOption>(apiUrl("/api/customers")).then(setCustomers);
@@ -552,6 +656,66 @@ export default function AgendaPage() {
     }
   };
 
+  const handleEventDrop = useCallback(async (info: EventDropArg) => {
+    const id = info.event.id;
+    const newStart = info.event.start;
+    if (!id || !newStart) {
+      info.revert();
+      return;
+    }
+
+    const appointmentDate = newStart.toISOString();
+    try {
+      const res = await fetch(apiUrl(`/api/appointments/${id}`), {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appointmentDate }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.danger(
+          typeof err.message === "string"
+            ? err.message
+            : "No se pudo mover el turno",
+        );
+        info.revert();
+        return;
+      }
+
+      const payload = (await res.json().catch(() => null)) as
+        | CalendarEvent
+        | null;
+      if (payload?.id) {
+        setEvents((prev) =>
+          prev.map((e) => (e.id === payload.id ? payload : e)),
+        );
+      } else {
+        setEvents((prev) =>
+          prev.map((e) =>
+            e.id === id
+              ? {
+                  ...e,
+                  start: appointmentDate,
+                  extendedProps: {
+                    ...e.extendedProps,
+                    status:
+                      e.extendedProps.status === "scheduled" ||
+                      e.extendedProps.status === "rescheduled"
+                        ? "rescheduled"
+                        : e.extendedProps.status,
+                  },
+                }
+              : e,
+          ),
+        );
+      }
+      toast.success("Turno reprogramado");
+    } catch {
+      toast.danger("No se pudo mover el turno");
+      info.revert();
+    }
+  }, []);
+
   const onSubmit = async (data: AppointmentFormData) => {
     if (!user) return;
     if (!selectedCustomerId) {
@@ -602,17 +766,21 @@ export default function AgendaPage() {
         title="Agenda"
         description="Visualiza y gestiona los turnos de tu negocio"
         action={
-          <Button variant="primary" onPress={() => openCreate()}>
-            <Plus width={16} height={16} />
-            Agendar turno
-          </Button>
+          <div data-onboarding="agenda-create">
+            <Button variant="primary" onPress={() => openCreate()}>
+              <Plus width={16} height={16} />
+              Agendar turno
+            </Button>
+          </div>
         }
       />
       </div>
 
       <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-separator bg-surface p-4 shadow-sm">
-        <StatusLegend className="mb-4 shrink-0 border-b border-separator pb-4" />
-        <div className="agenda-calendar min-h-0 flex-1">
+        <div data-onboarding="agenda-legend">
+          <StatusLegend className="mb-4 shrink-0 border-b border-separator pb-4" />
+        </div>
+        <div className="agenda-calendar min-h-0 flex-1" data-onboarding="agenda-calendar">
           {loading ? (
             <p className="text-muted">Cargando agenda...</p>
           ) : (
@@ -638,12 +806,22 @@ export default function AgendaPage() {
               scrollTime="08:00:00"
               expandRows={false}
               allDaySlot={false}
+              editable
+              eventStartEditable
+              eventDurationEditable={false}
+              eventDrop={handleEventDrop}
               eventClick={handleEventClick}
               dateClick={handleDateClick}
               eventContent={(arg) => <CalendarEventContent arg={arg} />}
               eventClassNames={(arg) => {
                 const status = String(arg.event.extendedProps.status ?? "scheduled");
-                return [statusCalendarClass[status] ?? statusCalendarClass.scheduled];
+                const classes = [
+                  statusCalendarClass[status] ?? statusCalendarClass.scheduled,
+                ];
+                if (spotlightId && arg.event.id === spotlightId) {
+                  classes.push("fc-event-spotlight");
+                }
+                return classes;
               }}
             />
           )}

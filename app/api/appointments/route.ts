@@ -6,6 +6,8 @@ import {
   parseAppointmentProducts,
   validateProductStock,
 } from "@/shared/utils/appointment-business";
+import { getAppointmentCalendarEvent } from "@/shared/utils/appointment-calendar";
+import { emitAppointmentCreated } from "@/shared/utils/socket";
 
 export async function GET() {
   try {
@@ -95,6 +97,9 @@ export async function POST(request: Request) {
 
       return created;
     });
+
+    const calendarEvent = await getAppointmentCalendarEvent(appointment.id);
+    if (calendarEvent) emitAppointmentCreated(calendarEvent);
 
     return NextResponse.json(appointment, { status: 201 });
   } catch (error) {

@@ -19,6 +19,7 @@ interface Props {
   onDelete: (id: number) => void;
   onAdd?: () => void;
   loading?: boolean;
+  canDelete?: boolean;
 }
 
 const PAGE_SIZE = 10;
@@ -29,6 +30,7 @@ export function CategoryList({
   onDelete,
   onAdd,
   loading,
+  canDelete = true,
 }: Props) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -155,14 +157,16 @@ export function CategoryList({
                             >
                               <Pencil width={16} height={16} />
                             </Button>
-                            <Button
-                              isIconOnly
-                              size="sm"
-                              variant="danger"
-                              onPress={() => onDelete(category.id)}
-                            >
-                              <TrashBin width={16} height={16} />
-                            </Button>
+                            {canDelete ? (
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="danger"
+                                onPress={() => onDelete(category.id)}
+                              >
+                                <TrashBin width={16} height={16} />
+                              </Button>
+                            ) : null}
                           </div>
                         </Table.Cell>
                       </Table.Row>

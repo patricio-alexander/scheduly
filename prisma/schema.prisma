@@ -27,6 +27,18 @@ enum EntitlementStatus {
   gestor_pull
 }
 
+enum TaskStatus {
+  todo
+  in_progress
+  done
+}
+
+enum TaskPriority {
+  low
+  medium
+  high
+}
+
 model User {
   id       Int     @id @default(autoincrement())
   username String  @unique
@@ -41,6 +53,7 @@ model User {
   userRoles     UserRole[]
   appointments  Appointment[]
   notifications Notification[]
+  tasks         Task[]
 }
 
 model Role {
@@ -154,6 +167,8 @@ model Notification {
   message   String
   type      String   @default("info")
   read      Boolean  @default(false)
+  /** Ruta interna opcional, ej. /inventario/productos?productId=12 */
+  link      String?
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
@@ -166,4 +181,19 @@ model Entitlement {
   status    EntitlementStatus
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
+}
+
+model Task {
+  id          Int          @id @default(autoincrement())
+  title       String
+  description String       @default("") @db.Text
+  status      TaskStatus   @default(todo)
+  priority    TaskPriority @default(medium)
+  assigneeId  Int?
+  dueDate     DateTime?
+  sortOrder   Int          @default(0)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  assignee User? @relation(fields: [assigneeId], references: [id])
 }

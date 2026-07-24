@@ -26,6 +26,7 @@ import ListCheck from "@gravity-ui/icons/ListCheck";
 import Puzzle from "@gravity-ui/icons/Puzzle";
 import Rocket from "@gravity-ui/icons/Rocket";
 import ShoppingCart from "@gravity-ui/icons/ShoppingCart";
+import Receipt from "@gravity-ui/icons/Receipt";
 import Briefcase from "@gravity-ui/icons/Briefcase";
 import FileDollar from "@gravity-ui/icons/FileDollar";
 import File from "@gravity-ui/icons/File";
@@ -33,12 +34,15 @@ import FileCheck from "@gravity-ui/icons/FileCheck";
 import FileText from "@gravity-ui/icons/FileText";
 import Layers from "@gravity-ui/icons/Layers";
 import { useAuth } from "@/src/features/auth";
+import { useOnboarding } from "@/src/features/onboarding";
 import { useSubscription } from "@/src/features/subscription";
 import {
   accessTitle,
   resolveAccessView,
   type AccessViewKind,
 } from "@/src/features/subscription/lib/access-status";
+import { isAdminRole } from "@/shared/utils/roles";
+import CircleQuestion from "@gravity-ui/icons/CircleQuestion";
 
 const STORAGE_KEY = "scheduly-sidebar-collapsed";
 const MODULES_STORAGE_KEY = "scheduly-sidebar-modules";
@@ -51,6 +55,7 @@ type NavItem = {
   icon: IconComponent;
   showBadge?: boolean;
   adminOnly?: boolean;
+  tourId?: string;
 };
 
 type NavModule = {
@@ -67,8 +72,15 @@ const navModules: NavModule[] = [
     id: "dashboard",
     label: "Dashboard",
     icon: House,
-    entitlementKey: "admin",
-    items: [{ href: appRoutes.dashboard, label: "Panel de control", icon: House }],
+    entitlementKey: "operation",
+    items: [
+      {
+        href: appRoutes.dashboard,
+        label: "Panel de control",
+        icon: House,
+        tourId: "nav-dashboard",
+      },
+    ],
   },
   {
     id: "operation",
@@ -76,8 +88,8 @@ const navModules: NavModule[] = [
     icon: Briefcase,
     entitlementKey: "operation",
     items: [
-      { href: appRoutes.operation.agenda, label: "Agenda", icon: Calendar },
-      { href: appRoutes.operation.tasks, label: "Tareas", icon: ListCheck },
+      { href: appRoutes.operation.agenda, label: "Agenda", icon: Calendar, tourId: "nav-agenda" },
+      { href: appRoutes.operation.tasks, label: "Tareas", icon: ListCheck, tourId: "nav-tasks" },
     ],
   },
   {
@@ -85,28 +97,32 @@ const navModules: NavModule[] = [
     label: "Documentos electrónicos",
     icon: FileDollar,
     entitlementKey: "electronicDocs",
+    adminOnly: true,
     items: [
-      { href: appRoutes.electronicDocs.hub, label: "Centro", icon: Layers },
-      { href: appRoutes.electronicDocs.invoices, label: "Facturas", icon: FileDollar },
-      { href: appRoutes.electronicDocs.salesNotes, label: "Notas de venta", icon: File },
-      { href: appRoutes.electronicDocs.creditNotes, label: "Notas de crédito", icon: FileText },
-      { href: appRoutes.electronicDocs.debitNotes, label: "Notas de débito", icon: FileText },
-      { href: appRoutes.electronicDocs.withholdings, label: "Retenciones", icon: FileCheck },
+      { href: appRoutes.electronicDocs.hub, label: "Centro", icon: Layers, adminOnly: true },
+      { href: appRoutes.electronicDocs.invoices, label: "Facturas", icon: FileDollar, adminOnly: true },
+      { href: appRoutes.electronicDocs.salesNotes, label: "Notas de venta", icon: File, adminOnly: true },
+      { href: appRoutes.electronicDocs.creditNotes, label: "Notas de crédito", icon: FileText, adminOnly: true },
+      { href: appRoutes.electronicDocs.debitNotes, label: "Notas de débito", icon: FileText, adminOnly: true },
+      { href: appRoutes.electronicDocs.withholdings, label: "Retenciones", icon: FileCheck, adminOnly: true },
       {
         href: appRoutes.electronicDocs.deliveryGuides,
         label: "Guías de remisión",
         icon: File,
+        adminOnly: true,
       },
       {
         href: appRoutes.electronicDocs.purchaseSettlement,
         label: "Liquidación compras",
         icon: FileDollar,
+        adminOnly: true,
       },
-      { href: appRoutes.electronicDocs.issued, label: "Emitidos", icon: FileCheck },
+      { href: appRoutes.electronicDocs.issued, label: "Emitidos", icon: FileCheck, adminOnly: true },
       {
         href: appRoutes.electronicDocs.sriSettings,
         label: "Configuración SRI",
         icon: Gear,
+        adminOnly: true,
       },
     ],
   },
@@ -116,7 +132,14 @@ const navModules: NavModule[] = [
     icon: ShoppingCart,
     entitlementKey: "sales",
     items: [
-      { href: appRoutes.sales.customers, label: "Clientes", icon: Person },
+      {
+        href: appRoutes.sales.history,
+        label: "Registro de ventas",
+        icon: Receipt,
+        tourId: "nav-sales",
+        adminOnly: true,
+      },
+      { href: appRoutes.sales.customers, label: "Clientes", icon: Person, tourId: "nav-customers" },
     ],
   },
   {
@@ -125,7 +148,7 @@ const navModules: NavModule[] = [
     icon: Boxes3,
     entitlementKey: "inventory",
     items: [
-      { href: appRoutes.inventory.products, label: "Productos", icon: Boxes3 },
+      { href: appRoutes.inventory.products, label: "Productos", icon: Boxes3, tourId: "nav-inventory" },
       { href: appRoutes.inventory.units, label: "Unidades", icon: Cube },
       { href: appRoutes.inventory.categories, label: "Categorías", icon: Tag },
     ],
@@ -135,6 +158,7 @@ const navModules: NavModule[] = [
     label: "Administración",
     icon: Shield,
     entitlementKey: "admin",
+    adminOnly: true,
     items: [
       { href: appRoutes.admin.users, label: "Usuarios", icon: Persons, adminOnly: true },
       { href: appRoutes.admin.roles, label: "Roles", icon: Shield, adminOnly: true },
@@ -145,16 +169,19 @@ const navModules: NavModule[] = [
     label: "Sistema",
     icon: Gear,
     entitlementKey: "system",
+    adminOnly: true,
     items: [
-      { href: appRoutes.system.settings, label: "Configuración", icon: Gear },
-      { href: appRoutes.system.plans, label: "Planes", icon: Rocket },
-      { href: appRoutes.system.modules, label: "Módulos", icon: Puzzle },
-      { href: appRoutes.system.profile, label: "Perfil", icon: Person },
+      { href: appRoutes.system.settings, label: "Configuración", icon: Gear, adminOnly: true },
+      { href: appRoutes.system.plans, label: "Planes", icon: Rocket, adminOnly: true },
+      { href: appRoutes.system.modules, label: "Módulos", icon: Puzzle, adminOnly: true },
+      { href: appRoutes.system.profile, label: "Perfil", icon: Person, adminOnly: true },
       {
         href: appRoutes.system.notifications,
         label: "Notificaciones",
         icon: Bell,
         showBadge: true,
+        tourId: "nav-notifications",
+        adminOnly: true,
       },
     ],
   },
@@ -234,6 +261,7 @@ function NavButton({
   statusLabel,
   statusKind,
   nested,
+  tourId,
   children,
 }: {
   isActive: boolean;
@@ -244,6 +272,7 @@ function NavButton({
   statusLabel?: string | null;
   statusKind?: AccessViewKind | null;
   nested?: boolean;
+  tourId?: string;
   children: ReactNode;
 }) {
   const title = statusLabel && label ? `${label} · ${statusLabel}` : label;
@@ -269,26 +298,24 @@ function NavButton({
     </Button>
   );
 
-  if (collapsed && label) {
-    return (
-      <div className="relative w-full" title={title}>
-        {button}
-        {statusLabel && statusKind ? (
-          <StatusBadge label={statusLabel} kind={statusKind} compact />
-        ) : badge != null && badge > 0 ? (
-          <span className="pointer-events-none absolute right-2 top-2 h-2 w-2 rounded-full bg-accent ring-2 ring-surface" />
-        ) : null}
-      </div>
-    );
-  }
-
-  return button;
+  return (
+    <div className="relative w-full" title={collapsed ? title : undefined} data-onboarding={tourId}>
+      {button}
+      {collapsed && statusLabel && statusKind ? (
+        <StatusBadge label={statusLabel} kind={statusKind} compact />
+      ) : null}
+      {collapsed && !statusLabel && badge != null && badge > 0 ? (
+        <span className="pointer-events-none absolute right-2 top-2 h-2 w-2 rounded-full bg-accent ring-2 ring-surface" />
+      ) : null}
+    </div>
+  );
 }
 
 export function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
+  const { startTour, startModuleTour, activeModule } = useOnboarding();
   const { getModule, getSectionForPath, isDeveloper, isAppInMaintenance } =
     useSubscription();
   const { setTheme, resolvedTheme } = useTheme();
@@ -300,10 +327,24 @@ export function Sidebar() {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored !== null) setCollapsed(stored === "true");
 
+    const activeMod =
+      navModules.find((mod) =>
+        mod.items.some((item) => isRouteActive(pathname, item.href)),
+      )?.id ?? null;
+
     const storedModules = localStorage.getItem(MODULES_STORAGE_KEY);
     if (storedModules) {
       try {
-        setOpenModules(JSON.parse(storedModules) as Record<string, boolean>);
+        const parsed = JSON.parse(storedModules) as Record<string, boolean>;
+        const openId =
+          (activeMod && parsed[activeMod] ? activeMod : null) ??
+          Object.keys(parsed).find((id) => parsed[id]) ??
+          activeMod;
+        const next: Record<string, boolean> = {};
+        for (const mod of navModules) {
+          next[mod.id] = openId === mod.id;
+        }
+        setOpenModules(next);
         return;
       } catch {
         // fallback below
@@ -312,34 +353,75 @@ export function Sidebar() {
 
     const defaults: Record<string, boolean> = {};
     for (const mod of navModules) {
-      defaults[mod.id] = mod.items.some((item) => isRouteActive(pathname, item.href));
+      defaults[mod.id] = activeMod === mod.id;
     }
     setOpenModules(defaults);
   }, []);
 
   useEffect(() => {
+    const activeMod = navModules.find((mod) =>
+      mod.items.some((item) => isRouteActive(pathname, item.href)),
+    )?.id;
+    if (!activeMod) return;
+
     setOpenModules((prev) => {
-      const next = { ...prev };
-      let changed = false;
-      for (const mod of navModules) {
-        if (mod.items.some((item) => isRouteActive(pathname, item.href)) && !next[mod.id]) {
-          next[mod.id] = true;
-          changed = true;
-        }
+      if (prev[activeMod] && Object.values(prev).filter(Boolean).length === 1) {
+        return prev;
       }
-      if (changed) localStorage.setItem(MODULES_STORAGE_KEY, JSON.stringify(next));
-      return changed ? next : prev;
+      const next: Record<string, boolean> = {};
+      for (const mod of navModules) {
+        next[mod.id] = mod.id === activeMod;
+      }
+      localStorage.setItem(MODULES_STORAGE_KEY, JSON.stringify(next));
+      return next;
     });
   }, [pathname]);
 
   useEffect(() => {
+    const onExpand = (event: Event) => {
+      const moduleId = (event as CustomEvent<{ moduleId?: string }>).detail
+        ?.moduleId;
+      if (!moduleId) return;
+      setOpenModules((prev) => {
+        if (
+          prev[moduleId] &&
+          Object.values(prev).filter(Boolean).length === 1
+        ) {
+          return prev;
+        }
+        const next: Record<string, boolean> = {};
+        for (const mod of navModules) {
+          next[mod.id] = mod.id === moduleId;
+        }
+        localStorage.setItem(MODULES_STORAGE_KEY, JSON.stringify(next));
+        return next;
+      });
+      setCollapsed(false);
+      localStorage.setItem(STORAGE_KEY, "false");
+    };
+    window.addEventListener("scheduly:onboarding-expand", onExpand);
+    return () => {
+      window.removeEventListener("scheduly:onboarding-expand", onExpand);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!user) return;
-    fetch(apiUrl(`/api/notifications?userId=${user.id}`))
-      .then((r) => r.json())
-      .then((items: Array<{ read: boolean }>) =>
-        setUnreadCount(items.filter((n) => !n.read).length),
-      )
-      .catch(() => {});
+
+    const loadUnread = () => {
+      fetch(apiUrl(`/api/notifications?userId=${user.id}`))
+        .then((r) => r.json())
+        .then((items: Array<{ read: boolean }>) =>
+          setUnreadCount(items.filter((n) => !n.read).length),
+        )
+        .catch(() => {});
+    };
+
+    loadUnread();
+    window.addEventListener("scheduly:notifications-updated", loadUnread);
+    return () => {
+      window.removeEventListener("scheduly:notifications-updated", loadUnread);
+    };
   }, [user, pathname]);
 
   const toggleCollapsed = () => {
@@ -352,7 +434,11 @@ export function Sidebar() {
 
   const toggleModule = (moduleId: string) => {
     setOpenModules((prev) => {
-      const next = { ...prev, [moduleId]: !prev[moduleId] };
+      const willOpen = !prev[moduleId];
+      const next: Record<string, boolean> = {};
+      for (const mod of navModules) {
+        next[mod.id] = willOpen && mod.id === moduleId;
+      }
       localStorage.setItem(MODULES_STORAGE_KEY, JSON.stringify(next));
       return next;
     });
@@ -370,7 +456,7 @@ export function Sidebar() {
     .toUpperCase();
 
   const themeLabel = resolvedTheme === "dark" ? "Modo claro" : "Modo oscuro";
-  const isAdmin = user?.role === "admin";
+  const isAdmin = isAdminRole(user?.role);
 
   const visibleModules = navModules
     .filter((mod) => !mod.adminOnly || isAdmin)
@@ -459,13 +545,27 @@ export function Sidebar() {
                   <ArrowChevronDown
                     width={14}
                     height={14}
-                    className={`shrink-0 transition-transform ${isOpen ? "rotate-0" : "-rotate-90"}`}
+                    className={`shrink-0 transition-transform duration-200 ease-out ${
+                      isOpen ? "rotate-0" : "-rotate-90"
+                    }`}
                   />
                 </button>
               )}
 
-              {isOpen &&
-                visibleItems.map((item) => {
+              <div
+                className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
+                  isOpen
+                    ? "grid-rows-[1fr] opacity-100"
+                    : "pointer-events-none grid-rows-[0fr] opacity-0"
+                }`}
+              >
+                <div className="min-h-0 overflow-hidden">
+                  <div
+                    className={`flex flex-col gap-1 transition-transform duration-200 ease-out ${
+                      isOpen ? "translate-y-0" : "-translate-y-1"
+                    }`}
+                  >
+                    {visibleItems.map((item) => {
                   const Icon = item.icon;
                   const isActive = isRouteActive(pathname, item.href);
                   const badge = item.showBadge ? unreadCount : 0;
@@ -484,23 +584,39 @@ export function Sidebar() {
                     ? accessTitle(sectionStatusKind)
                     : null;
 
-                  return (
-                    <NavButton
-                      key={item.href}
-                      isActive={isActive}
-                      collapsed={collapsed}
-                      label={collapsed ? `${mod.label}: ${item.label}` : item.label}
-                      badge={badge}
-                      statusLabel={sectionStatusLabel}
-                      statusKind={sectionStatusKind}
-                      nested={!collapsed}
-                      onPress={() => router.push(item.href)}
-                    >
-                      <Icon width={18} height={18} className={collapsed ? "" : "shrink-0"} />
-                      {!collapsed && <span className="flex-1 truncate text-left">{item.label}</span>}
-                    </NavButton>
-                  );
-                })}
+                      return (
+                        <NavButton
+                          key={item.href}
+                          isActive={isActive}
+                          collapsed={collapsed}
+                          label={
+                            collapsed
+                              ? `${mod.label}: ${item.label}`
+                              : item.label
+                          }
+                          badge={badge}
+                          statusLabel={sectionStatusLabel}
+                          statusKind={sectionStatusKind}
+                          nested={!collapsed}
+                          tourId={item.tourId}
+                          onPress={() => router.push(item.href)}
+                        >
+                          <Icon
+                            width={18}
+                            height={18}
+                            className={collapsed ? "" : "shrink-0"}
+                          />
+                          {!collapsed && (
+                            <span className="flex-1 truncate text-left">
+                              {item.label}
+                            </span>
+                          )}
+                        </NavButton>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
             </div>
           );
         })}
@@ -519,6 +635,36 @@ export function Sidebar() {
             </div>
             {!collapsed && <span className="truncate">{user.name}</span>}
           </NavButton>
+        )}
+        {collapsed ? (
+          <div title="Guía de esta pantalla" className="w-full" data-onboarding="onboarding-help">
+            <Button
+              isIconOnly
+              variant="ghost"
+              className="w-full"
+              aria-label="Guía de esta pantalla"
+              onPress={() =>
+                activeModule ? startModuleTour(activeModule.id) : startTour()
+              }
+            >
+              <CircleQuestion width={16} height={16} />
+            </Button>
+          </div>
+        ) : (
+          <div data-onboarding="onboarding-help" className="flex flex-col gap-1">
+            <Button
+              variant="ghost"
+              className="w-full justify-start"
+              onPress={() =>
+                activeModule ? startModuleTour(activeModule.id) : startTour()
+              }
+            >
+              <CircleQuestion width={16} height={16} />
+              {activeModule
+                ? `Guía: ${activeModule.label}`
+                : "Guía de uso"}
+            </Button>
+          </div>
         )}
         {collapsed ? (
           <div title={themeLabel} className="w-full">

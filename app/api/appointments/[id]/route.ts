@@ -3,6 +3,8 @@ import { prisma } from "@/shared/utils/prisma";
 import { parseAppointmentDate, parseAppointmentStatus } from "@/shared/utils/appointment-api";
 import { deductStockForAppointment, parseAppointmentProducts, validateProductStock } from "@/shared/utils/appointment-business";
 import { toAmount, toQuantity } from "@/shared/utils/money";
+import { getAppointmentCalendarEvent } from "@/shared/utils/appointment-calendar";
+import { emitAppointmentUpdated } from "@/shared/utils/socket";
 
 export async function GET(
   _request: Request,
@@ -144,11 +146,71 @@ export async function PUT(
       return updated;
     });
 
+    const calendarEvent = await getAppointmentCalendarEvent(appointment.id);
+    if (calendarEvent) emitAppointmentUpdated(calendarEvent);
+
     return NextResponse.json(appointment);
   } catch (error) {
     console.error("PUT /api/appointments/[id]", error);
     const message =
       error instanceof Error ? error.message : "Error al actualizar el turno";
+    return NextResponse.json({ message }, { status: 500 });
+  }
+}
+
+/** Reprogramar turno (drag & drop del calendario) */
+export async function PATCH(
+  request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+  try {
+    const appointmentId = Number(id);
+    if (!Number.isFinite(appointmentId)) {
+      return NextResponse.json({ message: "ID inválido" }, { status: 400 });
+    }
+
+    const body = await request.json();
+    if (typeof body.appointmentDate !== "string" || !body.appointmentDate) {
+      return NextResponse.json(
+        { message: "appointmentDate es requerido" },
+        { status: 400 },
+      );
+    }
+
+    const existing = await prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      select: { id: true, status: true },
+    });
+    if (!existing) {
+      return NextResponse.json(
+        { message: "Turno no encontrado" },
+        { status: 404 },
+      );
+    }
+
+    const appointmentDate = parseAppointmentDate(body.appointmentDate);
+    const nextStatus =
+      existing.status === "scheduled" || existing.status === "rescheduled"
+        ? "rescheduled"
+        : existing.status;
+
+    await prisma.appointment.update({
+      where: { id: appointmentId },
+      data: {
+        appointmentDate,
+        status: nextStatus,
+      },
+    });
+
+    const calendarEvent = await getAppointmentCalendarEvent(appointmentId);
+    if (calendarEvent) emitAppointmentUpdated(calendarEvent);
+
+    return NextResponse.json(calendarEvent ?? { id: appointmentId });
+  } catch (error) {
+    console.error("PATCH /api/appointments/[id]", error);
+    const message =
+      error instanceof Error ? error.message : "Error al reprogramar el turno";
     return NextResponse.json({ message }, { status: 500 });
   }
 }

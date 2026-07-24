@@ -7,8 +7,11 @@ import CircleCheck from "@gravity-ui/icons/CircleCheck";
 import TriangleExclamation from "@gravity-ui/icons/TriangleExclamation";
 import CircleXmark from "@gravity-ui/icons/CircleXmark";
 import Info from "@gravity-ui/icons/CircleInfo";
+import ArrowRight from "@gravity-ui/icons/ArrowRight";
 import { ComponentProps } from "react";
 import { ContentCard, EmptyState, Skeleton } from "@/shared/components/ui";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const typeIcon = {
   info: Info,
@@ -62,6 +65,8 @@ export function NotificationsList({
   onMarkRead,
   loading,
 }: Props) {
+  const router = useRouter();
+
   if (loading) {
     return <NotificationSkeleton />;
   }
@@ -80,6 +85,11 @@ export function NotificationsList({
 
   const unread = notifications.filter((n) => !n.read);
   const read = notifications.filter((n) => n.read);
+
+  const openLinked = async (n: NotificationItem) => {
+    if (!n.read) await onMarkRead(n.id);
+    if (n.link) router.push(n.link);
+  };
 
   const renderNotification = (n: NotificationItem) => {
     const Icon = typeIcon[n.type] ?? Bell;
@@ -117,17 +127,39 @@ export function NotificationsList({
               minute: "2-digit",
             })}
           </p>
+          {n.link ? (
+            <button
+              type="button"
+              onClick={() => void openLinked(n)}
+              className="mt-2 inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
+            >
+              Ver producto
+              <ArrowRight width={12} height={12} />
+            </button>
+          ) : null}
         </div>
-        {!n.read && (
-          <Button
-            variant="ghost"
-            size="sm"
-            className="shrink-0"
-            onPress={() => onMarkRead(n.id)}
-          >
-            Marcar leída
-          </Button>
-        )}
+        <div className="flex shrink-0 flex-col gap-1">
+          {!n.read && (
+            <Button
+              variant="ghost"
+              size="sm"
+              onPress={() => void onMarkRead(n.id)}
+            >
+              Marcar leída
+            </Button>
+          )}
+          {n.link ? (
+            <Link
+              href={n.link}
+              onClick={() => {
+                if (!n.read) void onMarkRead(n.id);
+              }}
+              className="inline-flex h-8 items-center justify-center rounded-lg px-2 text-xs font-medium text-accent hover:bg-accent/10"
+            >
+              Ir
+            </Link>
+          ) : null}
+        </div>
       </div>
     );
   };

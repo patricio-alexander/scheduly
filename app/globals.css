@@ -395,3 +395,28 @@
   flex: 1;
   min-height: 0;
 }
+
+/* Turno resaltado desde el dashboard (últimos turnos) */
+.fc .fc-event.fc-event-spotlight,
+.fc .fc-daygrid-event.fc-event-spotlight,
+.fc .fc-timegrid-event.fc-event-spotlight {
+  outline: 2px solid color-mix(in srgb, var(--accent) 85%, white);
+  outline-offset: 2px;
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--accent) 25%, transparent),
+    0 8px 20px color-mix(in srgb, var(--accent) 35%, transparent);
+  animation: fc-event-spotlight-pulse 1.1s ease-in-out 3;
+  z-index: 5 !important;
+}
+
+@keyframes fc-event-spotlight-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  50% {
+    transform: scale(1.03);
+    filter: brightness(1.12);
+  }
+}

@@ -5,6 +5,8 @@ import {
   deductStockForAppointment,
   parsePaymentMethod,
 } from "@/shared/utils/appointment-business";
+import { getAppointmentCalendarEvent } from "@/shared/utils/appointment-calendar";
+import { emitAppointmentUpdated } from "@/shared/utils/socket";
 
 export async function POST(
   request: Request,
@@ -64,6 +66,9 @@ export async function POST(
 
       return payment;
     });
+
+    const calendarEvent = await getAppointmentCalendarEvent(appointmentId);
+    if (calendarEvent) emitAppointmentUpdated(calendarEvent);
 
     return NextResponse.json(result, { status: 201 });
   } catch (error) {

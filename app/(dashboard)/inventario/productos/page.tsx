@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
+import { useSearchParams } from "next/navigation";
 import { Button, Modal, useOverlayState, toast } from "@heroui/react";
 import { useAuth } from "@/src/features/auth";
 import { ProductList, ProductForm, useProducts } from "@/src/features/products";
@@ -9,18 +10,37 @@ import type { ProductFormData } from "@/src/features/products";
 import * as productService from "@/src/features/products/services/product-service";
 import { useCategories } from "@/src/features/categories";
 import { PageHeader } from "@/shared/components/ui";
+import { canDeleteRecords } from "@/shared/utils/roles";
 import Plus from "@gravity-ui/icons/Plus";
 import Boxes3 from "@gravity-ui/icons/Boxes3";
 
 export default function ProductsPage() {
   const { user } = useAuth();
+  const searchParams = useSearchParams();
+  const canDelete = canDeleteRecords(user?.role);
   const { products, loading, refetch } = useProducts();
   const { categories } = useCategories();
   const [editing, setEditing] = useState<Product | null>(null);
   const [pending, setPending] = useState(false);
   const modal = useOverlayState();
 
-  if (!user) return null;
+  const highlightProductId = useMemo(() => {
+    const raw = searchParams.get("productId");
+    if (!raw) return null;
+    const id = Number(raw);
+    return Number.isFinite(id) ? id : null;
+  }, [searchParams]);
+
+  const highlightQuery = searchParams.get("q");
+
+  const resolvedHighlightId = useMemo(() => {
+    if (highlightProductId != null) return highlightProductId;
+    if (!highlightQuery || products.length === 0) return null;
+    const q = highlightQuery.toLowerCase().trim();
+    const match = products.find((p) => p.name.toLowerCase() === q)
+      ?? products.find((p) => p.name.toLowerCase().includes(q));
+    return match?.id ?? null;
+  }, [highlightProductId, highlightQuery, products]);
 
   const openCreate = useCallback(() => {
     setEditing(null);
@@ -74,6 +94,8 @@ export default function ProductsPage() {
     [refetch],
   );
 
+  if (!user) return null;
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
@@ -81,21 +103,27 @@ export default function ProductsPage() {
         title="Productos"
         description="Gestiona el catálogo de productos de tu negocio"
         action={
-          <Button variant="primary" onPress={openCreate}>
-            <Plus width={16} height={16} />
-            Agregar producto
-          </Button>
+          <div data-onboarding="products-create">
+            <Button variant="primary" onPress={openCreate}>
+              <Plus width={16} height={16} />
+              Agregar producto
+            </Button>
+          </div>
         }
       />
 
-      <ProductList
-        products={products}
-        categories={categories}
-        onEdit={openEdit}
-        onDelete={handleDelete}
-        onAdd={openCreate}
-        loading={loading}
-      />
+      <div data-onboarding="products-list">
+        <ProductList
+          products={products}
+          categories={categories}
+          onEdit={openEdit}
+          onDelete={handleDelete}
+          onAdd={openCreate}
+          loading={loading}
+          canDelete={canDelete}
+          highlightProductId={resolvedHighlightId}
+        />
+      </div>
 
       <Modal state={modal}>
         <Modal.Backdrop>

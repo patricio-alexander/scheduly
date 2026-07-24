@@ -12,11 +12,13 @@ import type { Customer } from "@/src/features/customers";
 import type { CustomerFormData } from "@/src/features/customers";
 import * as customerService from "@/src/features/customers/services/customer-service";
 import { PageHeader } from "@/shared/components/ui";
+import { canDeleteRecords } from "@/shared/utils/roles";
 import Plus from "@gravity-ui/icons/Plus";
 import Person from "@gravity-ui/icons/Person";
 
 export default function CustomersPage() {
   const { user } = useAuth();
+  const canDelete = canDeleteRecords(user?.role);
   const { customers, loading, refetch } = useCustomers();
   const [editing, setEditing] = useState<Customer | null>(null);
   const [pending, setPending] = useState(false);
@@ -83,20 +85,25 @@ export default function CustomersPage() {
         title="Clientes"
         description="Gestiona tu base de clientes y sus datos de contacto"
         action={
-          <Button variant="primary" onPress={openCreate}>
-            <Plus width={16} height={16} />
-            Agregar cliente
-          </Button>
+          <div data-onboarding="customers-create">
+            <Button variant="primary" onPress={openCreate}>
+              <Plus width={16} height={16} />
+              Agregar cliente
+            </Button>
+          </div>
         }
       />
 
-      <CustomerList
-        customers={customers}
-        onEdit={openEdit}
-        onDelete={handleDelete}
-        onAdd={openCreate}
-        loading={loading}
-      />
+      <div data-onboarding="customers-list">
+        <CustomerList
+          customers={customers}
+          onEdit={openEdit}
+          onDelete={handleDelete}
+          onAdd={openCreate}
+          loading={loading}
+          canDelete={canDelete}
+        />
+      </div>
 
       <Modal state={modal}>
         <Modal.Backdrop>

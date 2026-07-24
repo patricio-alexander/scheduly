@@ -3,6 +3,7 @@
 import { useAuth } from "@/src/features/auth";
 import { LoginForm } from "@/src/features/auth";
 import { Skeleton } from "@/shared/components/ui";
+import { appRoutes } from "@/shared/utils/app-routes";
 import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import Calendar from "@gravity-ui/icons/Calendar";
@@ -122,7 +123,7 @@ export default function LoginPage() {
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace("/");
+      router.replace(appRoutes.dashboard);
     }
   }, [user, loading, router]);
 

@@ -12,11 +12,13 @@ import type { Category } from "@/src/features/categories";
 import type { CategoryFormData } from "@/src/features/categories";
 import * as categoryService from "@/src/features/categories/services/category-service";
 import { PageHeader } from "@/shared/components/ui";
+import { canDeleteRecords } from "@/shared/utils/roles";
 import Plus from "@gravity-ui/icons/Plus";
 import Tag from "@gravity-ui/icons/Tag";
 
 export default function InventoryCategoriesPage() {
   const { user } = useAuth();
+  const canDelete = canDeleteRecords(user?.role);
   const { categories, loading, refetch } = useCategories();
   const [editing, setEditing] = useState<Category | null>(null);
   const [pending, setPending] = useState(false);
@@ -98,6 +100,7 @@ export default function InventoryCategoriesPage() {
         onDelete={handleDelete}
         onAdd={openCreate}
         loading={loading}
+        canDelete={canDelete}
       />
 
       <Modal state={modal}>

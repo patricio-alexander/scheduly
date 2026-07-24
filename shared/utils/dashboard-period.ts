@@ -101,3 +101,39 @@ export function getDashboardPeriodDescription(period: DashboardPeriod): string {
   if (period === "week") return "Últimos 7 días";
   return "Mes en curso";
 }
+
+/** Rango del período inmediatamente anterior (misma duración relativa). */
+export function getDashboardPreviousPeriodRange(
+  period: DashboardPeriod,
+  reference = new Date(),
+) {
+  const current = getDashboardPeriodRange(period, reference);
+
+  if (period === "today") {
+    const prevDay = new Date(reference);
+    prevDay.setDate(prevDay.getDate() - 1);
+    return getDashboardPeriodRange("today", prevDay);
+  }
+
+  if (period === "week") {
+    const prevEnd = new Date(current.start);
+    prevEnd.setDate(prevEnd.getDate() - 1);
+    return getDashboardPeriodRange("week", prevEnd);
+  }
+
+  const prevMonthEnd = new Date(current.start);
+  prevMonthEnd.setDate(0);
+  return getDashboardPeriodRange("month", prevMonthEnd);
+}
+
+export function getDashboardComparisonLabel(period: DashboardPeriod): string {
+  if (period === "today") return "vs ayer";
+  if (period === "week") return "vs 7 días previos";
+  return "vs mes anterior";
+}
+
+/** Variación porcentual; null si no hay base comparable (prev=0 y current>0). */
+export function percentChange(current: number, previous: number): number | null {
+  if (previous === 0) return current === 0 ? 0 : null;
+  return Math.round(((current - previous) / previous) * 100);
+}

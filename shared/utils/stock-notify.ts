@@ -23,6 +23,7 @@ export async function notifyAdminsLowStock(product: {
   const message = isOutOfStock(product.stock)
     ? `"${product.name}" se quedó sin unidades. Reponer inventario.`
     : `"${product.name}" tiene solo ${product.stock} unidad(es) (mínimo ${LOW_STOCK_THRESHOLD}).`;
+  const link = `/inventario/productos?productId=${product.id}`;
 
   const admins = await prisma.user.findMany({
     where: { role: "admin" },
@@ -34,8 +35,8 @@ export async function notifyAdminsLowStock(product: {
       where: {
         userId: admin.id,
         type: "warning",
-        title,
         read: false,
+        OR: [{ title }, { link }],
       },
       select: { id: true },
     });
@@ -47,6 +48,7 @@ export async function notifyAdminsLowStock(product: {
         title,
         message,
         type: "warning",
+        link,
       },
     });
   }

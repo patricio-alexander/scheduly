@@ -19,11 +19,19 @@ interface Props {
   onDelete: (id: number) => void;
   onAdd?: () => void;
   loading?: boolean;
+  canDelete?: boolean;
 }
 
 const PAGE_SIZE = 10;
 
-export function CustomerList({ customers, onEdit, onDelete, onAdd, loading }: Props) {
+export function CustomerList({
+  customers,
+  onEdit,
+  onDelete,
+  onAdd,
+  loading,
+  canDelete = true,
+}: Props) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
 
@@ -138,9 +146,11 @@ export function CustomerList({ customers, onEdit, onDelete, onAdd, loading }: Pr
                             <Button isIconOnly size="sm" variant="ghost" onPress={() => onEdit(customer)}>
                               <Pencil width={16} height={16} />
                             </Button>
-                            <Button isIconOnly size="sm" variant="danger" onPress={() => onDelete(customer.id)}>
-                              <TrashBin width={16} height={16} />
-                            </Button>
+                            {canDelete ? (
+                              <Button isIconOnly size="sm" variant="danger" onPress={() => onDelete(customer.id)}>
+                                <TrashBin width={16} height={16} />
+                              </Button>
+                            ) : null}
                           </div>
                         </Table.Cell>
                       </Table.Row>

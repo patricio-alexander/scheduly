@@ -3,11 +3,36 @@ import { prisma } from "@/shared/utils/prisma";
 import {
   getDashboardChartBuckets,
   getDashboardPeriodRange,
+  getDashboardPreviousPeriodRange,
   parseDashboardPeriod,
+  percentChange,
 } from "@/shared/utils/dashboard-period";
 import { toAmount } from "@/shared/utils/money";
 import { notifyAdminsLowStock } from "@/shared/utils/stock-notify";
 import { LOW_STOCK_THRESHOLD } from "@/shared/utils/stock";
+
+function appointmentRevenue(apt: {
+  payment: { amount: number } | null;
+  services: Array<{ service: { price: number } }>;
+  products: Array<{ quantity: number; product: { price: number } }>;
+}) {
+  if (apt.payment) return toAmount(apt.payment.amount);
+  const servicesTotal = apt.services.reduce(
+    (s, as) => s + toAmount(as.service.price),
+    0,
+  );
+  const productsTotal = apt.products.reduce(
+    (p, ap) => p + toAmount(ap.product.price) * ap.quantity,
+    0,
+  );
+  return servicesTotal + productsTotal;
+}
+
+const revenueInclude = {
+  payment: true,
+  services: { include: { service: { select: { price: true } } } },
+  products: { include: { product: { select: { price: true } } } },
+} as const;
 
 export async function GET(request: Request) {
   try {
@@ -15,7 +40,9 @@ export async function GET(request: Request) {
     const userId = url.searchParams.get("userId");
     const period = parseDashboardPeriod(url.searchParams.get("period"));
     const { start, end } = getDashboardPeriodRange(period);
+    const previous = getDashboardPreviousPeriodRange(period);
     const dateFilter = { gte: start, lte: end };
+    const prevFilter = { gte: previous.start, lte: previous.end };
 
     const [
       unreadNotifications,
@@ -31,8 +58,12 @@ export async function GET(request: Request) {
       pending_payment,
       paid_pending,
       completedInPeriod,
+      pendingPaymentApts,
       appointmentsInPeriod,
       recentInPeriod,
+      prevTotalAppointments,
+      prevCompleted,
+      prevCompletedApts,
     ] = await Promise.all([
       userId
         ? prisma.notification.count({
@@ -46,7 +77,6 @@ export async function GET(request: Request) {
         where: { stock: { lte: LOW_STOCK_THRESHOLD } },
         select: { id: true, name: true, stock: true },
         orderBy: [{ stock: "asc" }, { name: "asc" }],
-        take: 8,
       }),
       prisma.appointment.count({ where: { appointmentDate: dateFilter } }),
       prisma.appointment.count({
@@ -69,11 +99,11 @@ export async function GET(request: Request) {
       }),
       prisma.appointment.findMany({
         where: { status: "completed", appointmentDate: dateFilter },
-        include: {
-          payment: true,
-          services: { include: { service: { select: { price: true } } } },
-          products: { include: { product: { select: { price: true } } } },
-        },
+        include: revenueInclude,
+      }),
+      prisma.appointment.findMany({
+        where: { status: "pending_payment", appointmentDate: dateFilter },
+        include: revenueInclude,
       }),
       prisma.appointment.findMany({
         where: { appointmentDate: dateFilter },
@@ -85,22 +115,41 @@ export async function GET(request: Request) {
           customer: { select: { name: true, lastnames: true } },
         },
         orderBy: { appointmentDate: "desc" },
-        take: 5,
+        take: 10,
+      }),
+      prisma.appointment.count({
+        where: { appointmentDate: prevFilter },
+      }),
+      prisma.appointment.count({
+        where: { status: "completed", appointmentDate: prevFilter },
+      }),
+      prisma.appointment.findMany({
+        where: { status: "completed", appointmentDate: prevFilter },
+        include: revenueInclude,
       }),
     ]);
 
-    const revenue = completedInPeriod.reduce((sum, apt) => {
-      if (apt.payment) return sum + toAmount(apt.payment.amount);
-      const servicesTotal = apt.services.reduce(
-        (s, as) => s + toAmount(as.service.price),
-        0,
-      );
-      const productsTotal = apt.products.reduce(
-        (p, ap) => p + toAmount(ap.product.price) * ap.quantity,
-        0,
-      );
-      return sum + servicesTotal + productsTotal;
-    }, 0);
+    const revenue = completedInPeriod.reduce(
+      (sum, apt) => sum + appointmentRevenue(apt),
+      0,
+    );
+    const previousRevenue = prevCompletedApts.reduce(
+      (sum, apt) => sum + appointmentRevenue(apt),
+      0,
+    );
+    const pendingPaymentAmount = pendingPaymentApts.reduce(
+      (sum, apt) => sum + appointmentRevenue(apt),
+      0,
+    );
+
+    const completionRate =
+      totalAppointments > 0
+        ? Math.round((completed / totalAppointments) * 100)
+        : 0;
+    const previousCompletionRate =
+      prevTotalAppointments > 0
+        ? Math.round((prevCompleted / prevTotalAppointments) * 100)
+        : 0;
 
     const buckets = getDashboardChartBuckets(period);
     const appointmentsByDay = buckets.map((bucket) => ({
@@ -112,15 +161,15 @@ export async function GET(request: Request) {
       ).length,
     }));
 
-    // Asegura notificaciones de warning para productos ya en mínimo
-    await Promise.all(lowStockProducts.map((product) => notifyAdminsLowStock(product)));
+    await Promise.all(
+      lowStockProducts.map((product) => notifyAdminsLowStock(product)),
+    );
 
-    const unread =
-      userId
-        ? await prisma.notification.count({
-            where: { userId: Number(userId), read: false },
-          })
-        : unreadNotifications;
+    const unread = userId
+      ? await prisma.notification.count({
+          where: { userId: Number(userId), read: false },
+        })
+      : unreadNotifications;
 
     return NextResponse.json({
       period,
@@ -128,9 +177,6 @@ export async function GET(request: Request) {
       totalCustomers: customers,
       totalServices: services,
       totalProducts: products,
-      lowStockThreshold: LOW_STOCK_THRESHOLD,
-      lowStockProducts,
-      lowStockCount: lowStockProducts.length,
       totalAppointments,
       scheduled,
       completed,
@@ -138,7 +184,9 @@ export async function GET(request: Request) {
       rescheduled,
       pending_payment,
       paid_pending,
+      pendingPaymentAmount,
       revenue,
+      completionRate,
       appointmentsByDay,
       recentAppointments: recentInPeriod.map((a) => ({
         id: a.id,
@@ -147,6 +195,20 @@ export async function GET(request: Request) {
         date: a.appointmentDate.toISOString(),
         status: a.status,
       })),
+      comparison: {
+        revenue: {
+          previous: previousRevenue,
+          changePct: percentChange(revenue, previousRevenue),
+        },
+        appointments: {
+          previous: prevTotalAppointments,
+          changePct: percentChange(totalAppointments, prevTotalAppointments),
+        },
+        completionRate: {
+          previous: previousCompletionRate,
+          changePct: percentChange(completionRate, previousCompletionRate),
+        },
+      },
     });
   } catch (error) {
     console.error("GET /api/dashboard", error);

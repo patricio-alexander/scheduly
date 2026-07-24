@@ -27,13 +27,20 @@ const PAGE_SIZE = 10;
 
 const roleLabel: Record<string, string> = {
   admin: "Admin",
-  user: "Usuario",
+  employee: "Empleado",
+  user: "Empleado",
 };
 
 const roleColor: Record<string, "accent" | "default"> = {
   admin: "accent",
+  employee: "default",
   user: "default",
 };
+
+const roleOptions = [
+  { value: "employee", label: "Empleado" },
+  { value: "admin", label: "Admin" },
+] as const;
 
 export default function UsersPage() {
   const { user } = useAuth();
@@ -45,7 +52,7 @@ export default function UsersPage() {
   const [search, setSearch] = useState("");
   const modal = useOverlayState();
 
-  const [form, setForm] = useState({ username: "", name: "", email: "", password: "", role: "user" });
+  const [form, setForm] = useState({ username: "", name: "", email: "", password: "", role: "employee" });
 
   const visibleUsers = useMemo(() => {
     const otherUsers = users.filter((u) => u.id !== user?.id);
@@ -74,13 +81,19 @@ export default function UsersPage() {
 
   const openCreate = useCallback(() => {
     setEditing(null);
-    setForm({ username: "", name: "", email: "", password: "", role: "user" });
+    setForm({ username: "", name: "", email: "", password: "", role: "employee" });
     modal.open();
   }, [modal]);
 
   const openEdit = useCallback((u: UserData) => {
     setEditing(u);
-    setForm({ username: u.username, name: u.name, email: u.email, password: "", role: u.role });
+    setForm({
+      username: u.username,
+      name: u.name,
+      email: u.email,
+      password: "",
+      role: u.role === "user" ? "employee" : u.role,
+    });
     modal.open();
   }, [modal]);
 
@@ -91,21 +104,64 @@ export default function UsersPage() {
 
   const handleSubmit = async () => {
     if (!form.username || !form.name || !form.email) return;
+    const password = form.password.trim();
+    if (!editing && !password) {
+      toast.danger("La contraseña es requerida");
+      return;
+    }
+    if (password && password.length < 4) {
+      toast.danger("La contraseña debe tener al menos 4 caracteres");
+      return;
+    }
+
     setPending(true);
     try {
+      const payload: {
+        username: string;
+        name: string;
+        email: string;
+        role: string;
+        password?: string;
+      } = {
+        username: form.username.trim(),
+        name: form.name.trim(),
+        email: form.email.trim(),
+        role: form.role,
+      };
+      if (password) payload.password = password;
+
       if (editing) {
-        await fetch(apiUrl(`/api/users/${editing.id}`), {
+        const res = await fetch(apiUrl(`/api/users/${editing.id}`), {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
+          body: JSON.stringify(payload),
         });
-        toast.success("Usuario actualizado");
+        const body = (await res.json().catch(() => null)) as {
+          message?: string;
+          passwordUpdated?: boolean;
+        } | null;
+        if (!res.ok) {
+          toast.danger(body?.message ?? "Error al actualizar el usuario");
+          return;
+        }
+        toast.success(
+          body?.passwordUpdated
+            ? "Usuario y contraseña actualizados"
+            : "Usuario actualizado",
+        );
       } else {
-        await fetch(apiUrl("/api/users"), {
+        const res = await fetch(apiUrl("/api/users"), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(form),
+          body: JSON.stringify({ ...payload, password }),
         });
+        const body = (await res.json().catch(() => null)) as {
+          message?: string;
+        } | null;
+        if (!res.ok) {
+          toast.danger(body?.message ?? "Error al crear el usuario");
+          return;
+        }
         toast.success("Usuario creado");
       }
       closeModal();
@@ -326,28 +382,32 @@ export default function UsersPage() {
                   </div>
                   <div className="flex flex-col gap-1">
                     <Label>{editing ? "Nueva contraseña (dejar vacío para mantener)" : "Contraseña"}</Label>
-                    <Input
+                    <input
                       type="password"
-                      placeholder="••••••"
+                      autoComplete="new-password"
+                      placeholder={editing ? "Escribe la nueva contraseña" : "••••••"}
                       value={form.password}
-                      onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, password: e.target.value }))
+                      }
+                      className="rounded-xl border border-separator bg-field-background px-3 py-2 text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
                     />
                   </div>
                   <div className="flex flex-col gap-1">
                     <Label>Rol</Label>
                     <div className="flex gap-2">
-                      {["user", "admin"].map((r) => (
+                      {roleOptions.map((r) => (
                         <button
-                          key={r}
+                          key={r.value}
                           type="button"
-                          onClick={() => setForm((f) => ({ ...f, role: r }))}
+                          onClick={() => setForm((f) => ({ ...f, role: r.value }))}
                           className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${
-                            form.role === r
+                            form.role === r.value
                               ? "bg-accent text-accent-foreground border-accent"
                               : "bg-field-background text-field-foreground border-separator"
                           }`}
                         >
-                          {r === "admin" ? "Admin" : "Usuario"}
+                          {r.label}
                         </button>
                       ))}
                     </div>

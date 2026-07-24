@@ -2,7 +2,7 @@ import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
 /** Incrementar al cambiar el schema de Prisma para invalidar el singleton en dev */
-const CLIENT_VERSION = "20260719-categories-entitlements-v2";
+const CLIENT_VERSION = "20260724-notification-link-v2";
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
@@ -23,7 +23,8 @@ function isClientUpToDate(client?: PrismaClient): boolean {
     typeof client.product?.findMany === "function" &&
     typeof client.payment?.create === "function" &&
     typeof client.category?.findMany === "function" &&
-    typeof client.entitlement?.findMany === "function"
+    typeof client.entitlement?.findMany === "function" &&
+    typeof client.task?.findMany === "function"
   );
 }
 

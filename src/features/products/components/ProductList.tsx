@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Table, Pagination, SearchField, Label } from "@heroui/react";
 import Boxes3 from "@gravity-ui/icons/Boxes3";
 import Pencil from "@gravity-ui/icons/PencilToSquare";
@@ -22,6 +22,9 @@ interface Props {
   onDelete: (id: number) => void;
   onAdd?: () => void;
   loading?: boolean;
+  canDelete?: boolean;
+  /** Resalta y centra este producto (desde notificación de stock) */
+  highlightProductId?: number | null;
 }
 
 const PAGE_SIZE = 10;
@@ -35,10 +38,15 @@ export function ProductList({
   onDelete,
   onAdd,
   loading,
+  canDelete = true,
+  highlightProductId = null,
 }: Props) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState<string>(FILTER_ALL);
+  const [highlightedId, setHighlightedId] = useState<number | null>(null);
+  const highlightAppliedRef = useRef<number | null>(null);
+  const rowRefs = useRef<Map<number, HTMLTableRowElement | null>>(new Map());
 
   const filtered = useMemo(() => {
     const q = search.toLowerCase().trim();
@@ -56,6 +64,35 @@ export function ProductList({
       return matchesSearch && matchesCategory;
     });
   }, [products, search, categoryFilter]);
+
+  useEffect(() => {
+    if (highlightProductId == null || products.length === 0) return;
+    if (highlightAppliedRef.current === highlightProductId) return;
+
+    const product = products.find((p) => p.id === highlightProductId);
+    if (!product) return;
+
+    highlightAppliedRef.current = highlightProductId;
+    setCategoryFilter(FILTER_ALL);
+    setSearch(product.name);
+    setHighlightedId(product.id);
+
+    const matching = products.filter((p) =>
+      p.name.toLowerCase().includes(product.name.toLowerCase()),
+    );
+    const idx = matching.findIndex((p) => p.id === product.id);
+    setPage(Math.floor(Math.max(0, idx) / PAGE_SIZE) + 1);
+  }, [highlightProductId, products]);
+
+  useEffect(() => {
+    if (highlightedId == null) return;
+    const el = rowRefs.current.get(highlightedId);
+    if (el) {
+      el.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    const timer = window.setTimeout(() => setHighlightedId(null), 4500);
+    return () => window.clearTimeout(timer);
+  }, [highlightedId, page, filtered]);
 
   const columns = useMemo(
     () => [
@@ -210,10 +247,28 @@ export function ProductList({
                 ) : (
                   pageRows.map((row) => {
                     const product = row.original;
+                    const isHighlighted = highlightedId === product.id;
                     return (
-                      <Table.Row key={product.id}>
+                      <Table.Row
+                        key={product.id}
+                        ref={(node: HTMLTableRowElement | null) => {
+                          rowRefs.current.set(product.id, node);
+                        }}
+                        className={
+                          isHighlighted
+                            ? "bg-accent/15 ring-2 ring-inset ring-accent/50 transition-colors"
+                            : undefined
+                        }
+                      >
                         <Table.Cell>
-                          <span className="font-medium">{product.name}</span>
+                          <span className="font-medium">
+                            {product.name}
+                            {isHighlighted ? (
+                              <span className="ml-2 text-xs font-semibold text-accent">
+                                ← alertado
+                              </span>
+                            ) : null}
+                          </span>
                         </Table.Cell>
                         <Table.Cell>
                           {product.category ? (
@@ -257,14 +312,16 @@ export function ProductList({
                             >
                               <Pencil width={16} height={16} />
                             </Button>
-                            <Button
-                              isIconOnly
-                              size="sm"
-                              variant="danger"
-                              onPress={() => onDelete(product.id)}
-                            >
-                              <TrashBin width={16} height={16} />
-                            </Button>
+                            {canDelete ? (
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="danger"
+                                onPress={() => onDelete(product.id)}
+                              >
+                                <TrashBin width={16} height={16} />
+                              </Button>
+                            ) : null}
                           </div>
                         </Table.Cell>
                       </Table.Row>

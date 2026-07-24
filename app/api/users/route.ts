@@ -20,7 +20,22 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { username, name, email, password, role } = body;
+    const { username, name, email, role } = body;
+    const password =
+      typeof body.password === "string" ? body.password.trim() : "";
+
+    if (!username || !name || !email || !password) {
+      return NextResponse.json(
+        { message: "Datos incompletos" },
+        { status: 400 },
+      );
+    }
+    if (password.length < 4) {
+      return NextResponse.json(
+        { message: "La contraseña debe tener al menos 4 caracteres" },
+        { status: 400 },
+      );
+    }
 
     const existing = await prisma.user.findUnique({ where: { username } });
     if (existing) {
@@ -36,13 +51,14 @@ export async function POST(request: Request) {
         name,
         email,
         password: await hashPassword(password),
-        role: role ?? "user",
+        role: role ?? "employee",
       },
       select: { id: true, username: true, name: true, email: true, role: true },
     });
 
     return NextResponse.json(user, { status: 201 });
-  } catch {
+  } catch (error) {
+    console.error("POST /api/users", error);
     return NextResponse.json(
       { message: "Error al crear el usuario" },
       { status: 500 }

@@ -95,7 +95,13 @@ export default function ProfilePage() {
           </div>
           <div className="flex justify-between py-3 border-b border-separator">
             <span className="text-muted">Rol</span>
-            <span className="font-medium capitalize">{profile.role === "admin" ? "Administrador" : "Usuario"}</span>
+            <span className="font-medium capitalize">
+              {profile.role === "admin"
+                ? "Administrador"
+                : profile.role === "employee" || profile.role === "user"
+                  ? "Empleado"
+                  : profile.role}
+            </span>
           </div>
           <div className="flex justify-between py-3">
             <span className="text-muted">ID</span>

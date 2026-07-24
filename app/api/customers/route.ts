@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
+import { emitCustomerCreated } from "@/shared/utils/socket";
 
 export async function GET() {
   try {
@@ -17,6 +18,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const customer = await prisma.customer.create({ data: body });
+    emitCustomerCreated(customer);
     return NextResponse.json(customer, { status: 201 });
   } catch {
     return NextResponse.json(

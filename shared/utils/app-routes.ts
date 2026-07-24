@@ -23,6 +23,7 @@ export const appRoutes = {
     sriSettings: "/sistema/configuracion?tab=sri",
   },
   sales: {
+    history: "/ventas/historial",
     orders: "/ventas/pedidos",
     customers: "/ventas/clientes",
     customerAccounts: "/ventas/clientes/cuentas",

@@ -1,5 +1,9 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
+import {
+  emitCustomerDeleted,
+  emitCustomerUpdated,
+} from "@/shared/utils/socket";
 
 export async function GET(
   _request: Request,
@@ -36,6 +40,7 @@ export async function PUT(
       where: { id: Number(id) },
       data: body,
     });
+    emitCustomerUpdated(customer);
     return NextResponse.json(customer);
   } catch {
     return NextResponse.json(
@@ -51,7 +56,9 @@ export async function DELETE(
 ) {
   const { id } = await params;
   try {
-    await prisma.customer.delete({ where: { id: Number(id) } });
+    const customerId = Number(id);
+    await prisma.customer.delete({ where: { id: customerId } });
+    emitCustomerDeleted(customerId);
     return NextResponse.json({ message: "Cliente eliminado" });
   } catch {
     return NextResponse.json(
