@@ -9,6 +9,7 @@ import {
   paymentMethodOptions,
   type PaymentMethodValue,
 } from "@/shared/utils/payment-methods";
+import { checkAuth } from "@/shared/utils/check-auth";
 
 function parseMethod(value: string | null): PaymentMethodValue | null {
   if (!value) return null;
@@ -18,6 +19,9 @@ function parseMethod(value: string | null): PaymentMethodValue | null {
 }
 
 export async function GET(request: Request) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const url = new URL(request.url);
     const period = parseDashboardPeriod(url.searchParams.get("period"));

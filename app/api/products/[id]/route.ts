@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { notifyAdminsLowStock } from "@/shared/utils/stock-notify";
+import { checkAuth } from "@/shared/utils/check-auth";
 
 function parseCategoryId(value: unknown): number | null {
   if (value == null || value === "" || value === "none") return null;
@@ -12,6 +13,9 @@ export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   try {
     const product = await prisma.product.findUnique({
@@ -39,6 +43,9 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   try {
     const body = await request.json();
@@ -68,6 +75,9 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   try {
     await prisma.product.delete({ where: { id: Number(id) } });

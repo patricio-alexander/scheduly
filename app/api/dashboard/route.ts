@@ -10,6 +10,7 @@ import {
 import { toAmount } from "@/shared/utils/money";
 import { notifyAdminsLowStock } from "@/shared/utils/stock-notify";
 import { LOW_STOCK_THRESHOLD } from "@/shared/utils/stock";
+import { checkAuth } from "@/shared/utils/check-auth";
 
 function appointmentRevenue(apt: {
   payment: { amount: number } | null;
@@ -35,6 +36,9 @@ const revenueInclude = {
 } as const;
 
 export async function GET(request: Request) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const url = new URL(request.url);
     const userId = url.searchParams.get("userId");

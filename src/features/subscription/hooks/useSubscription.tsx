@@ -10,6 +10,7 @@ import {
   type ReactNode,
 } from "react";
 import { apiUrl } from "@/shared/utils/api";
+import { appRoutes } from "@/shared/utils/app-routes";
 import { useAuth } from "@/src/features/auth";
 import type { SubscriptionModule, SubscriptionSection, SubscriptionState } from "../types";
 import {
@@ -24,6 +25,19 @@ import {
   findSectionInState,
   parseSubscriptionState,
 } from "../lib/subscription-utils";
+
+/** Accesibles sin suscripción activa (para poder ver/activar planes) */
+const OPEN_WHEN_UNSUBSCRIBED = [
+  appRoutes.system.plans,
+  appRoutes.system.modules,
+] as const;
+
+function isOpenWhenUnsubscribed(pathname: string) {
+  const path = pathname.split("?")[0] || pathname;
+  return OPEN_WHEN_UNSUBSCRIBED.some(
+    (allowed) => path === allowed || path.startsWith(`${allowed}/`),
+  );
+}
 
 interface SubscriptionContextValue {
   data: SubscriptionState | null;
@@ -103,6 +117,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       try {
         const res = await fetch(apiUrl("/api/entitlements"), {
           cache: "no-store",
+          credentials: "include",
         });
         if (!res.ok) {
           throw new Error("No se pudo cargar la suscripción");
@@ -129,6 +144,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       const res = await fetch(apiUrl("/api/entitlements"), {
         method: "PUT",
         cache: "no-store",
+        credentials: "include",
       });
       const json: unknown = await res.json().catch(() => null);
       if (!res.ok) {
@@ -194,6 +210,17 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
           kind: "maintenance" as const,
           title: accessTitle("maintenance"),
           description: "La aplicación está en mantenimiento. Vuelve a intentarlo más tarde.",
+          module: null,
+          section: null,
+        };
+      }
+
+      // Planes / módulos: siempre accesibles (para activar o revisar la suscripción)
+      if (isOpenWhenUnsubscribed(pathname)) {
+        return {
+          kind: "ok" as const,
+          title: "",
+          description: "",
           module: null,
           section: null,
         };

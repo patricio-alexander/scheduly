@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { loginSchema } from "@/src/features/auth/lib/auth-schema";
 import { hashPassword, isBcryptHash, verifyPassword } from "@/shared/utils/password";
+import { buildAuthCookie } from "@/shared/utils/check-auth";
 
 export async function POST(request: Request) {
   try {
@@ -32,7 +33,9 @@ export async function POST(request: Request) {
     }
 
     const { password: _, ...userWithoutPassword } = user;
-    return NextResponse.json(userWithoutPassword);
+    const response = NextResponse.json(userWithoutPassword);
+    response.cookies.set(buildAuthCookie(user.id));
+    return response;
   } catch {
     return NextResponse.json(
       { message: "Error del servidor" },

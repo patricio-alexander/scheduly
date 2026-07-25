@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
+import { checkAuth } from "@/shared/utils/check-auth";
 
 export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const { id: rawId } = await params;
     const id = Number(rawId);

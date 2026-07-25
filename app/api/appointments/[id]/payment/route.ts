@@ -7,11 +7,15 @@ import {
 } from "@/shared/utils/appointment-business";
 import { getAppointmentCalendarEvent } from "@/shared/utils/appointment-calendar";
 import { emitAppointmentUpdated } from "@/shared/utils/socket";
+import { checkAuth } from "@/shared/utils/check-auth";
 
 export async function POST(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   const appointmentId = Number(id);
 

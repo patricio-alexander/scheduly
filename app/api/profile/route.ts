@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
+import { checkAuth } from "@/shared/utils/check-auth";
 
 export async function GET(request: Request) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const url = new URL(request.url);
     const userId = url.searchParams.get("userId");
@@ -38,6 +42,9 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const url = new URL(request.url);
     const userId = url.searchParams.get("userId");

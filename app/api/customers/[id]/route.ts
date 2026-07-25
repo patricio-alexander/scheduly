@@ -4,11 +4,15 @@ import {
   emitCustomerDeleted,
   emitCustomerUpdated,
 } from "@/shared/utils/socket";
+import { checkAuth } from "@/shared/utils/check-auth";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   try {
     const customer = await prisma.customer.findUnique({
@@ -33,6 +37,9 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   try {
     const body = await request.json();
@@ -54,6 +61,9 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   try {
     const customerId = Number(id);

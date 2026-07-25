@@ -8,6 +8,7 @@ export async function loginUser(
   const res = await fetch(apiUrl("/api/auth/login"), {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    credentials: "include",
     body: JSON.stringify({ username, password }),
   });
 
@@ -17,4 +18,11 @@ export async function loginUser(
   }
 
   return res.json();
+}
+
+export async function logoutUser(): Promise<void> {
+  await fetch(apiUrl("/api/auth/logout"), {
+    method: "POST",
+    credentials: "include",
+  }).catch(() => undefined);
 }

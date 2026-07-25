@@ -8,8 +8,12 @@ import {
 } from "@/shared/utils/appointment-business";
 import { getAppointmentCalendarEvent } from "@/shared/utils/appointment-calendar";
 import { emitAppointmentCreated } from "@/shared/utils/socket";
+import { checkAuth } from "@/shared/utils/check-auth";
 
 export async function GET() {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const appointments = await prisma.appointment.findMany({
       orderBy: { appointmentDate: "asc" },
@@ -41,6 +45,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await request.json();
     const {

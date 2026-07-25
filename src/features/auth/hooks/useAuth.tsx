@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import type { AuthUser } from "../types";
-import { loginUser } from "../services/auth-service";
+import { loginUser, logoutUser } from "../services/auth-service";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -45,6 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(() => {
     setUser(null);
     localStorage.removeItem("scheduly_user");
+    void logoutUser();
   }, []);
 
   return (

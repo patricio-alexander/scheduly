@@ -5,11 +5,15 @@ import { deductStockForAppointment, parseAppointmentProducts, validateProductSto
 import { toAmount, toQuantity } from "@/shared/utils/money";
 import { getAppointmentCalendarEvent } from "@/shared/utils/appointment-calendar";
 import { emitAppointmentUpdated } from "@/shared/utils/socket";
+import { checkAuth } from "@/shared/utils/check-auth";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   try {
     const appointment = await prisma.appointment.findUnique({
@@ -80,6 +84,9 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   try {
     const body = await request.json();
@@ -163,6 +170,9 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   try {
     const appointmentId = Number(id);

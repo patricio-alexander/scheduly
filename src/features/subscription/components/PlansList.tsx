@@ -77,7 +77,10 @@ export function PlansList() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch(apiUrl("/api/plans"), { cache: "no-store" });
+      const res = await fetch(apiUrl("/api/plans"), {
+        cache: "no-store",
+        credentials: "include",
+      });
       const json: unknown = await res.json().catch(() => null);
       if (!res.ok) {
         const message =

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { emitTaskCreated } from "@/shared/utils/socket";
+import { checkAuth } from "@/shared/utils/check-auth";
 
 const STATUSES = ["todo", "in_progress", "done"] as const;
 const PRIORITIES = ["low", "medium", "high"] as const;
@@ -20,6 +21,9 @@ function parsePriority(value: unknown) {
 }
 
 export async function GET(request: Request) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const { searchParams } = new URL(request.url);
     const assigneeRaw = searchParams.get("assigneeId");
@@ -49,6 +53,9 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await request.json();
     const title = typeof body.title === "string" ? body.title.trim() : "";

@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
+import { checkAuth } from "@/shared/utils/check-auth";
 
 export async function GET() {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const categories = await prisma.category.findMany({
       orderBy: { name: "asc" },
@@ -25,6 +29,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await request.json();
     const name = String(body.name ?? "").trim();

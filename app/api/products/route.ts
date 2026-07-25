@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
+import { checkAuth } from "@/shared/utils/check-auth";
 
 function parseCategoryId(value: unknown): number | null {
   if (value == null || value === "" || value === "none") return null;
@@ -8,6 +9,9 @@ function parseCategoryId(value: unknown): number | null {
 }
 
 export async function GET() {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const products = await prisma.product.findMany({
       orderBy: { id: "desc" },
@@ -26,6 +30,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await request.json();
     const product = await prisma.product.create({

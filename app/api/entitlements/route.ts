@@ -9,10 +9,14 @@ import {
   isValidGestorBearer,
   pullSubscriptionFromGestor,
 } from "@/shared/utils/subscription-sync";
+import { checkAuth } from "@/shared/utils/check-auth";
 
 const GESTOR_SOURCE = "gestor";
 
 export async function GET(request: Request) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const url = new URL(request.url);
     const status = url.searchParams.get("status");
@@ -58,7 +62,10 @@ export async function PUT(request: Request) {
       status = "gestor_push";
       payload = parseEntitlementPayload(body);
     } else {
-      // Pull interno: consulta al gestor y persiste
+      // Pull interno: solo usuarios logueados
+      const auth = await checkAuth();
+      if (!auth.ok) return auth.response;
+
       status = "gestor_pull";
       payload = await pullSubscriptionFromGestor();
     }

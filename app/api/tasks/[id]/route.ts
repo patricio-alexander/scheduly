@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { emitTaskDeleted, emitTaskUpdated } from "@/shared/utils/socket";
+import { checkAuth } from "@/shared/utils/check-auth";
 
 const STATUSES = ["todo", "in_progress", "done"] as const;
 const PRIORITIES = ["low", "medium", "high"] as const;
@@ -23,6 +24,9 @@ export async function PATCH(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const { id: rawId } = await params;
     const id = Number(rawId);
@@ -115,6 +119,9 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const { id: rawId } = await params;
     const id = Number(rawId);

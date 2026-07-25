@@ -3,6 +3,15 @@ export type SubscriptionPlanModule = {
   description: string;
 };
 
+export type SubscriptionCatalogModule = {
+  id: number | null;
+  key: string;
+  name: string;
+  description: string;
+  status: string | null;
+  image_url: string | null;
+};
+
 export type SubscriptionPlanPrice = {
   amount?: number | string | null;
   price?: number | string | null;

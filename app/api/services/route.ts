@@ -1,7 +1,11 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
+import { checkAuth } from "@/shared/utils/check-auth";
 
 export async function GET() {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const services = await prisma.service.findMany({ orderBy: { id: "desc" } });
     return NextResponse.json(services);
@@ -14,6 +18,9 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const body = await request.json();
     const service = await prisma.service.create({ data: body });

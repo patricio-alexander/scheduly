@@ -1,10 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
+import { checkAuth } from "@/shared/utils/check-auth";
 
 export async function GET(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   try {
     const service = await prisma.service.findUnique({
@@ -29,6 +33,9 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   try {
     const body = await request.json();
@@ -49,6 +56,9 @@ export async function DELETE(
   _request: Request,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
   const { id } = await params;
   try {
     await prisma.service.delete({ where: { id: Number(id) } });

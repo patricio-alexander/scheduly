@@ -2,6 +2,7 @@ export { SubscriptionProvider, useSubscription } from "./hooks/useSubscription";
 export { SubscriptionGate } from "./components/SubscriptionGate";
 export { AccessStateScreen } from "./components/AccessStateScreen";
 export { PlansList } from "./components/PlansList";
+export { ModulesList } from "./components/ModulesList";
 export type {
   AccessStatus,
   SubscriptionState,
