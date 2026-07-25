@@ -37,7 +37,8 @@ export type AccessViewKind =
   | "planned"
   | "development"
   | "developer"
-  | "unsubscribed";
+  | "unsubscribed"
+  | "expired";
 
 export function resolveAccessView(
   status: AccessStatus,
@@ -67,6 +68,8 @@ export function accessTitle(kind: AccessViewKind): string {
       return "Solo desarrolladores";
     case "unsubscribed":
       return "Sin suscripción";
+    case "expired":
+      return "Suscripción expirada";
     default:
       return "";
   }
@@ -85,6 +88,8 @@ export function accessDescription(kind: AccessViewKind, name?: string): string {
       return `${target} solo está disponible para perfiles de desarrollo.`;
     case "unsubscribed":
       return "No tienes una suscripción activa. Activa un plan para continuar usando Scheduly.";
+    case "expired":
+      return "Ha expirado la suscripción. Contacta con soporte para continuar usando Scheduly.";
     default:
       return "";
   }

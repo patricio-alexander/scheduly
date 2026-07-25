@@ -23,6 +23,7 @@ import {
   findModuleByKey,
   findModuleForPath,
   findSectionInState,
+  isSubscriptionExpired,
   parseSubscriptionState,
 } from "../lib/subscription-utils";
 
@@ -48,6 +49,7 @@ interface SubscriptionContextValue {
   syncPull: () => Promise<void>;
   isAppInMaintenance: boolean;
   isSubscribed: boolean;
+  isExpired: boolean;
   isDeveloper: boolean;
   getModule: (moduleKey: string) => SubscriptionModule | null;
   getModuleForPath: (pathname: string) => SubscriptionModule | null;
@@ -226,6 +228,16 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         };
       }
 
+      if (isSubscriptionExpired(data)) {
+        return {
+          kind: "expired" as const,
+          title: accessTitle("expired"),
+          description: accessDescription("expired"),
+          module: null,
+          section: null,
+        };
+      }
+
       if (!data?.subscribed) {
         return {
           kind: "unsubscribed" as const,
@@ -281,7 +293,8 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
       refetch,
       syncPull,
       isAppInMaintenance: Boolean(data?.maintenance),
-      isSubscribed: Boolean(data?.subscribed),
+      isSubscribed: Boolean(data?.subscribed) && !isSubscriptionExpired(data),
+      isExpired: isSubscriptionExpired(data),
       isDeveloper,
       getModule,
       getModuleForPath: getModuleForPathFn,

@@ -149,6 +149,36 @@ export function findSectionInState(
   return { module: moduleFromPath, section: null };
 }
 
+/** Lee expires_at / expiresAt / "expires at" (y start_at equivalente). */
+function pickDateField(
+  source: Record<string, unknown>,
+  keys: string[],
+): string {
+  for (const key of keys) {
+    const value = source[key];
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number" && Number.isFinite(value)) {
+      return new Date(value).toISOString();
+    }
+  }
+  return "";
+}
+
+/** true si la fecha de expiración ya pasó */
+export function isExpiresAtPast(expiresAt: string | null | undefined): boolean {
+  if (!expiresAt?.trim()) return false;
+  const ms = Date.parse(expiresAt);
+  if (!Number.isFinite(ms)) return false;
+  return ms < Date.now();
+}
+
+export function isSubscriptionExpired(
+  state: SubscriptionState | null | undefined,
+): boolean {
+  if (!state?.subscription) return false;
+  return isExpiresAtPast(state.subscription.expires_at);
+}
+
 export function parseSubscriptionState(raw: unknown): SubscriptionState {
   if (!raw || typeof raw !== "object") {
     return { maintenance: false, subscribed: false, subscription: null };
@@ -211,16 +241,38 @@ export function parseSubscriptionState(raw: unknown): SubscriptionState {
     };
   });
 
+  const start_at = pickDateField(sub, [
+    "start_at",
+    "startAt",
+    "start at",
+    "starts_at",
+    "startsAt",
+  ]);
+  const expires_at = pickDateField(sub, [
+    "expires_at",
+    "expiresAt",
+    "expires at",
+    "expire_at",
+    "expireAt",
+    "expiration_at",
+    "expirationAt",
+    "end_at",
+    "endAt",
+  ]);
+
+  const expired = isExpiresAtPast(expires_at);
+  const subscribed = Boolean(data.subscribed) && !expired;
+
   return {
     maintenance: Boolean(data.maintenance),
-    subscribed: Boolean(data.subscribed),
+    subscribed,
     subscription: {
       id: Number(sub.id ?? 0),
-      plan_name: String(sub.plan_name ?? "Sin plan"),
+      plan_name: String(sub.plan_name ?? sub.planName ?? "Sin plan"),
       period: String(sub.period ?? ""),
-      status: String(sub.status ?? ""),
-      start_at: String(sub.start_at ?? ""),
-      expires_at: String(sub.expires_at ?? ""),
+      status: expired ? "expired" : String(sub.status ?? ""),
+      start_at,
+      expires_at,
       modules,
     },
   };

@@ -22,9 +22,13 @@ export function SubscriptionGate({ children }: { children: ReactNode }) {
         kind={access.kind}
         title={access.title}
         description={access.description}
-        error={access.kind === "unsubscribed" ? error : null}
+        error={
+          access.kind === "unsubscribed" || access.kind === "expired"
+            ? error
+            : null
+        }
         action={
-          access.kind === "unsubscribed" ? (
+          access.kind === "unsubscribed" || access.kind === "expired" ? (
             <Button
               variant="primary"
               isDisabled={syncing}

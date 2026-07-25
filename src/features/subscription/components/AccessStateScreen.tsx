@@ -6,6 +6,7 @@ import Rocket from "@gravity-ui/icons/Rocket";
 import Code from "@gravity-ui/icons/Code";
 import Lock from "@gravity-ui/icons/Lock";
 import CreditCard from "@gravity-ui/icons/CreditCard";
+import CircleXmark from "@gravity-ui/icons/CircleXmark";
 import type { AccessViewKind } from "../lib/access-status";
 
 const icons = {
@@ -14,6 +15,7 @@ const icons = {
   development: Code,
   developer: Lock,
   unsubscribed: CreditCard,
+  expired: CircleXmark,
 } as const;
 
 export function AccessStateScreen({
