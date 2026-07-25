@@ -16,9 +16,9 @@ module.exports = {
   apps: [
     {
       name: "scheduly",
-      script: "./server.ts",
+      script: "npm",
       instances: 1,
-      args: "npm run start",
+      args: "run start",
       exec_mode: "fork",
       autorestart: true,
       watch: false,
