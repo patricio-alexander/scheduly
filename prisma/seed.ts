@@ -29,6 +29,14 @@ async function main() {
 
   console.log("Admin user created:", admin.username);
 
+  for (const roleName of ["admin", "employee"] as const) {
+    const existing = await prisma.role.findFirst({ where: { name: roleName } });
+    if (!existing) {
+      await prisma.role.create({ data: { name: roleName } });
+    }
+  }
+  console.log("System roles ensured: admin, employee");
+
   await seedTestData(prisma, admin.id);
 }
 

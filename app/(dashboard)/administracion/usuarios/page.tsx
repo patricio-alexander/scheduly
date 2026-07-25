@@ -4,7 +4,9 @@ import { apiUrl } from "@/shared/utils/api";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button, Modal, useOverlayState, Input, Label, toast, Table, Pagination, SearchField, Chip } from "@heroui/react";
 import { useAuth } from "@/src/features/auth";
+import { useRoles } from "@/src/features/roles";
 import { ContentCard, EmptyState, PageHeader, TableSkeleton } from "@/shared/components/ui";
+import { roleDisplayLabel } from "@/shared/utils/system-roles";
 import Shield from "@gravity-ui/icons/Shield";
 import Pencil from "@gravity-ui/icons/PencilToSquare";
 import TrashBin from "@gravity-ui/icons/TrashBin";
@@ -25,25 +27,15 @@ interface UserData {
 
 const PAGE_SIZE = 10;
 
-const roleLabel: Record<string, string> = {
-  admin: "Admin",
-  employee: "Empleado",
-  user: "Empleado",
-};
-
 const roleColor: Record<string, "accent" | "default"> = {
   admin: "accent",
   employee: "default",
   user: "default",
 };
 
-const roleOptions = [
-  { value: "employee", label: "Empleado" },
-  { value: "admin", label: "Admin" },
-] as const;
-
 export default function UsersPage() {
   const { user } = useAuth();
+  const { roles, loading: rolesLoading } = useRoles();
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<UserData | null>(null);
@@ -52,7 +44,15 @@ export default function UsersPage() {
   const [search, setSearch] = useState("");
   const modal = useOverlayState();
 
-  const [form, setForm] = useState({ username: "", name: "", email: "", password: "", role: "employee" });
+  const defaultRole = roles.find((r) => r.name === "employee")?.name ?? roles[0]?.name ?? "employee";
+
+  const [form, setForm] = useState({
+    username: "",
+    name: "",
+    email: "",
+    password: "",
+    role: "employee",
+  });
 
   const visibleUsers = useMemo(() => {
     const otherUsers = users.filter((u) => u.id !== user?.id);
@@ -81,21 +81,31 @@ export default function UsersPage() {
 
   const openCreate = useCallback(() => {
     setEditing(null);
-    setForm({ username: "", name: "", email: "", password: "", role: "employee" });
-    modal.open();
-  }, [modal]);
-
-  const openEdit = useCallback((u: UserData) => {
-    setEditing(u);
     setForm({
-      username: u.username,
-      name: u.name,
-      email: u.email,
+      username: "",
+      name: "",
+      email: "",
       password: "",
-      role: u.role === "user" ? "employee" : u.role,
+      role: defaultRole,
     });
     modal.open();
-  }, [modal]);
+  }, [modal, defaultRole]);
+
+  const openEdit = useCallback(
+    (u: UserData) => {
+      setEditing(u);
+      const roleValue = u.role === "user" ? "employee" : u.role;
+      setForm({
+        username: u.username,
+        name: u.name,
+        email: u.email,
+        password: "",
+        role: roles.some((r) => r.name === roleValue) ? roleValue : defaultRole,
+      });
+      modal.open();
+    },
+    [modal, roles, defaultRole],
+  );
 
   const closeModal = useCallback(() => {
     modal.close();
@@ -282,7 +292,7 @@ export default function UsersPage() {
                             <Table.Cell className="text-muted">{u.email}</Table.Cell>
                             <Table.Cell>
                               <Chip color={roleColor[u.role] ?? "default"} variant="soft" size="sm">
-                                {roleLabel[u.role] ?? u.role}
+                                {roleDisplayLabel(u.role)}
                               </Chip>
                             </Table.Cell>
                             <Table.Cell>
@@ -395,22 +405,32 @@ export default function UsersPage() {
                   </div>
                   <div className="flex flex-col gap-1">
                     <Label>Rol</Label>
-                    <div className="flex gap-2">
-                      {roleOptions.map((r) => (
-                        <button
-                          key={r.value}
-                          type="button"
-                          onClick={() => setForm((f) => ({ ...f, role: r.value }))}
-                          className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${
-                            form.role === r.value
-                              ? "bg-accent text-accent-foreground border-accent"
-                              : "bg-field-background text-field-foreground border-separator"
-                          }`}
-                        >
-                          {r.label}
-                        </button>
-                      ))}
-                    </div>
+                    {rolesLoading ? (
+                      <p className="text-sm text-muted">Cargando roles...</p>
+                    ) : roles.length === 0 ? (
+                      <p className="text-sm text-muted">
+                        No hay roles disponibles. Créalos en Administración → Roles.
+                      </p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {roles.map((r) => (
+                          <button
+                            key={r.id}
+                            type="button"
+                            onClick={() =>
+                              setForm((f) => ({ ...f, role: r.name }))
+                            }
+                            className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${
+                              form.role === r.name
+                                ? "bg-accent text-accent-foreground border-accent"
+                                : "bg-field-background text-field-foreground border-separator"
+                            }`}
+                          >
+                            {roleDisplayLabel(r.name)}
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 </form>
               </Modal.Body>
