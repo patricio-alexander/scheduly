@@ -19,22 +19,34 @@ interface Props {
   onDelete: (id: number) => void;
   onAdd?: () => void;
   loading?: boolean;
+  canEdit?: boolean;
 }
 
 const PAGE_SIZE = 10;
 
-export function ServiceList({ services, onEdit, onDelete, onAdd, loading }: Props) {
+export function ServiceList({
+  services,
+  onEdit,
+  onDelete,
+  onAdd,
+  loading,
+  canEdit = true,
+}: Props) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
 
   const filtered = useMemo(
-    () => services.filter((s) => s.name.toLowerCase().includes(search.toLowerCase())),
+    () =>
+      services.filter((s) =>
+        s.name.toLowerCase().includes(search.toLowerCase()),
+      ),
     [services, search],
   );
 
   const columns = useMemo(
     () => [
       { accessorKey: "name" as const, header: "Nombre" },
+      { accessorKey: "durationMinutes" as const, header: "Duración" },
       { accessorKey: "price" as const, header: "Precio" },
     ],
     [],
@@ -61,9 +73,10 @@ export function ServiceList({ services, onEdit, onDelete, onAdd, loading }: Prop
   const pageRows = table.getRowModel().rows;
 
   const formatPrice = (price: number) =>
-    new Intl.NumberFormat("es-CL", {
+    new Intl.NumberFormat("es-US", {
       style: "currency",
-      currency: "CLP",
+      currency: "USD",
+      maximumFractionDigits: 2,
     }).format(price);
 
   if (loading) {
@@ -80,7 +93,7 @@ export function ServiceList({ services, onEdit, onDelete, onAdd, loading }: Prop
         <EmptyState
           icon={<Gear width={40} height={40} />}
           title="No hay servicios registrados"
-          description="Define los servicios que ofreces para asociarlos a los turnos."
+          description="Define los servicios que ofreces para asociarlos a las reservas."
           actionLabel="Agregar servicio"
           onAction={onAdd}
         />
@@ -95,23 +108,27 @@ export function ServiceList({ services, onEdit, onDelete, onAdd, loading }: Prop
           <Label>Buscar servicio</Label>
           <SearchField.Group>
             <SearchField.SearchIcon />
-            <SearchField.Input className="w-full sm:w-[320px]" placeholder="Nombre del servicio..." />
+            <SearchField.Input
+              className="w-full sm:w-[320px]"
+              placeholder="Nombre del servicio..."
+            />
             <SearchField.ClearButton />
           </SearchField.Group>
         </SearchField>
 
         <Table>
           <Table.ScrollContainer>
-            <Table.Content aria-label="Servicios" className="min-w-[400px]">
+            <Table.Content aria-label="Servicios" className="min-w-[480px]">
               <Table.Header>
                 <Table.Column isRowHeader>Nombre</Table.Column>
+                <Table.Column>Duración</Table.Column>
                 <Table.Column>Precio</Table.Column>
                 <Table.Column>Acciones</Table.Column>
               </Table.Header>
               <Table.Body>
                 {pageRows.length === 0 ? (
                   <Table.Row>
-                    <Table.Cell colSpan={3}>
+                    <Table.Cell colSpan={4}>
                       <div className="py-8 text-center text-sm text-muted">
                         No se encontraron servicios con &quot;{search}&quot;
                       </div>
@@ -126,17 +143,38 @@ export function ServiceList({ services, onEdit, onDelete, onAdd, loading }: Prop
                           <span className="font-medium">{service.name}</span>
                         </Table.Cell>
                         <Table.Cell>
-                          <span className="font-medium tabular-nums">{formatPrice(service.price)}</span>
+                          <span className="tabular-nums text-muted">
+                            {service.durationMinutes ?? 30} min
+                          </span>
                         </Table.Cell>
                         <Table.Cell>
-                          <div className="flex gap-1">
-                            <Button isIconOnly size="sm" variant="ghost" onPress={() => onEdit(service)}>
-                              <Pencil width={16} height={16} />
-                            </Button>
-                            <Button isIconOnly size="sm" variant="danger" onPress={() => onDelete(service.id)}>
-                              <TrashBin width={16} height={16} />
-                            </Button>
-                          </div>
+                          <span className="font-medium tabular-nums">
+                            {formatPrice(service.price)}
+                          </span>
+                        </Table.Cell>
+                        <Table.Cell>
+                          {canEdit ? (
+                            <div className="flex gap-1">
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="ghost"
+                                onPress={() => onEdit(service)}
+                              >
+                                <Pencil width={16} height={16} />
+                              </Button>
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="danger"
+                                onPress={() => onDelete(service.id)}
+                              >
+                                <TrashBin width={16} height={16} />
+                              </Button>
+                            </div>
+                          ) : (
+                            <span className="text-xs text-muted">—</span>
+                          )}
                         </Table.Cell>
                       </Table.Row>
                     );
@@ -169,7 +207,10 @@ export function ServiceList({ services, onEdit, onDelete, onAdd, loading }: Prop
                 </Pagination.Item>
                 {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
                   <Pagination.Item key={p}>
-                    <Pagination.Link isActive={p === page} onPress={() => setPage(p)}>
+                    <Pagination.Link
+                      isActive={p === page}
+                      onPress={() => setPage(p)}
+                    >
                       {p}
                     </Pagination.Link>
                   </Pagination.Item>

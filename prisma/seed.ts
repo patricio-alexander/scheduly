@@ -111,7 +111,7 @@ function buildSubscriptionPayload(now: Date): Prisma.InputJsonValue {
           sections: [
             {
               id: 1,
-              key: "/",
+              key: "/panel",
               name: "Dashboard",
               status: "active",
               max_records_limit: null,
@@ -602,30 +602,38 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
   );
 
   const servicesData = [
-    { name: "Corte de cabello", price: 15000 },
-    { name: "Corte infantil", price: 10000 },
-    { name: "Arreglo de barba", price: 8000 },
-    { name: "Tinte completo", price: 35000 },
-    { name: "Mechas balayage", price: 45000 },
-    { name: "Lavado + Blowout", price: 18000 },
-    { name: "Tratamiento capilar", price: 25000 },
-    { name: "Peinado para eventos", price: 30000 },
-    { name: "Corte + Barba (combo)", price: 20000 },
-    { name: "Alisado permanente", price: 55000 },
-    { name: "Retoque de raíz", price: 22000 },
-    { name: "Hidratación profunda", price: 28000 },
-    { name: "Perfilado de cejas", price: 6000 },
-    { name: "Depilación facial", price: 7000 },
+    { name: "Corte de cabello", price: 25, durationMinutes: 30 },
+    { name: "Corte infantil", price: 18, durationMinutes: 25 },
+    { name: "Arreglo de barba", price: 15, durationMinutes: 20 },
+    { name: "Tinte completo", price: 85, durationMinutes: 90 },
+    { name: "Mechas balayage", price: 120, durationMinutes: 120 },
+    { name: "Lavado + Blowout", price: 30, durationMinutes: 45 },
+    { name: "Tratamiento capilar", price: 45, durationMinutes: 60 },
+    { name: "Peinado para eventos", price: 55, durationMinutes: 60 },
+    { name: "Corte + Barba (combo)", price: 35, durationMinutes: 45 },
+    { name: "Alisado permanente", price: 150, durationMinutes: 150 },
+    { name: "Retoque de raíz", price: 50, durationMinutes: 60 },
+    { name: "Hidratación profunda", price: 40, durationMinutes: 50 },
+    { name: "Perfilado de cejas", price: 12, durationMinutes: 15 },
+    { name: "Depilación facial", price: 14, durationMinutes: 20 },
   ];
 
-  const services: Array<{ id: number; name: string; price: number }> = [];
+  const services: Array<{
+    id: number;
+    name: string;
+    price: number;
+    durationMinutes: number;
+  }> = [];
   for (const s of servicesData) {
     const existing = await prisma.service.findFirst({ where: { name: s.name } });
     if (existing) {
       services.push(
         await prisma.service.update({
           where: { id: existing.id },
-          data: { price: s.price },
+          data: {
+            price: s.price,
+            durationMinutes: s.durationMinutes,
+          },
         }),
       );
     } else {

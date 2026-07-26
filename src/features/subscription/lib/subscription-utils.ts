@@ -10,6 +10,8 @@ export const routeModuleKeys: Array<{ prefix: string; moduleKey: string }> = [
   { prefix: "/inventario", moduleKey: "inventory" },
   { prefix: "/administracion", moduleKey: "admin" },
   { prefix: "/sistema", moduleKey: "system" },
+  { prefix: "/panel", moduleKey: "operation" },
+  { prefix: "/services", moduleKey: "operation" },
   // Legacies / aliases
   { prefix: "/inventory", moduleKey: "inventory" },
   { prefix: "/agenda", moduleKey: "operation" },
@@ -22,7 +24,6 @@ export const routeModuleKeys: Array<{ prefix: string; moduleKey: string }> = [
   { prefix: "/modules", moduleKey: "system" },
   { prefix: "/profile", moduleKey: "system" },
   { prefix: "/notifications", moduleKey: "system" },
-  { prefix: appRoutes.dashboard, moduleKey: "admin" },
 ];
 
 /** Aliases de keys de módulo que puede enviar el gestor */
@@ -58,10 +59,6 @@ function normalizeRouteKey(value: string) {
 export function findModuleKeyForPath(pathname: string): string | null {
   const sorted = [...routeModuleKeys].sort((a, b) => b.prefix.length - a.prefix.length);
   for (const entry of sorted) {
-    if (entry.prefix === "/") {
-      if (pathname === "/") return entry.moduleKey;
-      continue;
-    }
     if (pathname === entry.prefix || pathname.startsWith(`${entry.prefix}/`)) {
       return entry.moduleKey;
     }

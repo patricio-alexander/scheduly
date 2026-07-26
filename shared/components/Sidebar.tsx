@@ -89,6 +89,7 @@ const navModules: NavModule[] = [
     entitlementKey: "operation",
     items: [
       { href: appRoutes.operation.agenda, label: "Agenda", icon: Calendar, tourId: "nav-agenda" },
+      { href: appRoutes.operation.services, label: "Servicios", icon: Gear, tourId: "nav-services" },
       { href: appRoutes.operation.tasks, label: "Tareas", icon: ListCheck, tourId: "nav-tasks" },
     ],
   },
@@ -193,7 +194,7 @@ function pathWithoutQuery(href: string) {
 
 function isRouteActive(pathname: string, href: string) {
   const path = pathWithoutQuery(href);
-  if (path === "/") return pathname === "/";
+  if (path === appRoutes.dashboard) return pathname === appRoutes.dashboard;
   return pathname === path || pathname.startsWith(`${path}/`);
 }
 

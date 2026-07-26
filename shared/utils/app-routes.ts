@@ -1,8 +1,12 @@
 /** Rutas de la app alineadas al mapa de módulos/secciones del entitlement */
 export const appRoutes = {
-  dashboard: "/",
+  dashboard: "/panel",
+  home: "/",
+  booking: "/reservar",
+  login: "/login",
   operation: {
     agenda: "/operacion/agenda",
+    services: "/operacion/servicios",
     cash: "/operacion/caja",
     shifts: "/operacion/turno",
     tasks: "/operacion/tareas",

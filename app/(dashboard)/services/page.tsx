@@ -8,11 +8,13 @@ import type { Service } from "@/src/features/services";
 import type { ServiceFormData } from "@/src/features/services";
 import * as serviceService from "@/src/features/services/services/service-service";
 import { PageHeader } from "@/shared/components/ui";
+import { isAdminRole } from "@/shared/utils/roles";
 import Plus from "@gravity-ui/icons/Plus";
 import Gear from "@gravity-ui/icons/Gear";
 
 export default function ServicesPage() {
   const { user } = useAuth();
+  const isAdmin = isAdminRole(user?.role);
   const { services, loading, refetch } = useServices();
   const [editing, setEditing] = useState<Service | null>(null);
   const [pending, setPending] = useState(false);
@@ -77,23 +79,27 @@ export default function ServicesPage() {
       <PageHeader
         icon={<Gear width={24} height={24} />}
         title="Servicios"
-        description="Define los servicios y precios de tu negocio"
+        description="Define nombre, precio y duración de cada servicio"
         action={
-          <Button variant="primary" onPress={openCreate}>
-            <Plus width={16} height={16} />
-            Agregar servicio
-          </Button>
+          isAdmin ? (
+            <Button variant="primary" onPress={openCreate}>
+              <Plus width={16} height={16} />
+              Agregar servicio
+            </Button>
+          ) : undefined
         }
       />
 
       <ServiceList
         services={services}
-        onEdit={openEdit}
-        onDelete={handleDelete}
-        onAdd={openCreate}
+        onEdit={isAdmin ? openEdit : () => undefined}
+        onDelete={isAdmin ? handleDelete : async () => undefined}
+        onAdd={isAdmin ? openCreate : undefined}
         loading={loading}
+        canEdit={isAdmin}
       />
 
+      {isAdmin ? (
       <Modal state={modal}>
         <Modal.Backdrop>
           <Modal.Container placement="center">
@@ -109,6 +115,7 @@ export default function ServicesPage() {
               </Modal.Header>
               <Modal.Body>
                 <ServiceForm
+                  key={editing?.id ?? "new"}
                   defaultValues={editing ?? undefined}
                   onSubmit={handleSubmit}
                   formId="service-form"
@@ -135,6 +142,7 @@ export default function ServicesPage() {
           </Modal.Container>
         </Modal.Backdrop>
       </Modal>
+      ) : null}
     </div>
   );
 }

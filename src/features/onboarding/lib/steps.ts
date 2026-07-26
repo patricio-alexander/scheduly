@@ -26,7 +26,7 @@ export const moduleTours: ModuleTour[] = [
   {
     id: "dashboard",
     label: "Panel de control",
-    match: ["/"],
+    match: ["/panel"],
     steps: [
       {
         id: "dash-period",
@@ -262,15 +262,12 @@ export function moduleTourStorageKey(
 }
 
 export function findModuleTour(pathname: string): ModuleTour | null {
-  // Match longest prefix; dashboard "/" only exact
   let best: ModuleTour | null = null;
   let bestLen = -1;
   for (const tour of moduleTours) {
     for (const prefix of tour.match) {
       const matches =
-        prefix === "/"
-          ? pathname === "/" || pathname === ""
-          : pathname === prefix || pathname.startsWith(`${prefix}/`);
+        pathname === prefix || pathname.startsWith(`${prefix}/`);
       if (matches && prefix.length > bestLen) {
         best = tour;
         bestLen = prefix.length;

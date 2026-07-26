@@ -12,6 +12,7 @@ import {
 } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAuth } from "@/src/features/auth";
+import { appRoutes } from "@/shared/utils/app-routes";
 import {
   findModuleTour,
   moduleTours,
@@ -172,8 +173,8 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
 
       const targetHref = resolved.match[0];
       if (!targetHref) return;
-      if (targetHref === "/") {
-        if (pathname !== "/") router.push("/");
+      if (targetHref === appRoutes.dashboard || targetHref === "/") {
+        if (pathname !== appRoutes.dashboard) router.push(appRoutes.dashboard);
         return;
       }
       if (pathname !== targetHref && !pathname.startsWith(`${targetHref}/`)) {
