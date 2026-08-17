@@ -1,10 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import Calendar from "@gravity-ui/icons/Calendar";
+import { Button } from "@heroui/react";
 import { apiUrl } from "@/shared/utils/api";
 import { appRoutes } from "@/shared/utils/app-routes";
+import { useCustomerAuth } from "@/src/features/loyalty/hooks/useCustomerAuth";
 import {
   DEFAULT_BUSINESS_NAME,
   type BusinessProfile,
@@ -22,6 +25,9 @@ export function PublicShell({
   children: ReactNode;
   active?: "home" | "booking";
 }) {
+  const router = useRouter();
+  const { customer, logout } = useCustomerAuth();
+  const [loggingOut, setLoggingOut] = useState(false);
   const [business, setBusiness] = useState<PublicBusiness>({
     businessName: DEFAULT_BUSINESS_NAME,
     address: "",
@@ -51,6 +57,16 @@ export function PublicShell({
   }, []);
 
   const logoUrl = business.logoPath ? apiUrl(business.logoPath) : null;
+
+  const handleLogout = async () => {
+    setLoggingOut(true);
+    try {
+      await logout();
+      router.refresh();
+    } finally {
+      setLoggingOut(false);
+    }
+  };
 
   return (
     <div className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
@@ -105,11 +121,44 @@ export function PublicShell({
               Reservar
             </Link>
             <Link
-              href={appRoutes.login}
-              className="rounded-xl border border-separator bg-surface px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-secondary"
+              href={appRoutes.loyalty.feed}
+              className="rounded-xl px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-secondary hover:text-foreground"
             >
-              Acceso equipo
+              Novedades
             </Link>
+            {!customer ? (
+              <>
+                <Link
+                  href={appRoutes.loyalty.customerPortal}
+                  className="rounded-xl px-3 py-2 text-sm font-medium text-muted transition-colors hover:bg-surface-secondary hover:text-foreground"
+                >
+                  Mi cuenta
+                </Link>
+                <Link
+                  href={appRoutes.login}
+                  className="rounded-xl border border-separator bg-surface px-3 py-2 text-sm font-medium text-foreground transition-colors hover:bg-surface-secondary"
+                >
+                  Acceso equipo
+                </Link>
+              </>
+            ) : (
+              <>
+                <span className="hidden text-sm text-muted sm:inline">
+                  {customer.name.split(" ")[0]} ·{" "}
+                  <span className="font-semibold tabular-nums text-foreground">
+                    {customer.points} pts
+                  </span>
+                </span>
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  isDisabled={loggingOut}
+                  onPress={() => void handleLogout()}
+                >
+                  {loggingOut ? "Saliendo..." : "Cerrar sesión"}
+                </Button>
+              </>
+            )}
           </nav>
         </div>
       </header>

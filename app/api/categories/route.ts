@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { checkAuth } from "@/shared/utils/check-auth";
+import { isManagementRole } from "@/shared/utils/roles";
 
 export async function GET() {
   const auth = await checkAuth();
@@ -31,6 +32,10 @@ export async function GET() {
 export async function POST(request: Request) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
+
+  if (!isManagementRole(auth.user.role)) {
+    return NextResponse.json({ message: "No autorizado" }, { status: 403 });
+  }
 
   try {
     const body = await request.json();

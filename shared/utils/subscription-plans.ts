@@ -1,6 +1,21 @@
-export type SubscriptionPlanModule = {
+export type SubscriptionPlanSection = {
   name: string;
+  key: string;
   description: string;
+};
+
+export type SubscriptionPlanModule = {
+  id?: number | null;
+  name: string;
+  key: string;
+  description: string;
+  is_trial?: boolean;
+  sections: SubscriptionPlanSection[];
+};
+
+export type SubscriptionPlanOffer = {
+  offer_id: number;
+  offer_name: string;
 };
 
 export type SubscriptionCatalogModule = {
@@ -23,7 +38,11 @@ export type SubscriptionPlanPrice = {
 };
 
 export type SubscriptionPlan = {
+  id?: number | null;
   name: string;
+  channel?: string | null;
+  sort_order?: number | null;
   prices: SubscriptionPlanPrice[] | Record<string, unknown> | unknown;
   modules: SubscriptionPlanModule[];
+  offers?: SubscriptionPlanOffer[];
 };

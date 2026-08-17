@@ -1,8 +1,9 @@
 "use client";
 
 import { apiUrl } from "@/shared/utils/api";
-import { useEffect, useRef, useState, useCallback, type ReactNode } from "react";
-import { useSearchParams } from "next/navigation";
+import { appRoutes } from "@/shared/utils/app-routes";
+import { useEffect, useRef, useState, useCallback, useMemo, type ReactNode } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/src/features/auth";
 import {
   Button,
@@ -17,6 +18,7 @@ import {
   Calendar,
   TimeField,
   toast,
+  SearchField,
 } from "@heroui/react";
 import { parseDate, parseTime, today, getLocalTimeZone, type CalendarDate } from "@internationalized/date";
 import type { TimeValue } from "react-aria-components";
@@ -31,21 +33,55 @@ import esLocale from "@fullcalendar/core/locales/es";
 import type { EventContentArg, EventDropArg } from "@fullcalendar/core";
 import CalendarIcon from "@gravity-ui/icons/Calendar";
 import { PageHeader } from "@/shared/components/ui";
+import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
 import { StatusChip } from "@/shared/components/StatusChip";
 import { StatusLegend } from "@/shared/components/StatusLegend";
 import { statusCalendarClass, statusLabel, appointmentStatusOptions } from "@/shared/utils/appointment-status";
 import Plus from "@gravity-ui/icons/Plus";
 import Person from "@gravity-ui/icons/Person";
-import Clock from "@gravity-ui/icons/Clock";
 import Envelope from "@gravity-ui/icons/Envelope";
 import Smartphone from "@gravity-ui/icons/Smartphone";
 import CreditCard from "@gravity-ui/icons/CreditCard";
+import CrownDiamond from "@gravity-ui/icons/CrownDiamond";
+import { formatRewardApplyLabel } from "@/shared/utils/reward-apply";
+import { calcRewardDiscountAmount } from "@/shared/utils/reward-discount";
 import { paymentMethodLabel, paymentMethodOptions, type PaymentMethodValue } from "@/shared/utils/payment-methods";
 import { formatMoney, lineTotal, toAmount, toQuantity } from "@/shared/utils/money";
 import { useAppointmentSocket } from "@/src/features/appointments";
 import type { AppointmentCalendarEvent } from "@/src/features/appointments";
+import { BranchSelector, StaffSelector, useBranches, type StaffMember } from "@/src/features/branches";
+import { canDeleteRecords, isBranchAdminRole, isEmployeeRole, isOwnerRole } from "@/shared/utils/roles";
+import TrashBin from "@gravity-ui/icons/TrashBin";
 
 type CalendarEvent = AppointmentCalendarEvent;
+
+type BranchScope = {
+  id: number | null;
+  name: string | null;
+  locked: boolean;
+};
+
+type AgendaScope = {
+  filter: "all" | "branch" | "mine" | "employee";
+  userId: number | null;
+};
+
+function eventMatchesAgendaScope(
+  event: CalendarEvent,
+  agendaScope: AgendaScope | null,
+  branchScope: BranchScope | null,
+) {
+  if (agendaScope?.filter === "mine" && agendaScope.userId) {
+    return event.extendedProps.userId === agendaScope.userId;
+  }
+  if (agendaScope?.filter === "employee" && agendaScope.userId) {
+    return event.extendedProps.userId === agendaScope.userId;
+  }
+  if (!branchScope) return true;
+  if (!branchScope.locked && branchScope.id == null) return true;
+  if (!branchScope.id) return true;
+  return event.extendedProps.branchId === branchScope.id;
+}
 
 interface CustomerOption {
   id: number;
@@ -74,6 +110,18 @@ interface AppointmentPayment {
   notes: string;
 }
 
+interface ClaimableReward {
+  id: number;
+  name: string;
+  description: string;
+  pointsCost: number;
+  discountPct: number | null;
+  serviceId: number | null;
+  productId: number | null;
+  service?: { id: number; name: string } | null;
+  product?: { id: number; name: string } | null;
+}
+
 interface AppointmentDetail {
   id: number;
   title: string;
@@ -92,6 +140,8 @@ interface AppointmentDetail {
   services: Array<{ service: ServiceOption }>;
   products?: Array<{ quantity: number; product: ProductOption }>;
   payment?: AppointmentPayment | null;
+  customerPoints?: number;
+  claimableRewards?: ClaimableReward[];
 }
 
 const appointmentSchema = z.object({
@@ -231,57 +281,109 @@ function ModalSection({
 }) {
   return (
     <section className="flex flex-col gap-3">
-      <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">{title}</h3>
+      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       {children}
     </section>
   );
 }
 
-function MetaCard({
+function customerInitials(name: string, lastnames: string) {
+  const first = name.trim()[0] ?? "";
+  const last = lastnames.trim()[0] ?? "";
+  return (first + last).toUpperCase() || "?";
+}
+
+function DetailInfoRow({
   icon,
   label,
-  children,
+  value,
 }: {
   icon: ReactNode;
   label: string;
-  children: ReactNode;
+  value: ReactNode;
 }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1 rounded-xl bg-surface-secondary/70 px-3 py-2.5">
-      <div className="flex items-center gap-1.5 text-xs text-muted">
-        {icon}
-        <span>{label}</span>
+    <div className="flex items-start gap-3 rounded-xl bg-surface/60 px-3 py-2.5">
+      <span className="mt-0.5 shrink-0 text-foreground/50">{icon}</span>
+      <div className="min-w-0 flex-1">
+        <p className="text-[11px] font-medium uppercase tracking-wide text-foreground/50">{label}</p>
+        <p className="mt-0.5 text-sm font-medium capitalize text-foreground">{value}</p>
       </div>
-      <div className="text-sm font-medium leading-snug">{children}</div>
     </div>
   );
 }
 
-function LineItemRow({
+function SummaryLineItem({
   name,
-  detail,
+  meta,
   amount,
 }: {
   name: string;
-  detail?: string;
+  meta?: string;
   amount: string;
 }) {
   return (
-    <li className="flex items-center justify-between gap-3 py-1.5 text-sm">
+    <li className="flex items-center justify-between gap-4 py-3 text-sm first:pt-0 last:pb-0">
       <div className="min-w-0">
-        <p className="truncate font-medium">{name}</p>
-        {detail ? <p className="text-xs text-muted">{detail}</p> : null}
+        <p className="font-medium text-foreground">{name}</p>
+        {meta ? <p className="text-xs text-foreground/55">{meta}</p> : null}
       </div>
-      <span className="shrink-0 tabular-nums font-medium">{amount}</span>
+      <span className="shrink-0 tabular-nums font-semibold text-foreground">{amount}</span>
     </li>
+  );
+}
+
+function RewardOption({
+  selected,
+  onSelect,
+  children,
+}: {
+  selected: boolean;
+  onSelect: () => void;
+  children: ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onSelect}
+      className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left transition-all ${
+        selected
+          ? "bg-accent/12 ring-2 ring-accent/40"
+          : "bg-surface/70 ring-1 ring-separator hover:bg-surface-secondary/80"
+      }`}
+    >
+      <span
+        className={`flex h-4 w-4 shrink-0 items-center justify-center rounded-full border-2 ${
+          selected ? "border-accent bg-accent" : "border-foreground/25 bg-transparent"
+        }`}
+        aria-hidden
+      >
+        {selected ? <span className="h-1.5 w-1.5 rounded-full bg-white" /> : null}
+      </span>
+      <div className="min-w-0 flex-1">{children}</div>
+    </button>
   );
 }
 
 export default function AgendaPage() {
   const { user } = useAuth();
+  const isOwner = isOwnerRole(user?.role);
+  const isBranchAdmin = isBranchAdminRole(user?.role);
+  const { branches } = useBranches();
   const searchParams = useSearchParams();
+  const router = useRouter();
+  const personalAgendaView =
+    isEmployeeRole(user?.role) ||
+    (isBranchAdminRole(user?.role) && searchParams.get("view") === "mine");
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [branchFilter, setBranchFilter] = useState<number | "all">("all");
+  const [staffFilter, setStaffFilter] = useState<number | "all">("all");
+  const [branchStaff, setBranchStaff] = useState<StaffMember[]>([]);
+  const [branchScope, setBranchScope] = useState<BranchScope | null>(null);
+  const [agendaScope, setAgendaScope] = useState<AgendaScope | null>(null);
+  const branchScopeRef = useRef<BranchScope | null>(null);
+  const agendaScopeRef = useRef<AgendaScope | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
   const [detailData, setDetailData] = useState<AppointmentDetail | null>(null);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -295,15 +397,20 @@ export default function AgendaPage() {
   const formRef = useRef<HTMLFormElement>(null);
   const spotlightAppliedRef = useRef<string | null>(null);
   const modal = useOverlayState();
+  const paymentConfirmState = useOverlayState();
+  const deleteConfirmState = useOverlayState();
   const [selectedDate, setSelectedDate] = useState<CalendarDate>(today(getLocalTimeZone()));
   const [selectedTime, setSelectedTime] = useState<TimeValue>(parseTime("09:00"));
   const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<Record<number, number>>({});
+  const [productSearch, setProductSearch] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("scheduled");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodValue>("cash");
   const [paymentNotes, setPaymentNotes] = useState("");
+  const [selectedRewardId, setSelectedRewardId] = useState<number | null>(null);
   const [paying, setPaying] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [spotlightId, setSpotlightId] = useState<string | null>(null);
 
   const {
@@ -321,11 +428,14 @@ export default function AgendaPage() {
 
   const closeModal = useCallback(() => {
     modal.close();
+    paymentConfirmState.close();
+    deleteConfirmState.close();
     setSelectedEvent(null);
     setDetailData(null);
     setDetailLoading(false);
     setSelectedDayDate("");
-  }, [modal]);
+    setProductSearch("");
+  }, [modal, paymentConfirmState, deleteConfirmState]);
 
   const openCreate = useCallback((dateStr?: string) => {
     const date = dateStr ? parseDate(dateStr.slice(0, 10)) : today(getLocalTimeZone());
@@ -340,6 +450,7 @@ export default function AgendaPage() {
     reset({ title: "", description: "" });
     setSelectedServiceIds([]);
     setSelectedProducts({});
+    setProductSearch("");
     setSelectedCustomerId("");
     setSelectedStatus("scheduled");
     setSelectedDayDate("");
@@ -367,15 +478,72 @@ export default function AgendaPage() {
   }, [reset]);
 
   const fetchEvents = useCallback(() => {
-    fetch(apiUrl("/api/appointments"))
+    const url = new URL(apiUrl("/api/appointments"), window.location.origin);
+    if (isOwner && branchFilter !== "all") {
+      url.searchParams.set("branchId", String(branchFilter));
+    }
+    if (isBranchAdmin && personalAgendaView) {
+      url.searchParams.set("view", "mine");
+    }
+    if ((isBranchAdmin || isOwner) && !personalAgendaView && staffFilter !== "all") {
+      url.searchParams.set("userId", String(staffFilter));
+    }
+    fetch(url.toString(), { credentials: "include" })
       .then((res) => res.json())
-      .then(setEvents)
+      .then((json) => {
+        const list = Array.isArray(json?.events) ? json.events : [];
+        setEvents(list);
+        setBranchScope(json?.branchScope ?? null);
+        setAgendaScope(json?.agendaScope ?? null);
+      })
       .finally(() => setLoading(false));
-  }, []);
+  }, [isOwner, isBranchAdmin, branchFilter, staffFilter, personalAgendaView]);
+
+  useEffect(() => {
+    branchScopeRef.current = branchScope;
+    agendaScopeRef.current = agendaScope;
+  }, [branchScope, agendaScope]);
 
   useEffect(() => {
     fetchEvents();
   }, [fetchEvents]);
+
+  const showStaffFilter =
+    !personalAgendaView && (isBranchAdmin || (isOwner && branchFilter !== "all"));
+
+  useEffect(() => {
+    if (!showStaffFilter) {
+      setBranchStaff([]);
+      return;
+    }
+
+    const url = new URL(apiUrl("/api/branches/staff"), window.location.origin);
+    if (isOwner && branchFilter !== "all") {
+      url.searchParams.set("branchId", String(branchFilter));
+    }
+
+    let cancelled = false;
+    fetch(url.toString(), { credentials: "include" })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((json) => {
+        if (cancelled) return;
+        setBranchStaff(Array.isArray(json) ? json : []);
+      })
+      .catch(() => {
+        if (!cancelled) setBranchStaff([]);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [showStaffFilter, isOwner, branchFilter]);
+
+  useEffect(() => {
+    if (staffFilter === "all") return;
+    if (!branchStaff.some((member) => member.id === staffFilter)) {
+      setStaffFilter("all");
+    }
+  }, [branchStaff, staffFilter]);
 
   useEffect(() => {
     const raw = searchParams.get("appointmentId");
@@ -420,6 +588,15 @@ export default function AgendaPage() {
 
   useAppointmentSocket({
     onCreated: (event) => {
+      if (
+        !eventMatchesAgendaScope(
+          event,
+          agendaScopeRef.current,
+          branchScopeRef.current,
+        )
+      ) {
+        return;
+      }
       setEvents((prev) => {
         if (prev.some((e) => e.id === event.id)) {
           return prev.map((e) => (e.id === event.id ? { ...event } : e));
@@ -443,6 +620,18 @@ export default function AgendaPage() {
       });
     },
     onUpdated: (event) => {
+      const matches = eventMatchesAgendaScope(
+        event,
+        agendaScopeRef.current,
+        branchScopeRef.current,
+      );
+      if (!matches) {
+        setEvents((prev) => prev.filter((e) => e.id !== event.id));
+        requestAnimationFrame(() => {
+          calendarRef.current?.getApi()?.getEventById(event.id)?.remove();
+        });
+        return;
+      }
       setEvents((prev) => {
         if (prev.some((e) => e.id === event.id)) {
           return prev.map((e) => (e.id === event.id ? { ...event } : e));
@@ -497,6 +686,8 @@ export default function AgendaPage() {
     setViewMode("detail");
     setDetailData(null);
     setDetailLoading(true);
+    setSelectedRewardId(null);
+    setPaymentNotes("");
     modal.open();
     try {
       const res = await fetch(apiUrl(`/api/appointments/${event.id}`));
@@ -548,6 +739,7 @@ export default function AgendaPage() {
     if (!selectedEvent?.id) return;
     if (detailData?.id === Number(selectedEvent.id)) {
       applyAppointmentToForm(detailData);
+      setProductSearch("");
       setViewMode("edit");
       return;
     }
@@ -557,6 +749,7 @@ export default function AgendaPage() {
       const data: AppointmentDetail = await res.json();
       setDetailData(normalizeAppointmentDetail(data));
       applyAppointmentToForm(data);
+      setProductSearch("");
       setViewMode("edit");
     } catch {
       // ignore
@@ -614,6 +807,16 @@ export default function AgendaPage() {
 
   const selectedProductsCount = Object.keys(selectedProducts).length;
   const selectedServicesTotal = calcSelectionTotal(services, selectedServiceIds);
+
+  const filteredProducts = useMemo(() => {
+    const q = productSearch.trim().toLowerCase();
+    if (!q) return products;
+    return products.filter(
+      (p) =>
+        p.name.toLowerCase().includes(q) || (selectedProducts[p.id] ?? 0) > 0,
+    );
+  }, [products, productSearch, selectedProducts]);
+
   const selectedProductsTotal = calcProductsTotal(products, selectedProducts);
   const selectedGrandTotal = selectedServicesTotal + selectedProductsTotal;
 
@@ -625,6 +828,19 @@ export default function AgendaPage() {
       ) ?? 0)
     : 0;
 
+  const selectedReward =
+    detailData?.claimableRewards?.find((r) => r.id === selectedRewardId) ?? null;
+
+  const rewardDiscount =
+    selectedReward && detailData
+      ? calcRewardDiscountAmount(selectedReward, {
+          services: detailData.services,
+          products: detailData.products ?? [],
+        })
+      : 0;
+
+  const paymentTotal = Math.max(0, Math.round((detailTotal - rewardDiscount) * 100) / 100);
+
   const handleRegisterPayment = async () => {
     if (!detailData?.id) return;
     setPaying(true);
@@ -634,8 +850,9 @@ export default function AgendaPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           method: paymentMethod,
-          amount: detailTotal,
+          amount: paymentTotal,
           notes: paymentNotes,
+          rewardId: selectedRewardId,
         }),
       });
       if (!res.ok) {
@@ -643,7 +860,13 @@ export default function AgendaPage() {
         toast.danger(err.message ?? "Error al registrar el pago");
         return;
       }
-      toast.success("Pago registrado y turno cerrado");
+      toast.success(
+        selectedReward
+          ? `Pago registrado con premio "${selectedReward.name}"`
+          : "Pago registrado y turno cerrado",
+      );
+      paymentConfirmState.close();
+      setSelectedRewardId(null);
       const detailRes = await fetch(apiUrl(`/api/appointments/${detailData.id}`));
       if (detailRes.ok) {
         setDetailData(normalizeAppointmentDetail(await detailRes.json()));
@@ -726,10 +949,22 @@ export default function AgendaPage() {
     const isEdit = viewMode === "edit" && selectedEvent?.id;
     try {
       const dateStr = `${selectedDate.toString()}T${selectedTime.toString()}`;
+      const appointmentBranchId = isOwner
+        ? branchFilter !== "all"
+          ? branchFilter
+          : (branchScope?.id ?? user.branch?.id ?? null)
+        : (branchScope?.id ?? user.branch?.id ?? null);
+      const assigneeUserId =
+        !personalAgendaView &&
+        (isOwner || isBranchAdmin) &&
+        staffFilter !== "all"
+          ? staffFilter
+          : user.id;
       const payload = {
         ...data,
         customerId: Number(selectedCustomerId),
-        userId: user.id,
+        userId: assigneeUserId,
+        branchId: appointmentBranchId,
         appointmentDate: dateStr,
         serviceIds: selectedServiceIds,
         products: Object.entries(selectedProducts).map(([productId, quantity]) => ({
@@ -758,19 +993,126 @@ export default function AgendaPage() {
 
   if (!user) return null;
 
+  const canDeleteAppointments = canDeleteRecords(user.role);
+
+  const handleDeleteAppointment = async () => {
+    if (!detailData) return;
+    setDeleting(true);
+    try {
+      const res = await fetch(apiUrl(`/api/appointments/${detailData.id}`), {
+        method: "DELETE",
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        toast.danger(err.message ?? "No se pudo eliminar el turno");
+        return;
+      }
+      toast.success("Turno eliminado");
+      deleteConfirmState.close();
+      closeModal();
+      setEvents((prev) => prev.filter((e) => e.id !== String(detailData.id)));
+      requestAnimationFrame(() => {
+        calendarRef.current?.getApi().getEventById(String(detailData.id))?.remove();
+      });
+    } catch {
+      toast.danger("No se pudo eliminar el turno");
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const agendaTitle = personalAgendaView
+    ? "Mi agenda"
+    : isBranchAdmin
+      ? "Agenda sucursal"
+      : "Agenda";
+  const selectedStaffName =
+    staffFilter !== "all"
+      ? branchStaff.find((member) => member.id === staffFilter)?.name
+      : null;
+  const agendaDescription = personalAgendaView
+    ? "Consulta y gestiona tus turnos asignados"
+    : selectedStaffName
+      ? `Turnos de ${selectedStaffName}`
+      : isBranchAdmin && branchScope?.name
+        ? `Turnos de ${branchScope.name}`
+        : branchScope?.name
+          ? `Turnos de ${branchScope.name}`
+          : "Visualiza y gestiona los turnos de tu negocio";
+
+  const setAgendaView = (mode: "branch" | "mine") => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (mode === "mine") {
+      params.set("view", "mine");
+    } else {
+      params.delete("view");
+    }
+    const query = params.toString();
+    router.replace(
+      query ? `${appRoutes.operation.agenda}?${query}` : appRoutes.operation.agenda,
+    );
+  };
+
   return (
     <div className="flex h-[calc(100dvh-3rem)] min-h-0 flex-col gap-4 sm:h-[calc(100dvh-4rem)] sm:gap-6">
       <div className="shrink-0">
         <PageHeader
         icon={<CalendarIcon width={24} height={24} />}
-        title="Agenda"
-        description="Visualiza y gestiona los turnos de tu negocio"
+        title={agendaTitle}
+        description={agendaDescription}
         action={
-          <div data-onboarding="agenda-create">
-            <Button variant="primary" onPress={() => openCreate()}>
-              <Plus width={16} height={16} />
-              Agendar turno
-            </Button>
+          <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            {isBranchAdmin ? (
+              <div className="inline-flex shrink-0 rounded-xl border border-separator bg-surface p-1">
+                <button
+                  type="button"
+                  onClick={() => setAgendaView("branch")}
+                  className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    !personalAgendaView
+                      ? "bg-accent text-accent-foreground shadow-sm"
+                      : "text-muted hover:text-foreground"
+                  }`}
+                >
+                  Sucursal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAgendaView("mine")}
+                  className={`whitespace-nowrap rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+                    personalAgendaView
+                      ? "bg-accent text-accent-foreground shadow-sm"
+                      : "text-muted hover:text-foreground"
+                  }`}
+                >
+                  Mis turnos
+                </button>
+              </div>
+            ) : null}
+            {isOwner ? (
+              <BranchSelector
+                branches={branches}
+                value={branchFilter}
+                className="w-auto min-w-[11rem] shrink-0"
+                onChange={(value) => {
+                  setBranchFilter(value);
+                  setStaffFilter("all");
+                }}
+              />
+            ) : null}
+            {showStaffFilter ? (
+              <StaffSelector
+                staff={branchStaff}
+                value={staffFilter}
+                className="w-auto min-w-[11rem] shrink-0"
+                onChange={setStaffFilter}
+              />
+            ) : null}
+            <div className="shrink-0" data-onboarding="agenda-create">
+              <Button variant="primary" onPress={() => openCreate()}>
+                <Plus width={16} height={16} />
+                <span className="whitespace-nowrap">Agendar turno</span>
+              </Button>
+            </div>
           </div>
         }
       />
@@ -912,184 +1254,329 @@ export default function AgendaPage() {
                       <CalendarIcon width={20} height={20} />
                     </Modal.Icon>
                     <Modal.Heading>
-                      {detailData?.title ?? selectedEvent.title.split(" - ")[0]}
+                      {detailData
+                        ? `${detailData.customer.name} ${detailData.customer.lastnames}`
+                        : selectedEvent.title.split(" - ")[0]}
                     </Modal.Heading>
                   </Modal.Header>
                   <Modal.Body>
                     {detailLoading ? (
-                      <p className="text-muted py-10 text-center text-sm">Cargando detalles del turno...</p>
+                      <div className="flex flex-col items-center gap-3 py-12">
+                        <div className="h-8 w-8 animate-spin rounded-full border-2 border-accent border-t-transparent" />
+                        <p className="text-sm text-foreground/60">Cargando turno...</p>
+                      </div>
                     ) : detailData ? (
-                      <div className="flex flex-col gap-6">
-                        <div className="flex items-center justify-between gap-3">
-                          <StatusChip status={detailData.status} />
-                          <span className="text-xs text-muted">Turno #{detailData.id}</span>
-                        </div>
-
-                        <ModalSection title="Cliente">
-                          <div className="rounded-xl border border-separator bg-surface-secondary/40 p-4">
-                            <p className="text-base font-semibold">
-                              {detailData.customer.name} {detailData.customer.lastnames}
-                            </p>
-                            <div className="mt-2 flex flex-col gap-1.5">
-                              {detailData.customer.phone && (
-                                <div className="flex items-center gap-2 text-sm text-muted">
-                                  <Smartphone width={14} height={14} className="shrink-0" />
-                                  <span>{detailData.customer.phone}</span>
+                      <div className="flex flex-col gap-5">
+                        {/* Hero: cliente + estado + horario */}
+                        <div className="overflow-hidden rounded-2xl bg-gradient-to-br from-accent/10 via-surface-secondary/50 to-surface ring-1 ring-separator/80">
+                          <div className="p-5">
+                            <div className="flex items-start gap-4">
+                              <div
+                                className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-accent/15 text-lg font-bold text-accent"
+                                aria-hidden
+                              >
+                                {customerInitials(
+                                  detailData.customer.name,
+                                  detailData.customer.lastnames,
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <p className="text-lg font-semibold leading-tight text-foreground">
+                                    {detailData.customer.name} {detailData.customer.lastnames}
+                                  </p>
+                                  <StatusChip status={detailData.status} size="sm" />
                                 </div>
-                              )}
-                              {detailData.customer.email && (
-                                <div className="flex items-center gap-2 text-sm text-muted">
-                                  <Envelope width={14} height={14} className="shrink-0" />
-                                  <span>{detailData.customer.email}</span>
-                                </div>
-                              )}
-                            </div>
-                          </div>
-                        </ModalSection>
-
-                        <ModalSection title="Información del turno">
-                          <div className="grid gap-2 sm:grid-cols-3">
-                            <MetaCard icon={<CalendarIcon width={12} height={12} />} label="Fecha">
-                              <span className="capitalize">
-                                {formatAppointmentDate(detailData.appointmentDate).date}
-                              </span>
-                            </MetaCard>
-                            <MetaCard icon={<Clock width={12} height={12} />} label="Hora">
-                              {formatAppointmentDate(detailData.appointmentDate).time} hrs
-                            </MetaCard>
-                            <MetaCard icon={<Person width={12} height={12} />} label="Profesional">
-                              {detailData.user.name}
-                            </MetaCard>
-                          </div>
-                          {detailData.description ? (
-                            <p className="rounded-xl border border-separator bg-surface-secondary/40 p-3 text-sm text-muted whitespace-pre-wrap">
-                              {detailData.description}
-                            </p>
-                          ) : null}
-                        </ModalSection>
-
-                        {(detailData.services.length > 0 || (detailData.products?.length ?? 0) > 0) && (
-                          <ModalSection title="Resumen">
-                            <div className="divide-y divide-separator rounded-xl border border-separator bg-surface-secondary/40 px-4">
-                              {detailData.services.length > 0 && (
-                                <ul className="py-2">
-                                  {detailData.services.map(({ service }) => (
-                                    <LineItemRow
-                                      key={service.id}
-                                      name={service.name}
-                                      detail="Servicio"
-                                      amount={formatMoney(service.price)}
-                                    />
-                                  ))}
-                                </ul>
-                              )}
-                              {(detailData.products?.length ?? 0) > 0 && (
-                                <ul className="py-2">
-                                  {(detailData.products ?? []).map(({ product, quantity }) => {
-                                    const qty = toQuantity(quantity);
-                                    return (
-                                      <LineItemRow
-                                        key={product.id}
-                                        name={product.name}
-                                        detail={qty > 1 ? `Producto · ×${qty}` : "Producto"}
-                                        amount={formatMoney(lineTotal(product.price, qty))}
-                                      />
-                                    );
-                                  })}
-                                </ul>
-                              )}
-                              <div className="flex items-center justify-between py-3 text-base font-semibold">
-                                <span>Total</span>
-                                <span className="tabular-nums">{formatMoney(detailTotal)}</span>
+                                <p className="mt-1 text-sm text-foreground/65">
+                                  {detailData.title}
+                                  <span className="mx-1.5 text-foreground/30">·</span>
+                                  <span className="tabular-nums">#{detailData.id}</span>
+                                </p>
                               </div>
                             </div>
-                          </ModalSection>
+
+                            <div className="mt-4 grid gap-2 sm:grid-cols-2">
+                              <DetailInfoRow
+                                icon={<CalendarIcon width={15} height={15} />}
+                                label="Fecha y hora"
+                                value={`${formatAppointmentDate(detailData.appointmentDate).date}, ${formatAppointmentDate(detailData.appointmentDate).time}`}
+                              />
+                              <DetailInfoRow
+                                icon={<Person width={15} height={15} />}
+                                label="Profesional"
+                                value={detailData.user.name}
+                              />
+                            </div>
+
+                            {(detailData.customer.phone || detailData.customer.email) && (
+                              <div className="mt-3 flex flex-wrap gap-2">
+                                {detailData.customer.phone ? (
+                                  <a
+                                    href={`tel:${detailData.customer.phone}`}
+                                    className="inline-flex items-center gap-1.5 rounded-full bg-surface/90 px-3 py-1.5 text-xs font-medium text-foreground/80 ring-1 ring-separator transition-colors hover:bg-surface-secondary"
+                                  >
+                                    <Smartphone width={13} height={13} />
+                                    {detailData.customer.phone}
+                                  </a>
+                                ) : null}
+                                {detailData.customer.email ? (
+                                  <a
+                                    href={`mailto:${detailData.customer.email}`}
+                                    className="inline-flex items-center gap-1.5 rounded-full bg-surface/90 px-3 py-1.5 text-xs font-medium text-foreground/80 ring-1 ring-separator transition-colors hover:bg-surface-secondary"
+                                  >
+                                    <Envelope width={13} height={13} />
+                                    {detailData.customer.email}
+                                  </a>
+                                ) : null}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {detailData.description ? (
+                          <div className="rounded-2xl bg-surface-secondary/40 px-4 py-3 ring-1 ring-separator/60">
+                            <p className="text-xs font-medium text-foreground/50">Notas</p>
+                            <p className="mt-1 text-sm leading-relaxed text-foreground/90 whitespace-pre-wrap">
+                              {detailData.description}
+                            </p>
+                          </div>
+                        ) : null}
+
+                        {(detailData.services.length > 0 ||
+                          (detailData.products?.length ?? 0) > 0) && (
+                          <div className="overflow-hidden rounded-2xl ring-1 ring-separator">
+                            <div className="border-b border-separator bg-surface-secondary/40 px-4 py-2.5">
+                              <p className="text-sm font-semibold text-foreground">Desglose</p>
+                            </div>
+                            <ul className="divide-y divide-separator/70 px-4">
+                              {detailData.services.map(({ service }) => (
+                                <SummaryLineItem
+                                  key={service.id}
+                                  name={service.name}
+                                  meta="Servicio"
+                                  amount={formatMoney(service.price)}
+                                />
+                              ))}
+                              {(detailData.products ?? []).map(({ product, quantity }) => {
+                                const qty = toQuantity(quantity);
+                                return (
+                                  <SummaryLineItem
+                                    key={product.id}
+                                    name={product.name}
+                                    meta={qty > 1 ? `Producto · ×${qty}` : "Producto"}
+                                    amount={formatMoney(lineTotal(product.price, qty))}
+                                  />
+                                );
+                              })}
+                            </ul>
+                            <div className="flex items-center justify-between border-t border-separator bg-surface-secondary/30 px-4 py-3.5">
+                              <span className="font-semibold text-foreground">Total</span>
+                              <span className="text-lg font-bold tabular-nums text-accent">
+                                {formatMoney(detailTotal)}
+                              </span>
+                            </div>
+                          </div>
                         )}
 
                         {detailData.payment ? (
-                          <ModalSection title="Pago registrado">
-                            <div className="grid gap-2 sm:grid-cols-3">
-                              <MetaCard icon={<CreditCard width={12} height={12} />} label="Monto">
-                                {formatMoney(detailData.payment.amount)}
-                              </MetaCard>
-                              <MetaCard icon={<CreditCard width={12} height={12} />} label="Método">
-                                {paymentMethodLabel[detailData.payment.method]}
-                              </MetaCard>
-                              <MetaCard icon={<CalendarIcon width={12} height={12} />} label="Fecha">
-                                {new Date(detailData.payment.paidAt).toLocaleString("es-CL")}
-                              </MetaCard>
+                          <div className="overflow-hidden rounded-2xl ring-1 ring-success/25">
+                            <div className="flex items-center justify-between gap-3 border-b border-separator bg-success/5 px-4 py-3">
+                              <div>
+                                <p className="text-xs font-medium text-foreground/55">Pago registrado</p>
+                                <p className="text-xl font-bold tabular-nums text-success">
+                                  {formatMoney(detailData.payment.amount)}
+                                </p>
+                              </div>
+                              <StatusChip status="completed" size="sm" />
                             </div>
+                            <dl className="grid gap-3 px-4 py-4 sm:grid-cols-2">
+                              <div>
+                                <dt className="text-xs text-foreground/50">Método</dt>
+                                <dd className="mt-0.5 text-sm font-medium">
+                                  {paymentMethodLabel[detailData.payment.method]}
+                                </dd>
+                              </div>
+                              <div>
+                                <dt className="text-xs text-foreground/50">Fecha de cobro</dt>
+                                <dd className="mt-0.5 text-sm font-medium">
+                                  {new Date(detailData.payment.paidAt).toLocaleString("es-CL")}
+                                </dd>
+                              </div>
+                            </dl>
                             {detailData.payment.notes ? (
-                              <p className="text-sm text-muted">{detailData.payment.notes}</p>
+                              <div className="border-t border-separator px-4 py-3">
+                                <p className="text-xs text-foreground/50">Notas del cobro</p>
+                                <p className="mt-1 text-sm text-foreground/85 whitespace-pre-wrap">
+                                  {detailData.payment.notes}
+                                </p>
+                              </div>
                             ) : null}
-                          </ModalSection>
-                        ) : detailData.status !== "cancelled" && detailData.status !== "completed" ? (
-                          <ModalSection title="Cierre de turno">
-                            <div className="flex flex-col gap-4 rounded-xl border border-separator bg-surface-secondary/40 p-4">
-                              <p className="text-sm text-muted">
-                                Registra el pago para completar el turno y descontar stock de productos.
-                              </p>
-                              <ComboBox
-                                selectedKey={paymentMethod}
-                                onSelectionChange={(key) =>
-                                  setPaymentMethod((key as PaymentMethodValue) ?? "cash")
-                                }
-                                variant="secondary"
-                              >
-                                <Label className="text-sm font-medium">Método de pago</Label>
-                                <ComboBox.InputGroup>
-                                  <Input />
-                                  <ComboBox.Trigger />
-                                </ComboBox.InputGroup>
-                                <ComboBox.Popover>
-                                  <ListBox>
-                                    {paymentMethodOptions.map((key) => (
-                                      <ListBox.Item key={key} id={key} textValue={paymentMethodLabel[key]}>
-                                        {paymentMethodLabel[key]}
-                                        <ListBox.ItemIndicator />
-                                      </ListBox.Item>
-                                    ))}
-                                  </ListBox>
-                                </ComboBox.Popover>
-                              </ComboBox>
-                              <div className="flex flex-col gap-1">
-                                <label htmlFor="payment-notes" className="text-sm font-medium">
-                                  Notas (opcional)
-                                </label>
-                                <textarea
-                                  id="payment-notes"
-                                  rows={2}
-                                  value={paymentNotes}
-                                  onChange={(e) => setPaymentNotes(e.target.value)}
-                                  placeholder="Referencia, vuelto, etc."
-                                  className="resize-none rounded-xl border border-separator bg-field-background px-3 py-2 text-sm text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
-                                />
+                          </div>
+                        ) : detailData.status !== "cancelled" &&
+                          detailData.status !== "completed" ? (
+                          <div className="overflow-hidden rounded-2xl ring-1 ring-accent/20">
+                            <div className="border-b border-separator bg-accent/5 px-4 py-3.5">
+                              <div className="flex items-center gap-2">
+                                <CreditCard width={18} height={18} className="text-accent" />
+                                <div>
+                                  <p className="font-semibold text-foreground">Cerrar turno</p>
+                                  <p className="text-xs text-foreground/60">
+                                    Registra el cobro para completar y descontar stock
+                                  </p>
+                                </div>
                               </div>
-                              <div className="flex items-center justify-between rounded-xl bg-surface px-4 py-3 font-semibold">
-                                <span>Total a cobrar</span>
-                                <span className="tabular-nums">{formatMoney(detailTotal)}</span>
+                            </div>
+
+                            <div className="flex flex-col gap-5 p-4">
+                              {(detailData.claimableRewards?.length ?? 0) > 0 ? (
+                                <div className="flex flex-col gap-2.5">
+                                  <div className="flex items-center justify-between">
+                                    <p className="text-sm font-medium text-foreground">
+                                      Premio de fidelización
+                                    </p>
+                                    {detailData.customerPoints != null ? (
+                                      <span className="rounded-full bg-accent/10 px-2.5 py-0.5 text-xs font-semibold tabular-nums text-accent">
+                                        {detailData.customerPoints} pts
+                                      </span>
+                                    ) : null}
+                                  </div>
+                                  <div className="flex flex-col gap-2">
+                                    <RewardOption
+                                      selected={selectedRewardId == null}
+                                      onSelect={() => setSelectedRewardId(null)}
+                                    >
+                                      <p className="text-sm font-medium">Sin premio</p>
+                                    </RewardOption>
+                                    {detailData.claimableRewards!.map((reward) => {
+                                      const applyLabel = formatRewardApplyLabel(reward);
+                                      const discount = calcRewardDiscountAmount(reward, {
+                                        services: detailData.services,
+                                        products: detailData.products ?? [],
+                                      });
+                                      return (
+                                        <RewardOption
+                                          key={reward.id}
+                                          selected={selectedRewardId === reward.id}
+                                          onSelect={() => setSelectedRewardId(reward.id)}
+                                        >
+                                          <div className="flex items-start justify-between gap-3">
+                                            <div className="flex min-w-0 items-start gap-2">
+                                              <CrownDiamond
+                                                width={15}
+                                                height={15}
+                                                className="mt-0.5 shrink-0 text-accent"
+                                              />
+                                              <div>
+                                                <p className="text-sm font-medium">{reward.name}</p>
+                                                {applyLabel ? (
+                                                  <p className="text-xs text-foreground/55">{applyLabel}</p>
+                                                ) : null}
+                                              </div>
+                                            </div>
+                                            <div className="shrink-0 text-right">
+                                              <p className="text-xs font-semibold tabular-nums text-foreground/70">
+                                                {reward.pointsCost} pts
+                                              </p>
+                                              {discount > 0 ? (
+                                                <p className="text-xs font-semibold tabular-nums text-success">
+                                                  −{formatMoney(discount)}
+                                                </p>
+                                              ) : (
+                                                <p className="text-xs text-foreground/50">Canje de puntos</p>
+                                              )}
+                                            </div>
+                                          </div>
+                                        </RewardOption>
+                                      );
+                                    })}
+                                  </div>
+                                </div>
+                              ) : null}
+
+                              <div className="grid gap-4 sm:grid-cols-2">
+                                <ComboBox
+                                  selectedKey={paymentMethod}
+                                  onSelectionChange={(key) =>
+                                    setPaymentMethod((key as PaymentMethodValue) ?? "cash")
+                                  }
+                                  variant="secondary"
+                                  className="sm:col-span-1"
+                                >
+                                  <Label className="text-sm font-medium">Método de pago</Label>
+                                  <ComboBox.InputGroup>
+                                    <Input />
+                                    <ComboBox.Trigger />
+                                  </ComboBox.InputGroup>
+                                  <ComboBox.Popover>
+                                    <ListBox>
+                                      {paymentMethodOptions.map((key) => (
+                                        <ListBox.Item
+                                          key={key}
+                                          id={key}
+                                          textValue={paymentMethodLabel[key]}
+                                        >
+                                          {paymentMethodLabel[key]}
+                                          <ListBox.ItemIndicator />
+                                        </ListBox.Item>
+                                      ))}
+                                    </ListBox>
+                                  </ComboBox.Popover>
+                                </ComboBox>
+                                <div className="flex flex-col gap-1 sm:col-span-1">
+                                  <label htmlFor="payment-notes" className="text-sm font-medium">
+                                    Notas <span className="font-normal text-foreground/45">(opcional)</span>
+                                  </label>
+                                  <textarea
+                                    id="payment-notes"
+                                    rows={2}
+                                    value={paymentNotes}
+                                    onChange={(e) => setPaymentNotes(e.target.value)}
+                                    placeholder="Referencia, vuelto..."
+                                    className="resize-none rounded-xl border border-separator bg-field-background px-3 py-2 text-sm text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
+                                  />
+                                </div>
                               </div>
+
+                              <div className="rounded-xl bg-surface-secondary/50 px-4 py-3">
+                                <div className="flex items-center justify-between text-sm text-foreground/70">
+                                  <span>Subtotal</span>
+                                  <span className="tabular-nums">{formatMoney(detailTotal)}</span>
+                                </div>
+                                {rewardDiscount > 0 ? (
+                                  <div className="mt-1.5 flex items-center justify-between text-sm text-success">
+                                    <span>Descuento premio</span>
+                                    <span className="tabular-nums">−{formatMoney(rewardDiscount)}</span>
+                                  </div>
+                                ) : null}
+                                <div className="mt-2 flex items-center justify-between border-t border-separator pt-2.5">
+                                  <span className="font-semibold text-foreground">Total a cobrar</span>
+                                  <span className="text-lg font-bold tabular-nums text-accent">
+                                    {formatMoney(paymentTotal)}
+                                  </span>
+                                </div>
+                              </div>
+
                               <Button
                                 variant="primary"
-                                onPress={handleRegisterPayment}
+                                onPress={paymentConfirmState.open}
                                 isDisabled={paying || detailTotal <= 0}
-                                isPending={paying}
                                 className="w-full"
+                                size="lg"
                               >
                                 Registrar pago y cerrar turno
                               </Button>
                             </div>
-                          </ModalSection>
+                          </div>
                         ) : null}
                       </div>
                     ) : (
-                      <div className="flex flex-col gap-3">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Person width={16} height={16} className="text-muted shrink-0" />
+                      <div className="flex flex-col gap-4 rounded-2xl bg-surface-secondary/40 p-4">
+                        <div className="flex items-center gap-3 text-sm">
+                          <Person width={16} height={16} className="shrink-0 text-foreground/50" />
                           <span>{selectedEvent.extendedProps.customer}</span>
                         </div>
-                        <div className="flex items-center gap-2 text-sm">
-                          <CalendarIcon width={16} height={16} className="text-muted shrink-0" />
+                        <div className="flex items-center gap-3 text-sm">
+                          <CalendarIcon width={16} height={16} className="shrink-0 text-foreground/50" />
                           <span>{new Date(selectedEvent.start).toLocaleString("es-CL")}</span>
                         </div>
                         <StatusChip status={selectedEvent.extendedProps.status} />
@@ -1102,6 +1589,16 @@ export default function AgendaPage() {
                         Volver al día
                       </Button>
                     )}
+                    {canDeleteAppointments && detailData ? (
+                      <Button
+                        variant="danger"
+                        onPress={deleteConfirmState.open}
+                        isDisabled={detailLoading || deleting}
+                      >
+                        <TrashBin width={16} height={16} />
+                        Eliminar
+                      </Button>
+                    ) : null}
                     <Button variant="secondary" onPress={closeModal}>Cerrar</Button>
                     <Button variant="primary" onPress={handleEdit} isDisabled={detailLoading}>
                       Editar
@@ -1306,69 +1803,88 @@ export default function AgendaPage() {
                         {products.length === 0 ? (
                           <p className="text-muted text-sm">No hay productos disponibles</p>
                         ) : (
-                          <div className="flex max-h-52 flex-col gap-2 overflow-y-auto rounded-xl border border-separator bg-surface-secondary/40 p-3">
-                            {products.map((p) => {
-                              const qty = selectedProducts[p.id] ?? 0;
-                              const selected = qty > 0;
-                              const available = getProductStockForForm(p);
-                              const outOfStock = available <= 0;
-                              const atMax = qty >= available;
-                              return (
-                                <div
-                                  key={p.id}
-                                  className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
-                                    selected
-                                      ? "border-accent bg-accent/5"
-                                      : outOfStock
-                                        ? "border-transparent opacity-60"
-                                        : available <= 5
-                                          ? "border-warning/40 bg-field-background"
-                                          : "border-transparent bg-field-background"
-                                  }`}
-                                >
-                                  <div className="min-w-0 flex-1">
-                                    <p className="truncate text-sm font-medium">{p.name}</p>
-                                    <p className="text-xs text-muted">
-                                      {formatMoney(p.price)} ·{" "}
-                                      {outOfStock ? "sin stock" : `stock: ${available}`}
-                                    </p>
-                                  </div>
-                                  {selected ? (
-                                    <div className="flex shrink-0 items-center gap-1.5">
-                                      <button
-                                        type="button"
-                                        onClick={() => decrementProduct(p.id)}
-                                        className="flex h-7 w-7 items-center justify-center rounded-md border border-separator bg-surface text-sm hover:border-accent"
-                                        aria-label="Disminuir cantidad"
-                                      >
-                                        −
-                                      </button>
-                                      <span className="w-5 text-center text-sm font-semibold tabular-nums">
-                                        {qty}
-                                      </span>
-                                      <button
-                                        type="button"
-                                        onClick={() => incrementProduct(p.id)}
-                                        disabled={atMax}
-                                        className="flex h-7 w-7 items-center justify-center rounded-md border border-separator bg-surface text-sm hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
-                                        aria-label="Aumentar cantidad"
-                                      >
-                                        +
-                                      </button>
-                                    </div>
-                                  ) : (
-                                    <button
-                                      type="button"
-                                      disabled={outOfStock}
-                                      onClick={() => addProduct(p.id)}
-                                      className="shrink-0 rounded-md border border-separator bg-surface px-2.5 py-1 text-xs font-medium hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
+                          <div className="flex flex-col gap-2">
+                            <SearchField value={productSearch} onChange={setProductSearch}>
+                              <Label className="sr-only">Buscar producto</Label>
+                              <SearchField.Group>
+                                <SearchField.SearchIcon />
+                                <SearchField.Input
+                                  className="w-full"
+                                  placeholder="Buscar producto..."
+                                />
+                                <SearchField.ClearButton />
+                              </SearchField.Group>
+                            </SearchField>
+                            <div className="flex max-h-52 flex-col gap-2 overflow-y-auto rounded-xl border border-separator bg-surface-secondary/40 p-3">
+                              {filteredProducts.length === 0 ? (
+                                <p className="py-4 text-center text-sm text-muted">
+                                  No se encontraron productos
+                                </p>
+                              ) : (
+                                filteredProducts.map((p) => {
+                                  const qty = selectedProducts[p.id] ?? 0;
+                                  const selected = qty > 0;
+                                  const available = getProductStockForForm(p);
+                                  const outOfStock = available <= 0;
+                                  const atMax = qty >= available;
+                                  return (
+                                    <div
+                                      key={p.id}
+                                      className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
+                                        selected
+                                          ? "border-accent bg-accent/5"
+                                          : outOfStock
+                                            ? "border-transparent opacity-60"
+                                            : available <= 5
+                                              ? "border-warning/40 bg-field-background"
+                                              : "border-transparent bg-field-background"
+                                      }`}
                                     >
-                                      Agregar
-                                    </button>
-                                  )}
-                                </div>
-                              );
-                            })}
+                                      <div className="min-w-0 flex-1">
+                                        <p className="truncate text-sm font-medium">{p.name}</p>
+                                        <p className="text-xs text-muted">
+                                          {formatMoney(p.price)} ·{" "}
+                                          {outOfStock ? "sin stock" : `stock: ${available}`}
+                                        </p>
+                                      </div>
+                                      {selected ? (
+                                        <div className="flex shrink-0 items-center gap-1.5">
+                                          <button
+                                            type="button"
+                                            onClick={() => decrementProduct(p.id)}
+                                            className="flex h-7 w-7 items-center justify-center rounded-md border border-separator bg-surface text-sm hover:border-accent"
+                                            aria-label="Disminuir cantidad"
+                                          >
+                                            −
+                                          </button>
+                                          <span className="w-5 text-center text-sm font-semibold tabular-nums">
+                                            {qty}
+                                          </span>
+                                          <button
+                                            type="button"
+                                            onClick={() => incrementProduct(p.id)}
+                                            disabled={atMax}
+                                            className="flex h-7 w-7 items-center justify-center rounded-md border border-separator bg-surface text-sm hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
+                                            aria-label="Aumentar cantidad"
+                                          >
+                                            +
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <button
+                                          type="button"
+                                          disabled={outOfStock}
+                                          onClick={() => addProduct(p.id)}
+                                          className="shrink-0 rounded-md border border-separator bg-surface px-2.5 py-1 text-xs font-medium hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
+                                        >
+                                          Agregar
+                                        </button>
+                                      )}
+                                    </div>
+                                  );
+                                })
+                              )}
+                            </div>
                           </div>
                         )}
                       </ModalSection>
@@ -1398,6 +1914,90 @@ export default function AgendaPage() {
           </Modal.Container>
         </Modal.Backdrop>
       </Modal>
+
+      {detailData && detailData.status !== "cancelled" && detailData.status !== "completed" && !detailData.payment ? (
+        <ConfirmDialog
+          state={paymentConfirmState}
+          title="Confirmar cierre de turno"
+          status="warning"
+          confirmLabel="Registrar pago y cerrar"
+          pending={paying}
+          description={
+            <div className="space-y-3">
+              <p>
+                ¿Registrar el cobro y completar el turno de{" "}
+                <strong>
+                  {detailData.customer.name} {detailData.customer.lastnames}
+                </strong>
+                ?
+              </p>
+              <div className="rounded-xl border border-separator bg-surface-secondary/30 p-3 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-foreground/65">Total a cobrar</span>
+                  <span className="text-lg font-bold tabular-nums text-accent">
+                    {formatMoney(paymentTotal)}
+                  </span>
+                </div>
+                {rewardDiscount > 0 ? (
+                  <div className="mt-1.5 flex items-center justify-between text-success">
+                    <span>Descuento premio</span>
+                    <span className="tabular-nums">−{formatMoney(rewardDiscount)}</span>
+                  </div>
+                ) : null}
+                <div className="mt-2 flex items-center justify-between border-t border-separator pt-2">
+                  <span className="text-foreground/65">Método de pago</span>
+                  <span className="font-medium">{paymentMethodLabel[paymentMethod]}</span>
+                </div>
+                {selectedReward ? (
+                  <div className="mt-2 flex items-center justify-between border-t border-separator pt-2">
+                    <span className="text-foreground/65">Premio</span>
+                    <span className="font-medium text-accent">{selectedReward.name}</span>
+                  </div>
+                ) : null}
+              </div>
+              <p className="text-xs text-foreground/55">
+                Esta acción marca el turno como completado y descontará stock de productos.
+              </p>
+            </div>
+          }
+          onConfirm={handleRegisterPayment}
+        />
+      ) : null}
+
+      {detailData && canDeleteAppointments ? (
+        <ConfirmDialog
+          state={deleteConfirmState}
+          title="Eliminar turno"
+          status="danger"
+          confirmLabel="Eliminar turno"
+          confirmVariant="danger"
+          pending={deleting}
+          description={
+            <div className="space-y-3">
+              <p>
+                ¿Eliminar el turno de{" "}
+                <strong>
+                  {detailData.customer.name} {detailData.customer.lastnames}
+                </strong>
+                ?
+              </p>
+              {detailData.payment ? (
+                <p className="text-sm text-foreground/70">
+                  Este turno tiene un pago registrado. Al eliminarlo también se borrará el
+                  cobro asociado.
+                </p>
+              ) : null}
+              {detailData.stockDeducted ? (
+                <p className="text-sm text-foreground/70">
+                  El stock de productos usado se devolverá al inventario.
+                </p>
+              ) : null}
+              <p className="text-xs text-foreground/55">Esta acción no se puede deshacer.</p>
+            </div>
+          }
+          onConfirm={handleDeleteAppointment}
+        />
+      ) : null}
     </div>
   );
 }

@@ -7,6 +7,8 @@ import { ContentCard, PageHeader, Skeleton } from "@/shared/components/ui";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "@heroui/react";
+import { roleLabel } from "@/shared/utils/roles";
+import { branchDisplayLabel } from "@/shared/utils/auth-user";
 
 function ProfileSkeleton() {
   return (
@@ -95,14 +97,16 @@ export default function ProfilePage() {
           </div>
           <div className="flex justify-between py-3 border-b border-separator">
             <span className="text-muted">Rol</span>
-            <span className="font-medium capitalize">
-              {profile.role === "admin"
-                ? "Administrador"
-                : profile.role === "employee" || profile.role === "user"
-                  ? "Empleado"
-                  : profile.role}
-            </span>
+            <span className="font-medium">{roleLabel(profile.role)}</span>
           </div>
+          {branchDisplayLabel(user?.branch, user?.role) ? (
+            <div className="flex justify-between py-3 border-b border-separator">
+              <span className="text-muted">Sucursal</span>
+              <span className="font-medium text-right">
+                {branchDisplayLabel(user?.branch, user?.role)}
+              </span>
+            </div>
+          ) : null}
           <div className="flex justify-between py-3">
             <span className="text-muted">ID</span>
             <span className="font-medium tabular-nums">#{profile.id}</span>

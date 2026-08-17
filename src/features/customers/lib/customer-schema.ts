@@ -5,6 +5,9 @@ export const customerSchema = z.object({
   lastnames: z.string().min(1, "Los apellidos son requeridos"),
   phone: z.string().min(1, "El teléfono es requerido"),
   email: z.string().email("Correo inválido"),
+  identificationType: z.string().optional(),
+  identification: z.string().optional(),
+  address: z.string().optional(),
 });
 
 export type CustomerFormData = z.infer<typeof customerSchema>;

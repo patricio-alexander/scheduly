@@ -10,7 +10,7 @@ import type { ProductFormData } from "@/src/features/products";
 import * as productService from "@/src/features/products/services/product-service";
 import { useCategories } from "@/src/features/categories";
 import { PageHeader } from "@/shared/components/ui";
-import { canDeleteRecords } from "@/shared/utils/roles";
+import { canDeleteRecords, isManagementRole } from "@/shared/utils/roles";
 import Plus from "@gravity-ui/icons/Plus";
 import Boxes3 from "@gravity-ui/icons/Boxes3";
 
@@ -18,6 +18,7 @@ export default function ProductsPage() {
   const { user } = useAuth();
   const searchParams = useSearchParams();
   const canDelete = canDeleteRecords(user?.role);
+  const canManage = isManagementRole(user?.role);
   const { products, loading, refetch } = useProducts();
   const { categories } = useCategories();
   const [editing, setEditing] = useState<Product | null>(null);
@@ -101,14 +102,20 @@ export default function ProductsPage() {
       <PageHeader
         icon={<Boxes3 width={24} height={24} />}
         title="Productos"
-        description="Gestiona el catálogo de productos de tu negocio"
+        description={
+          canManage
+            ? "Gestiona el catálogo de productos de tu negocio"
+            : "Consulta precios, stock y busca en el catálogo"
+        }
         action={
-          <div data-onboarding="products-create">
-            <Button variant="primary" onPress={openCreate}>
-              <Plus width={16} height={16} />
-              Agregar producto
-            </Button>
-          </div>
+          canManage ? (
+            <div data-onboarding="products-create">
+              <Button variant="primary" onPress={openCreate}>
+                <Plus width={16} height={16} />
+                Agregar producto
+              </Button>
+            </div>
+          ) : undefined
         }
       />
 
@@ -118,13 +125,15 @@ export default function ProductsPage() {
           categories={categories}
           onEdit={openEdit}
           onDelete={handleDelete}
-          onAdd={openCreate}
+          onAdd={canManage ? openCreate : undefined}
           loading={loading}
           canDelete={canDelete}
+          readOnly={!canManage}
           highlightProductId={resolvedHighlightId}
         />
       </div>
 
+      {canManage ? (
       <Modal state={modal}>
         <Modal.Backdrop>
           <Modal.Container placement="center">
@@ -168,6 +177,7 @@ export default function ProductsPage() {
           </Modal.Container>
         </Modal.Backdrop>
       </Modal>
+      ) : null}
     </div>
   );
 }

@@ -18,7 +18,7 @@
   --field-background: oklch(100% 0.0008 140.04);
   --field-border: transparent;
   --field-foreground: oklch(21.03% 0.0015 140.04);
-  --field-placeholder: oklch(55.17% 0.003 140.04);
+  --field-placeholder: oklch(62% 0.003 140.04);
   --focus: oklch(80.09% 0.194 140.04);
   --foreground: oklch(21.03% 0.0015 140.04);
   --muted: oklch(55.17% 0.003 140.04);
@@ -57,7 +57,7 @@
   --field-background: oklch(21.03% 0.003 140.04);
   --field-border: transparent;
   --field-foreground: oklch(99.11% 0.0015 140.04);
-  --field-placeholder: oklch(70.5% 0.003 140.04);
+  --field-placeholder: oklch(58% 0.003 140.04);
   --focus: oklch(80.09% 0.194 140.04);
   --foreground: oklch(99.11% 0.0015 140.04);
   --muted: oklch(70.5% 0.003 140.04);
@@ -77,6 +77,31 @@
   --surface-tertiary-foreground: oklch(99.11% 0.0015 140.04);
   --warning: oklch(82.03% 0.1392 62.68);
   --warning-foreground: oklch(21.03% 0.0059 62.68);
+}
+
+/* Texto de inputs nativos: contraste claro vs placeholder */
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="hidden"]):not([type="range"]):not([type="color"]),
+textarea,
+select {
+  color: var(--field-foreground);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--field-placeholder);
+  opacity: 1;
+}
+
+/* HeroUI SearchField / Input internos */
+input[data-slot="input"],
+textarea[data-slot="input"] {
+  color: var(--field-foreground);
+}
+
+input[data-slot="input"]::placeholder,
+textarea[data-slot="input"]::placeholder {
+  color: var(--field-placeholder);
+  opacity: 1;
 }
 
 /* ── Colores de estado de turnos en calendario (estilo tarjeta) ── */

@@ -10,14 +10,13 @@ import CircleCheck from "@gravity-ui/icons/CircleCheck";
 import CircleInfo from "@gravity-ui/icons/CircleInfo";
 import CircleXmark from "@gravity-ui/icons/CircleXmark";
 import TriangleExclamation from "@gravity-ui/icons/TriangleExclamation";
-import Xmark from "@gravity-ui/icons/Xmark";
 import { useRouter } from "next/navigation";
 import { usePathname } from "next/navigation";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { NotificationItem } from "../types";
 
-const PREVIEW_LIMIT = 4;
-const STORAGE_KEY = "scheduly.notifications.float.minimized";
+const PREVIEW_LIMIT = 5;
+const STORAGE_KEY = "scheduly.notifications.panel.open";
 const REFRESH_MS = 30_000;
 
 const typeIcon = {
@@ -72,14 +71,15 @@ export function UnreadNotificationsFloat() {
   const pathname = usePathname();
   const router = useRouter();
   const [items, setItems] = useState<NotificationItem[]>([]);
-  const [minimized, setMinimized] = useState(false);
+  const [open, setOpen] = useState(false);
   const [ready, setReady] = useState(false);
   const prevCountRef = useRef(0);
   const initialLoadRef = useRef(true);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
 
-  const setMinimizedPersist = useCallback((value: boolean) => {
-    setMinimized(value);
+  const setOpenPersist = useCallback((value: boolean) => {
+    setOpen(value);
     try {
       localStorage.setItem(STORAGE_KEY, String(value));
     } catch {
@@ -93,7 +93,7 @@ export function UnreadNotificationsFloat() {
     audioRef.current.volume = 0.8;
 
     try {
-      setMinimized(localStorage.getItem(STORAGE_KEY) === "true");
+      setOpen(localStorage.getItem(STORAGE_KEY) === "true");
     } catch {
       // ignore
     }
@@ -116,7 +116,7 @@ export function UnreadNotificationsFloat() {
       const hasNewNotifications =
         !initialLoadRef.current && unread.length > prevCountRef.current;
       if (hasNewNotifications) {
-        setMinimizedPersist(false);
+        setOpenPersist(true);
         const audio = audioRef.current;
         if (audio) {
           audio.currentTime = 0;
@@ -128,10 +128,13 @@ export function UnreadNotificationsFloat() {
       initialLoadRef.current = false;
       prevCountRef.current = unread.length;
       setItems(unread);
+      if (unread.length === 0) {
+        setOpenPersist(false);
+      }
     } catch {
       // silent
     }
-  }, [user, setMinimizedPersist]);
+  }, [user, setOpenPersist]);
 
   useEffect(() => {
     void load();
@@ -146,6 +149,27 @@ export function UnreadNotificationsFloat() {
       window.removeEventListener("scheduly:notifications-updated", onUpdated);
     };
   }, [load]);
+
+  useEffect(() => {
+    if (!open) return;
+
+    const onPointerDown = (event: MouseEvent) => {
+      if (!panelRef.current?.contains(event.target as Node)) {
+        setOpenPersist(false);
+      }
+    };
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpenPersist(false);
+    };
+
+    document.addEventListener("mousedown", onPointerDown);
+    document.addEventListener("keydown", onKeyDown);
+    return () => {
+      document.removeEventListener("mousedown", onPointerDown);
+      document.removeEventListener("keydown", onKeyDown);
+    };
+  }, [open, setOpenPersist]);
 
   const markRead = async (id: number) => {
     if (!user) return false;
@@ -180,7 +204,7 @@ export function UnreadNotificationsFloat() {
     const ids = items.map((n) => n.id);
     prevCountRef.current = 0;
     setItems([]);
-    setMinimizedPersist(true);
+    setOpenPersist(false);
     try {
       const results = await Promise.all(
         ids.map((id) =>
@@ -192,20 +216,19 @@ export function UnreadNotificationsFloat() {
       if (results.some((r) => !r.ok)) {
         setItems(previous);
         prevCountRef.current = previous.length;
-        setMinimizedPersist(false);
         return;
       }
       window.dispatchEvent(new Event("scheduly:notifications-updated"));
     } catch {
       setItems(previous);
       prevCountRef.current = previous.length;
-      setMinimizedPersist(false);
     }
   };
 
   const openNotification = async (n: NotificationItem) => {
     const href = notificationHref(n);
     await markRead(n.id);
+    setOpenPersist(false);
     router.push(href);
   };
 
@@ -221,119 +244,110 @@ export function UnreadNotificationsFloat() {
   const preview = items.slice(0, PREVIEW_LIMIT);
   const extra = items.length - preview.length;
 
-  if (minimized) {
-    return (
-      <button
-        type="button"
-        onClick={() => setMinimizedPersist(false)}
-        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-2xl border border-separator bg-surface px-3.5 py-2.5 text-sm font-semibold shadow-lg shadow-black/10 transition hover:border-accent/40 hover:bg-accent/5"
-        aria-label={`${items.length} notificaciones sin leer`}
-      >
-        <span className="relative">
+  return (
+    <div
+      ref={panelRef}
+      className="pointer-events-none fixed top-3 right-3 z-50 sm:top-4 sm:right-4"
+    >
+      <div className="pointer-events-auto relative">
+        <button
+          type="button"
+          onClick={() => setOpenPersist(!open)}
+          className={`relative flex h-10 w-10 items-center justify-center rounded-xl border bg-surface shadow-md shadow-black/8 transition hover:border-accent/40 hover:bg-accent/5 ${
+            open ? "border-accent/50 ring-2 ring-accent/20" : "border-separator"
+          }`}
+          aria-label={`${items.length} notificaciones sin leer`}
+          aria-expanded={open}
+        >
           <Bell width={18} height={18} className="text-accent" />
-          <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">
+          <span className="absolute -right-1 -top-1 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold text-white">
             {items.length > 9 ? "9+" : items.length}
           </span>
-        </span>
-        <span className="hidden sm:inline">Sin leer</span>
-      </button>
-    );
-  }
-
-  return (
-    <aside
-      className="fixed bottom-5 right-5 z-50 flex w-[min(100vw-2.5rem,22rem)] flex-col overflow-hidden rounded-2xl border border-separator bg-surface shadow-xl shadow-black/15"
-      role="region"
-      aria-label="Notificaciones sin leer"
-    >
-      <div className="flex items-start gap-3 border-b border-separator px-4 py-3">
-        <div className="mt-0.5 shrink-0 rounded-xl bg-accent/10 p-2 text-accent">
-          <Bell width={16} height={16} />
-        </div>
-        <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold">{items.length} sin leer</p>
-          <p className="text-[11px] text-muted">
-            Inventario y actividad reciente
-          </p>
-        </div>
-        <button
-          type="button"
-          onClick={() => setMinimizedPersist(true)}
-          className="rounded-lg p-1.5 text-muted transition hover:bg-surface-secondary hover:text-foreground"
-          aria-label="Minimizar"
-        >
-          <Xmark width={14} height={14} />
         </button>
-      </div>
 
-      <ul className="max-h-72 divide-y divide-separator overflow-y-auto">
-        {preview.map((n) => {
-          const Icon = isInventoryNotification(n)
-            ? Boxes3
-            : (typeIcon[n.type] ?? Bell);
+        {open ? (
+          <aside
+            className="absolute right-0 top-[calc(100%+0.5rem)] flex w-[min(calc(100vw-1.5rem),20rem)] flex-col overflow-hidden rounded-2xl border border-separator bg-surface shadow-xl shadow-black/15"
+            role="region"
+            aria-label="Notificaciones sin leer"
+          >
+            <div className="border-b border-separator px-4 py-3">
+              <p className="text-sm font-semibold">{items.length} sin leer</p>
+              <p className="text-[11px] text-muted">Inventario y actividad reciente</p>
+            </div>
 
-          return (
-            <li key={n.id} className="group relative bg-surface">
+            <ul className="max-h-80 divide-y divide-separator overflow-y-auto">
+              {preview.map((n) => {
+                const Icon = isInventoryNotification(n)
+                  ? Boxes3
+                  : (typeIcon[n.type] ?? Bell);
+
+                return (
+                  <li key={n.id} className="group relative bg-surface">
+                    <button
+                      type="button"
+                      onClick={() => void openNotification(n)}
+                      className="flex w-full items-start gap-3 px-4 py-3 pr-14 text-left transition hover:bg-surface-secondary/60"
+                    >
+                      <span
+                        className={`mt-0.5 shrink-0 ${typeIconColor[n.type] ?? "text-muted"}`}
+                      >
+                        <Icon width={16} height={16} />
+                      </span>
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2">
+                          <span className="truncate text-sm font-medium">{n.title}</span>
+                          <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
+                        </span>
+                        <span className="mt-0.5 line-clamp-2 text-xs text-muted">
+                          {n.message}
+                        </span>
+                        <span className="mt-1 block text-[10px] text-muted">
+                          {formatRelative(n.createdAt)}
+                        </span>
+                      </span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => void markRead(n.id)}
+                      className="absolute right-2 top-2 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted opacity-0 transition hover:bg-surface-secondary hover:text-foreground group-hover:opacity-100"
+                    >
+                      Leída
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+
+            {extra > 0 ? (
+              <p className="border-t border-separator px-4 py-2 text-center text-[11px] text-muted">
+                +{extra} más sin leer
+              </p>
+            ) : null}
+
+            <div className="flex items-center gap-2 border-t border-separator bg-surface-secondary/40 px-3 py-2.5">
+              <Button
+                size="sm"
+                variant="ghost"
+                className="flex-1"
+                onPress={() => void markAllRead()}
+              >
+                Marcar todas
+              </Button>
               <button
                 type="button"
-                onClick={() => void openNotification(n)}
-                className="flex w-full items-start gap-3 px-4 py-3 pr-14 text-left transition hover:bg-surface-secondary/60"
+                onClick={() => {
+                  setOpenPersist(false);
+                  router.push(appRoutes.system.notifications);
+                }}
+                className="inline-flex h-8 flex-1 items-center justify-center rounded-xl border border-separator bg-surface px-3 text-sm font-medium transition hover:bg-surface-secondary"
               >
-                <span
-                  className={`mt-0.5 shrink-0 ${typeIconColor[n.type] ?? "text-muted"}`}
-                >
-                  <Icon width={16} height={16} />
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="flex items-center gap-2">
-                    <span className="truncate text-sm font-medium">
-                      {n.title}
-                    </span>
-                    <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-accent" />
-                  </span>
-                  <span className="mt-0.5 line-clamp-2 text-xs text-muted">
-                    {n.message}
-                  </span>
-                  <span className="mt-1 block text-[10px] text-muted">
-                    {formatRelative(n.createdAt)}
-                  </span>
-                </span>
+                Ver todas
               </button>
-              <button
-                type="button"
-                onClick={() => void markRead(n.id)}
-                className="absolute right-2 top-2 rounded-md px-1.5 py-0.5 text-[10px] font-medium text-muted opacity-0 transition hover:bg-surface-secondary hover:text-foreground group-hover:opacity-100"
-              >
-                Leída
-              </button>
-            </li>
-          );
-        })}
-      </ul>
-
-      {extra > 0 && (
-        <p className="border-t border-separator px-4 py-2 text-center text-[11px] text-muted">
-          +{extra} más sin leer
-        </p>
-      )}
-
-      <div className="flex items-center gap-2 border-t border-separator bg-surface-secondary/40 px-3 py-2.5">
-        <Button
-          size="sm"
-          variant="ghost"
-          className="flex-1"
-          onPress={() => void markAllRead()}
-        >
-          Marcar todas
-        </Button>
-        <button
-          type="button"
-          onClick={() => router.push(appRoutes.system.notifications)}
-          className="inline-flex h-8 flex-1 items-center justify-center rounded-xl border border-separator bg-surface px-3 text-sm font-medium transition hover:bg-surface-secondary"
-        >
-          Ver todas
-        </button>
+            </div>
+          </aside>
+        ) : null}
       </div>
-    </aside>
+    </div>
   );
 }

@@ -3,4 +3,5 @@ export interface Service {
   name: string;
   price: number;
   durationMinutes: number;
+  commissionPct: number;
 }

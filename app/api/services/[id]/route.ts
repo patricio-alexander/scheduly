@@ -8,6 +8,7 @@ function parseServiceBody(body: unknown) {
   const name = String(data.name ?? "").trim();
   const price = Number(data.price);
   const durationMinutes = Number(data.durationMinutes ?? 30);
+  const commissionPct = Number(data.commissionPct ?? 15);
 
   if (!name) {
     return { error: "El nombre es requerido" as const };
@@ -23,8 +24,15 @@ function parseServiceBody(body: unknown) {
   ) {
     return { error: "La duración debe ser entre 5 y 480 minutos" as const };
   }
+  if (
+    !Number.isFinite(commissionPct) ||
+    commissionPct < 0 ||
+    commissionPct > 100
+  ) {
+    return { error: "La comisión debe estar entre 0 y 100%" as const };
+  }
 
-  return { name, price, durationMinutes };
+  return { name, price, durationMinutes, commissionPct };
 }
 
 export async function GET(
@@ -78,6 +86,7 @@ export async function PUT(
         name: parsed.name,
         price: parsed.price,
         durationMinutes: parsed.durationMinutes,
+        commissionPct: parsed.commissionPct,
       },
     });
     return NextResponse.json(service);

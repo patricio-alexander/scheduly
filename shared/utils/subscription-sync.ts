@@ -1,16 +1,21 @@
 import type { Prisma } from "@/generated/prisma/client";
 import { timingSafeEqual } from "crypto";
+import { prisma } from "@/shared/utils/prisma";
 import { parseEntitlementPayload } from "@/shared/utils/entitlement-api";
 import type {
   SubscriptionPlan,
   SubscriptionPlanModule,
+  SubscriptionPlanOffer,
+  SubscriptionPlanSection,
   SubscriptionCatalogModule,
 } from "@/shared/utils/subscription-plans";
 
 export type {
   SubscriptionPlan,
   SubscriptionPlanModule,
+  SubscriptionPlanSection,
   SubscriptionPlanPrice,
+  SubscriptionPlanOffer,
   SubscriptionCatalogModule,
 } from "@/shared/utils/subscription-plans";
 
@@ -112,27 +117,144 @@ function asRecord(value: unknown): Record<string, unknown> | null {
   return value as Record<string, unknown>;
 }
 
+function normalizeRouteKey(value: unknown): string {
+  return String(value ?? "")
+    .trim()
+    .split("?")[0]
+    .replace(/^\/+/, "")
+    .replace(/\/+$/, "")
+    .toLowerCase();
+}
+
+function isPlanSectionRow(row: Record<string, unknown>): boolean {
+  if (asRecord(row.section)) return true;
+  const key = String(row.key ?? "").trim();
+  if (key.startsWith("/")) return true;
+  if (row.module || row.app_module || row.appModule) return false;
+  // Filas de catálogo de módulo: key sin ruta + nombre
+  if (row.name && key && !key.startsWith("/")) return false;
+  return false;
+}
+
+function normalizePlanSection(value: unknown): SubscriptionPlanSection | null {
+  const row = asRecord(value);
+  if (!row) return null;
+
+  const nested = asRecord(row.section) ?? row;
+  const name = String(nested.name ?? "").trim();
+  if (!name) return null;
+
+  return {
+    name,
+    key: String(nested.key ?? "").trim(),
+    description: String(nested.description ?? "").trim(),
+  };
+}
+
+function sectionDedupeKey(section: SubscriptionPlanSection): string {
+  const routeKey = normalizeRouteKey(section.key);
+  if (routeKey) return `route:${routeKey}`;
+  return `name:${section.name.toLowerCase()}`;
+}
+
+function mergePlanSections(
+  current: SubscriptionPlanSection[],
+  incoming: SubscriptionPlanSection[],
+): SubscriptionPlanSection[] {
+  const map = new Map<string, SubscriptionPlanSection>();
+  for (const section of [...current, ...incoming]) {
+    map.set(sectionDedupeKey(section), section);
+  }
+  return [...map.values()];
+}
+
 function normalizePlanModule(value: unknown): SubscriptionPlanModule | null {
   const row = asRecord(value);
   if (!row) return null;
 
-  if (typeof row.name === "string") {
-    return {
-      name: row.name,
-      description: String(row.description ?? ""),
-    };
-  }
+  if (isPlanSectionRow(row)) return null;
 
   const appModule = asRecord(row.app_module) ?? asRecord(row.appModule);
-  const module =
-    asRecord(appModule?.module) ?? asRecord(row.module) ?? appModule;
+  const moduleRecord =
+    asRecord(appModule?.module) ?? asRecord(row.module) ?? appModule ?? row;
 
-  if (!module || typeof module.name !== "string") return null;
+  const name = String(moduleRecord.name ?? "").trim();
+  if (!name) return null;
+
+  const sectionsRaw =
+    appModule?.sections ?? moduleRecord.sections ?? row.sections ?? [];
+
+  const sections = mergePlanSections(
+    [],
+    (Array.isArray(sectionsRaw) ? sectionsRaw : [])
+      .map(normalizePlanSection)
+      .filter((s): s is SubscriptionPlanSection => Boolean(s)),
+  );
+
+  const idRaw = moduleRecord.id ?? row.id;
+  const id =
+    typeof idRaw === "number" && Number.isFinite(idRaw)
+      ? idRaw
+      : typeof idRaw === "string" && Number.isFinite(Number(idRaw))
+        ? Number(idRaw)
+        : null;
+
+  const isTrial = Boolean(row.is_trial ?? moduleRecord.is_trial);
 
   return {
-    name: module.name,
-    description: String(module.description ?? ""),
+    id,
+    name,
+    key: String(moduleRecord.key ?? row.key ?? "").trim(),
+    description: String(moduleRecord.description ?? row.description ?? "").trim(),
+    is_trial: isTrial,
+    sections,
   };
+}
+
+function moduleDedupeKey(module: SubscriptionPlanModule): string {
+  const key = String(module.key ?? "").trim().toLowerCase();
+  if (key) return `module:${key}`;
+  return `name:${module.name.toLowerCase()}`;
+}
+
+function mergePlanModules(
+  current: SubscriptionPlanModule[],
+  incoming: SubscriptionPlanModule,
+): SubscriptionPlanModule[] {
+  const map = new Map(current.map((mod) => [moduleDedupeKey(mod), mod]));
+  const key = moduleDedupeKey(incoming);
+  const existing = map.get(key);
+
+  if (!existing) {
+    map.set(key, incoming);
+    return [...map.values()];
+  }
+
+  map.set(key, {
+    ...existing,
+    description: existing.description || incoming.description,
+    sections: mergePlanSections(existing.sections, incoming.sections),
+  });
+
+  return [...map.values()];
+}
+
+function normalizePlanOffer(value: unknown): SubscriptionPlanOffer | null {
+  const row = asRecord(value);
+  if (!row) return null;
+
+  const offerIdRaw = row.offer_id ?? row.offerId ?? row.id;
+  const offer_id =
+    typeof offerIdRaw === "number" && Number.isFinite(offerIdRaw)
+      ? offerIdRaw
+      : typeof offerIdRaw === "string" && Number.isFinite(Number(offerIdRaw))
+        ? Number(offerIdRaw)
+        : null;
+
+  const offer_name = String(row.offer_name ?? row.offerName ?? row.name ?? "").trim();
+  if (offer_id == null || !offer_name) return null;
+
+  return { offer_id, offer_name };
 }
 
 function normalizePlan(value: unknown): SubscriptionPlan | null {
@@ -142,62 +264,73 @@ function normalizePlan(value: unknown): SubscriptionPlan | null {
   const rawModules =
     row.modules ?? row.plan_app_modules ?? row.planAppModules ?? [];
 
-  const modules = (Array.isArray(rawModules) ? rawModules : [])
-    .map(normalizePlanModule)
-    .filter((m): m is SubscriptionPlanModule => Boolean(m));
+  let modules: SubscriptionPlanModule[] = [];
+  for (const raw of Array.isArray(rawModules) ? rawModules : []) {
+    const mod = normalizePlanModule(raw);
+    if (!mod) continue;
+    modules = mergePlanModules(modules, mod);
+  }
+
+  const idRaw = row.id;
+  const id =
+    typeof idRaw === "number" && Number.isFinite(idRaw)
+      ? idRaw
+      : typeof idRaw === "string" && Number.isFinite(Number(idRaw))
+        ? Number(idRaw)
+        : null;
+
+  const sortOrderRaw = row.sort_order ?? row.sortOrder;
+  const sort_order =
+    typeof sortOrderRaw === "number" && Number.isFinite(sortOrderRaw)
+      ? sortOrderRaw
+      : typeof sortOrderRaw === "string" && Number.isFinite(Number(sortOrderRaw))
+        ? Number(sortOrderRaw)
+        : null;
+
+  const channel =
+    typeof row.channel === "string" && row.channel.trim()
+      ? row.channel.trim()
+      : null;
+
+  const offers = (Array.isArray(row.offers) ? row.offers : [])
+    .map(normalizePlanOffer)
+    .filter((o): o is SubscriptionPlanOffer => Boolean(o));
 
   return {
+    id,
     name: row.name.trim(),
+    channel,
+    sort_order,
     prices: row.prices ?? [],
     modules,
+    offers,
   };
 }
 
-/** GET ${SUBSCRIPTION_API_URL}/subscriptions/plans */
-export async function fetchSubscriptionPlans(): Promise<SubscriptionPlan[]> {
-
-  try {
-    const secret = getGestorSyncSecret();
-    const url = getSubscriptionPlansUrl();
-    const res = await fetch(url, {
-      method: "GET",
-      headers: {
-        Authorization: `Bearer ${secret}`,
-        Accept: "application/json",
-      },
-      cache: "no-store",
-    });
-  
-    if (!res.ok) {
-      const detail = await res.text().catch(() => "");
-      throw new Error(
-        `Error al consultar planes en gestor (${res.status})${
-          detail ? `: ${detail.slice(0, 200)}` : ""
-        }`,
-      );
-    }
-  
-    const json: unknown = await res.json();
-    const root = asRecord(json);
-    const list = Array.isArray(json)
-      ? json
-      : Array.isArray(root?.data)
-        ? (root!.data as unknown[])
-        : Array.isArray(root?.plans)
-          ? (root!.plans as unknown[])
-          : null;
-  
-    if (!list) {
-      throw new Error("La respuesta de planes no es una lista válida");
-    }
-  
-    return list
-      .map(normalizePlan)
-      .filter((p): p is SubscriptionPlan => Boolean(p));
-  } catch (error) {
-    throw new Error("Error al consultar planes en gestor");
+function extractPlansFromEntitlementPayload(payload: unknown): unknown[] {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return [];
   }
+  const root = payload as Record<string, unknown>;
+  const plans = root.plans;
+  return Array.isArray(plans) ? plans : [];
+}
 
+/** Lee planes del payload del entitlement más reciente en la base de datos */
+export async function fetchSubscriptionPlans(): Promise<SubscriptionPlan[]> {
+  const entitlement = await prisma.entitlement.findFirst({
+    orderBy: { id: "desc" },
+    select: { payload: true },
+  });
+
+  if (!entitlement?.payload) return [];
+
+  const list = extractPlansFromEntitlementPayload(entitlement.payload);
+
+  return list
+    .map(normalizePlan)
+    .filter((p): p is SubscriptionPlan => Boolean(p))
+    .sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 }
 
 function normalizeCatalogModule(value: unknown): SubscriptionCatalogModule | null {

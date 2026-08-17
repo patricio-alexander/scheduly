@@ -9,6 +9,9 @@ export type BusinessProfile = {
   businessName: string;
   address: string;
   logoPath: string | null;
+  ruc: string;
+  tradeName: string;
+  obligationAccounting: boolean;
 } & ThemeColors;
 
 export const DEFAULT_BUSINESS_NAME = "Scheduly";
@@ -124,4 +127,24 @@ export function storeThemeColors(colors: ThemeColors) {
   }
 }
 
+/** Aplica colores y persiste en localStorage (sin evento). */
+export function commitThemeColors(colors: ThemeColors): ThemeColors {
+  const theme = normalizeThemeColors(colors);
+  applyThemeColors(theme);
+  storeThemeColors(theme);
+  return theme;
+}
+
+/** Sincroniza colores en la pestaña actual y notifica a otros componentes locales. */
+export function broadcastThemeColorsLocally(colors: ThemeColors): ThemeColors {
+  const theme = commitThemeColors(colors);
+  if (typeof window !== "undefined") {
+    window.dispatchEvent(
+      new CustomEvent(THEME_COLORS_UPDATED_EVENT, { detail: theme }),
+    );
+  }
+  return theme;
+}
+
 export const THEME_COLORS_UPDATED_EVENT = "scheduly:theme-colors-updated";
+export const THEME_COLORS_SOCKET_EVENT = "theme:colors-updated";

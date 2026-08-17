@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE `Branch` ADD COLUMN `isMain` BOOLEAN NOT NULL DEFAULT false;

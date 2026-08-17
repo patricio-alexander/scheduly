@@ -1,12 +1,14 @@
 import { NextResponse } from "next/server";
 import { checkAuth } from "@/shared/utils/check-auth";
-import { isAdminRole } from "@/shared/utils/roles";
+import { isOwnerRole } from "@/shared/utils/roles";
 import {
   clearBusinessLogo,
   getBusinessSettings,
   saveBusinessLogo,
   updateBusinessSettings,
 } from "@/shared/utils/business-settings";
+import { normalizeThemeColors } from "@/shared/utils/business-profile";
+import { emitThemeColorsUpdated } from "@/shared/utils/socket";
 
 /** Perfil público del negocio (landing, reserva, ticket, tema) */
 export async function GET() {
@@ -26,7 +28,7 @@ export async function GET() {
 export async function PUT(request: Request) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
-  if (!isAdminRole(auth.user.role)) {
+  if (!isOwnerRole(auth.user.role)) {
     return NextResponse.json({ message: "No autorizado" }, { status: 403 });
   }
 
@@ -50,6 +52,13 @@ export async function PUT(request: Request) {
       settings = await updateBusinessSettings({
         businessName,
         address,
+        ruc: form.has("ruc") ? String(form.get("ruc") ?? "") : settings.ruc,
+        tradeName: form.has("tradeName")
+          ? String(form.get("tradeName") ?? "")
+          : settings.tradeName,
+        obligationAccounting: form.has("obligationAccounting")
+          ? String(form.get("obligationAccounting") ?? "") === "1"
+          : settings.obligationAccounting,
         accentColor: form.has("accentColor")
           ? String(form.get("accentColor") ?? "")
           : settings.accentColor,
@@ -70,6 +79,7 @@ export async function PUT(request: Request) {
         settings = await saveBusinessLogo(logo);
       }
 
+      emitThemeColorsUpdated(normalizeThemeColors(settings));
       return NextResponse.json(settings);
     }
 
@@ -81,6 +91,13 @@ export async function PUT(request: Request) {
     const settings = await updateBusinessSettings({
       businessName: String(body.businessName ?? current.businessName),
       address: String(body.address ?? current.address),
+      ruc: body.ruc !== undefined ? String(body.ruc) : current.ruc,
+      tradeName:
+        body.tradeName !== undefined ? String(body.tradeName) : current.tradeName,
+      obligationAccounting:
+        body.obligationAccounting !== undefined
+          ? Boolean(body.obligationAccounting)
+          : current.obligationAccounting,
       accentColor:
         body.accentColor !== undefined
           ? String(body.accentColor)
@@ -98,6 +115,7 @@ export async function PUT(request: Request) {
           ? String(body.dangerColor)
           : current.dangerColor,
     });
+    emitThemeColorsUpdated(normalizeThemeColors(settings));
     return NextResponse.json(settings);
   } catch (error) {
     console.error("PUT /api/settings", error);

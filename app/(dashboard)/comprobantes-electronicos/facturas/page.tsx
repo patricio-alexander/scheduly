@@ -1,8 +1,7 @@
 "use client";
 
-import { ElectronicDocsPreview } from "@/shared/components/ElectronicDocsPreview";
-import { appRoutes } from "@/shared/utils/app-routes";
+import { InvoicesWorkspace } from "@/src/features/electronic-docs";
 
 export default function ElectronicInvoicesPage() {
-  return <ElectronicDocsPreview activeHref={appRoutes.electronicDocs.invoices} />;
+  return <InvoicesWorkspace />;
 }

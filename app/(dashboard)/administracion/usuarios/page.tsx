@@ -5,6 +5,8 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { Button, Modal, useOverlayState, Input, Label, toast, Table, Pagination, SearchField, Chip } from "@heroui/react";
 import { useAuth } from "@/src/features/auth";
 import { useRoles } from "@/src/features/roles";
+import { BranchPicker, useBranches } from "@/src/features/branches";
+import { formatBranchLabel } from "@/shared/utils/branches";
 import { ContentCard, EmptyState, PageHeader, TableSkeleton } from "@/shared/components/ui";
 import { roleDisplayLabel } from "@/shared/utils/system-roles";
 import Shield from "@gravity-ui/icons/Shield";
@@ -23,6 +25,7 @@ interface UserData {
   name: string;
   email: string;
   role: string;
+  branch: { id: number; name: string; code: string } | null;
 }
 
 const PAGE_SIZE = 10;
@@ -36,6 +39,7 @@ const roleColor: Record<string, "accent" | "default"> = {
 export default function UsersPage() {
   const { user } = useAuth();
   const { roles, loading: rolesLoading } = useRoles();
+  const { branches } = useBranches();
   const [users, setUsers] = useState<UserData[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<UserData | null>(null);
@@ -52,7 +56,18 @@ export default function UsersPage() {
     email: "",
     password: "",
     role: "employee",
+    branchId: null as number | null,
   });
+
+  const mainBranchId = useMemo(
+    () => branches.find((b) => b.isMain && b.isActive)?.id ?? null,
+    [branches],
+  );
+
+  const defaultBranchId = useMemo(
+    () => mainBranchId ?? branches.find((b) => b.isActive)?.id ?? null,
+    [branches, mainBranchId],
+  );
 
   const visibleUsers = useMemo(() => {
     const otherUsers = users.filter((u) => u.id !== user?.id);
@@ -62,7 +77,8 @@ export default function UsersPage() {
       (u) =>
         u.username.toLowerCase().includes(q) ||
         u.name.toLowerCase().includes(q) ||
-        u.email.toLowerCase().includes(q)
+        u.email.toLowerCase().includes(q) ||
+        (u.branch?.name ?? "").toLowerCase().includes(q),
     );
   }, [users, search, user?.id]);
 
@@ -87,9 +103,10 @@ export default function UsersPage() {
       email: "",
       password: "",
       role: defaultRole,
+      branchId: defaultBranchId,
     });
     modal.open();
-  }, [modal, defaultRole]);
+  }, [modal, defaultRole, defaultBranchId]);
 
   const openEdit = useCallback(
     (u: UserData) => {
@@ -101,10 +118,11 @@ export default function UsersPage() {
         email: u.email,
         password: "",
         role: roles.some((r) => r.name === roleValue) ? roleValue : defaultRole,
+        branchId: u.branch?.id ?? mainBranchId ?? defaultBranchId,
       });
       modal.open();
     },
-    [modal, roles, defaultRole],
+    [modal, roles, defaultRole, mainBranchId, defaultBranchId],
   );
 
   const closeModal = useCallback(() => {
@@ -123,6 +141,10 @@ export default function UsersPage() {
       toast.danger("La contraseña debe tener al menos 4 caracteres");
       return;
     }
+    if (!form.branchId) {
+      toast.danger("Selecciona una sucursal");
+      return;
+    }
 
     setPending(true);
     try {
@@ -132,11 +154,13 @@ export default function UsersPage() {
         email: string;
         role: string;
         password?: string;
+        branchId: number | null;
       } = {
         username: form.username.trim(),
         name: form.name.trim(),
         email: form.email.trim(),
         role: form.role,
+        branchId: form.branchId,
       };
       if (password) payload.password = password;
 
@@ -200,6 +224,7 @@ export default function UsersPage() {
       { accessorKey: "name" as const, header: "Nombre" },
       { accessorKey: "email" as const, header: "Correo" },
       { accessorKey: "role" as const, header: "Rol" },
+      { id: "branch", header: "Sucursal" },
     ],
     []
   );
@@ -220,7 +245,7 @@ export default function UsersPage() {
     getPaginationRowModel: getPaginationRowModel(),
   });
 
-  if (!user || user.role !== "admin") return null;
+  if (!user || user.role !== "owner") return null;
 
   return (
     <div className="flex flex-col gap-6">
@@ -269,12 +294,13 @@ export default function UsersPage() {
                     <Table.Column>Nombre</Table.Column>
                     <Table.Column>Correo</Table.Column>
                     <Table.Column>Rol</Table.Column>
+                    <Table.Column>Sucursal</Table.Column>
                     <Table.Column>Acciones</Table.Column>
                   </Table.Header>
                   <Table.Body>
                     {table.getRowModel().rows.length === 0 ? (
                       <Table.Row>
-                        <Table.Cell colSpan={5}>
+                        <Table.Cell colSpan={6}>
                           <div className="py-8 text-center text-sm text-muted">
                             No se encontraron usuarios con &quot;{search}&quot;
                           </div>
@@ -294,6 +320,11 @@ export default function UsersPage() {
                               <Chip color={roleColor[u.role] ?? "default"} variant="soft" size="sm">
                                 {roleDisplayLabel(u.role)}
                               </Chip>
+                            </Table.Cell>
+                            <Table.Cell className="text-muted">
+                              {u.branch
+                                ? formatBranchLabel(u.branch.name, branches.find((b) => b.id === u.branch?.id)?.isMain)
+                                : "—"}
                             </Table.Cell>
                             <Table.Cell>
                               <div className="flex gap-1">
@@ -418,7 +449,14 @@ export default function UsersPage() {
                             key={r.id}
                             type="button"
                             onClick={() =>
-                              setForm((f) => ({ ...f, role: r.name }))
+                              setForm((f) => ({
+                                ...f,
+                                role: r.name,
+                                branchId:
+                                  f.branchId ??
+                                  mainBranchId ??
+                                  defaultBranchId,
+                              }))
                             }
                             className={`px-3 py-1.5 rounded-xl text-sm border transition-colors ${
                               form.role === r.name
@@ -431,6 +469,22 @@ export default function UsersPage() {
                         ))}
                       </div>
                     )}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <Label>Sucursal</Label>
+                    <BranchPicker
+                      branches={branches}
+                      value={form.branchId}
+                      onChange={(branchId) => setForm((f) => ({ ...f, branchId }))}
+                      placeholder="Seleccionar sucursal..."
+                    />
+                    <p className="text-xs text-muted">
+                      {form.role === "owner"
+                        ? "Por defecto la casa matriz. El owner ve todas las sucursales en el panel."
+                        : form.role === "admin"
+                          ? "Sucursal que administra este encargado, incluida la casa matriz."
+                          : "Sucursal donde trabaja el empleado, incluida la casa matriz."}
+                    </p>
                   </div>
                 </form>
               </Modal.Body>

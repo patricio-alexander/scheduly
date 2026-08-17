@@ -8,6 +8,10 @@ export const serviceSchema = z.object({
     .int("La duración debe ser un número entero")
     .min(5, "Mínimo 5 minutos")
     .max(480, "Máximo 8 horas"),
+  commissionPct: z
+    .number()
+    .min(0, "La comisión no puede ser negativa")
+    .max(100, "La comisión no puede superar 100%"),
 });
 
 export type ServiceFormData = z.infer<typeof serviceSchema>;

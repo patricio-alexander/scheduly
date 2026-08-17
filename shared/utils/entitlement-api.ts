@@ -79,10 +79,16 @@ export function parseEntitlementPayload(value: unknown): Prisma.InputJsonValue {
       ? (subscriptionRaw as Prisma.InputJsonValue)
       : {};
 
+  const plansRaw = data.plans;
+  const plans = Array.isArray(plansRaw)
+    ? (plansRaw as Prisma.InputJsonValue)
+    : undefined;
+
   return {
     maintenance: Boolean(data.maintenance),
     subscribed: Boolean(data.subscribed),
     subscription,
+    ...(plans !== undefined ? { plans } : {}),
   };
 }
 

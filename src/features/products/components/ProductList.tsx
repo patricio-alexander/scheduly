@@ -23,6 +23,7 @@ interface Props {
   onAdd?: () => void;
   loading?: boolean;
   canDelete?: boolean;
+  readOnly?: boolean;
   /** Resalta y centra este producto (desde notificación de stock) */
   highlightProductId?: number | null;
 }
@@ -39,6 +40,7 @@ export function ProductList({
   onAdd,
   loading,
   canDelete = true,
+  readOnly = false,
   highlightProductId = null,
 }: Props) {
   const [page, setPage] = useState(1);
@@ -153,15 +155,27 @@ export function ProductList({
         <EmptyState
           icon={<Boxes3 width={40} height={40} />}
           title="No hay productos registrados"
-          description="Agrega productos para venderlos junto con los turnos."
-          actionLabel="Agregar producto"
-          onAction={onAdd}
+          description={
+            readOnly
+              ? "Aún no hay productos en el catálogo."
+              : "Agrega productos para venderlos junto con los turnos."
+          }
+          actionLabel={readOnly ? undefined : "Agregar producto"}
+          onAction={readOnly ? undefined : onAdd}
         />
       </ContentCard>
     );
   }
 
   const uncategorizedCount = products.filter((p) => !p.categoryId && !p.category).length;
+
+  const displayProducts = filtered;
+  const productsOnPage = readOnly
+    ? displayProducts.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+    : pageRows.map((row) => row.original);
+  const displayTotalPages = readOnly
+    ? Math.max(1, Math.ceil(displayProducts.length / PAGE_SIZE))
+    : totalPages;
 
   return (
     <ContentCard>
@@ -233,20 +247,19 @@ export function ProductList({
                 <Table.Column>Categoría</Table.Column>
                 <Table.Column>Precio</Table.Column>
                 <Table.Column>Stock</Table.Column>
-                <Table.Column>Acciones</Table.Column>
+                {!readOnly ? <Table.Column>Acciones</Table.Column> : null}
               </Table.Header>
               <Table.Body>
-                {pageRows.length === 0 ? (
+                {productsOnPage.length === 0 ? (
                   <Table.Row>
-                    <Table.Cell colSpan={5}>
+                    <Table.Cell colSpan={readOnly ? 4 : 5}>
                       <div className="py-8 text-center text-sm text-muted">
                         No se encontraron productos con los filtros aplicados
                       </div>
                     </Table.Cell>
                   </Table.Row>
                 ) : (
-                  pageRows.map((row) => {
-                    const product = row.original;
+                  productsOnPage.map((product) => {
                     const isHighlighted = highlightedId === product.id;
                     return (
                       <Table.Row
@@ -302,28 +315,30 @@ export function ProductList({
                             )}
                           </span>
                         </Table.Cell>
-                        <Table.Cell>
-                          <div className="flex gap-1">
-                            <Button
-                              isIconOnly
-                              size="sm"
-                              variant="ghost"
-                              onPress={() => onEdit(product)}
-                            >
-                              <Pencil width={16} height={16} />
-                            </Button>
-                            {canDelete ? (
+                        {!readOnly ? (
+                          <Table.Cell>
+                            <div className="flex gap-1">
                               <Button
                                 isIconOnly
                                 size="sm"
-                                variant="danger"
-                                onPress={() => onDelete(product.id)}
+                                variant="ghost"
+                                onPress={() => onEdit(product)}
                               >
-                                <TrashBin width={16} height={16} />
+                                <Pencil width={16} height={16} />
                               </Button>
-                            ) : null}
-                          </div>
-                        </Table.Cell>
+                              {canDelete ? (
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  variant="danger"
+                                  onPress={() => onDelete(product.id)}
+                                >
+                                  <TrashBin width={16} height={16} />
+                                </Button>
+                              ) : null}
+                            </div>
+                          </Table.Cell>
+                        ) : null}
                       </Table.Row>
                     );
                   })
@@ -333,27 +348,27 @@ export function ProductList({
           </Table.ScrollContainer>
         </Table>
 
-        {filtered.length > PAGE_SIZE && (
+        {(readOnly ? displayProducts.length : filtered.length) > PAGE_SIZE && (
           <Table.Footer>
             <Pagination size="sm">
               <Pagination.Summary>
-                {table.getState().pagination.pageIndex * PAGE_SIZE + 1} a{" "}
-                {Math.min(
-                  (table.getState().pagination.pageIndex + 1) * PAGE_SIZE,
-                  filtered.length,
-                )}{" "}
-                de {filtered.length} resultados
+                {readOnly
+                  ? `${(page - 1) * PAGE_SIZE + 1} a ${Math.min(page * PAGE_SIZE, displayProducts.length)} de ${displayProducts.length} resultados`
+                  : `${table.getState().pagination.pageIndex * PAGE_SIZE + 1} a ${Math.min(
+                      (table.getState().pagination.pageIndex + 1) * PAGE_SIZE,
+                      filtered.length,
+                    )} de ${filtered.length} resultados`}
               </Pagination.Summary>
               <Pagination.Content>
                 <Pagination.Item>
                   <Pagination.Previous
-                    isDisabled={!table.getCanPreviousPage()}
-                    onPress={() => table.previousPage()}
+                    isDisabled={page <= 1}
+                    onPress={() => setPage((p) => Math.max(1, p - 1))}
                   >
                     <Pagination.PreviousIcon />
                   </Pagination.Previous>
                 </Pagination.Item>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
+                {Array.from({ length: displayTotalPages }, (_, i) => i + 1).map((p) => (
                   <Pagination.Item key={p}>
                     <Pagination.Link isActive={p === page} onPress={() => setPage(p)}>
                       {p}
@@ -362,8 +377,8 @@ export function ProductList({
                 ))}
                 <Pagination.Item>
                   <Pagination.Next
-                    isDisabled={!table.getCanNextPage()}
-                    onPress={() => table.nextPage()}
+                    isDisabled={page >= displayTotalPages}
+                    onPress={() => setPage((p) => Math.min(displayTotalPages, p + 1))}
                   >
                     <Pagination.NextIcon />
                   </Pagination.Next>

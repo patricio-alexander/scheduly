@@ -1,6 +1,7 @@
 /** Roles de sistema que siempre deben existir */
 export const SYSTEM_ROLES = [
-  { name: "admin", label: "Admin" },
+  { name: "owner", label: "Owner" },
+  { name: "admin", label: "Encargado sucursal" },
   { name: "employee", label: "Empleado" },
 ] as const;
 

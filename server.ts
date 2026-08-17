@@ -4,6 +4,7 @@ import { parse } from "node:url";
 import next from "next";
 import { Server as IOServer } from "socket.io";
 import { setIO, TASKS_ROOM, APPOINTMENTS_ROOM } from "./shared/utils/socket";
+import { startSriAuthorizationPollWorker } from "./workers/sri-authorization-poll";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOSTNAME || "localhost";
@@ -41,6 +42,7 @@ app
       console.log(
         `> Scheduly ready on http://${hostname}:${port}${basePath} (socket.io)`,
       );
+      startSriAuthorizationPollWorker();
     });
   })
   .catch((err) => {

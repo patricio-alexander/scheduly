@@ -10,6 +10,8 @@ export type AppointmentCalendarEvent = {
     customer: string;
     user: string;
     status: string;
+    branchId?: number | null;
+    userId?: number;
   };
 };
 
@@ -35,6 +37,8 @@ export async function getAppointmentCalendarEvent(
       customer: `${a.customer.name} ${a.customer.lastnames}`,
       user: a.user.name,
       status: a.status,
+      branchId: a.branchId,
+      userId: a.userId,
     },
   };
 }

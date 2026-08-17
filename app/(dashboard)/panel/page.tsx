@@ -1,19 +1,22 @@
 "use client";
 
 import { apiUrl } from "@/shared/utils/api";
-import { useCallback, useEffect, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Button } from "@heroui/react";
+import { Button, Modal, useOverlayState } from "@heroui/react";
 import { StatusChip } from "@/shared/components/StatusChip";
 import {
   getStatusTone,
   statusChartColor,
   statusLabel,
 } from "@/shared/utils/appointment-status";
+import { BranchSelector, useBranches } from "@/src/features/branches";
 import { useAuth } from "@/src/features/auth";
-import { canViewRevenue } from "@/shared/utils/roles";
+import { canViewRevenue, isOwnerRole, isPureEmployeeRole } from "@/shared/utils/roles";
+import { branchDisplayLabel } from "@/shared/utils/auth-user";
 import { appRoutes } from "@/shared/utils/app-routes";
-import { useDashboardSocket } from "@/src/features/dashboard";
+import { useDashboardSocket, OwnerInsightsPanel } from "@/src/features/dashboard";
+import type { OwnerInsights } from "@/shared/utils/dashboard-owner-insights";
 import Person from "@gravity-ui/icons/Person";
 import Gear from "@gravity-ui/icons/Gear";
 import ChartColumn from "@gravity-ui/icons/ChartColumn";
@@ -25,6 +28,8 @@ import ArrowRight from "@gravity-ui/icons/ArrowRight";
 import ArrowUp from "@gravity-ui/icons/ArrowUp";
 import ArrowDown from "@gravity-ui/icons/ArrowDown";
 import Receipt from "@gravity-ui/icons/Receipt";
+import CrownDiamond from "@gravity-ui/icons/CrownDiamond";
+import Eye from "@gravity-ui/icons/Eye";
 import {
   PieChart,
   Pie,
@@ -32,12 +37,15 @@ import {
   ResponsiveContainer,
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   Tooltip,
   CartesianGrid,
 } from "recharts";
 import { Skeleton } from "@/shared/components/ui";
+import { StatCard } from "@/shared/components/StatCard";
 import {
   dashboardPeriodLabel,
   dashboardPeriodOptions,
@@ -49,6 +57,14 @@ import {
 interface ComparisonMetric {
   previous: number;
   changePct: number | null;
+}
+
+interface TopMarginService {
+  id: number;
+  name: string;
+  revenue: number;
+  count: number;
+  sharePct: number;
 }
 
 interface DashboardData {
@@ -66,6 +82,9 @@ interface DashboardData {
   revenue: number;
   completionRate: number;
   appointmentsByDay: { date: string; count: number }[];
+  revenueByDay: { date: string; amount: number }[];
+  topMarginService: TopMarginService | null;
+  topMarginServices: TopMarginService[];
   recentAppointments: Array<{
     id: number;
     title: string;
@@ -78,6 +97,7 @@ interface DashboardData {
     appointments: ComparisonMetric;
     completionRate: ComparisonMetric;
   };
+  ownerInsights?: OwnerInsights | null;
 }
 
 function getGreeting() {
@@ -93,6 +113,16 @@ function formatCurrency(n: number) {
     currency: "CLP",
     maximumFractionDigits: 0,
   }).format(n);
+}
+
+function getActivityBarSizing(pointCount: number, period: DashboardPeriod) {
+  if (period === "today" || pointCount > 20) {
+    return { barCategoryGap: "8%", maxBarSize: 32, radius: 6 };
+  }
+  if (period === "week" || pointCount > 10) {
+    return { barCategoryGap: "6%", maxBarSize: 28, radius: 6 };
+  }
+  return { barCategoryGap: "4%", maxBarSize: 36, radius: 6 };
 }
 
 function formatDateTime(iso: string) {
@@ -156,55 +186,6 @@ function DeltaBadge({
   );
 }
 
-function StatCard({
-  label,
-  value,
-  icon,
-  variant = "accent",
-  subtitle,
-  delta,
-}: {
-  label: string;
-  value: string | number;
-  icon: ReactNode;
-  variant?: "accent" | "success" | "warning";
-  subtitle?: string;
-  delta?: ReactNode;
-}) {
-  const styles = {
-    accent: { icon: "text-accent", bg: "bg-accent/10" },
-    success: {
-      icon: "text-emerald-600 dark:text-emerald-400",
-      bg: "bg-emerald-500/10",
-    },
-    warning: { icon: "text-warning", bg: "bg-warning/15" },
-  }[variant];
-
-  return (
-    <div className="min-w-0 rounded-2xl border border-separator bg-surface p-3.5 md:p-4">
-      <div className="flex items-start justify-between gap-2 md:gap-3">
-        <div className="min-w-0 flex-1">
-          <p className="text-xs font-medium text-muted">{label}</p>
-          <p className="mt-1 truncate text-xl font-bold tracking-tight tabular-nums md:text-2xl">
-            {value}
-          </p>
-          {delta ? <div className="mt-1.5 min-w-0">{delta}</div> : null}
-          {subtitle ? (
-            <p className="mt-1 line-clamp-2 text-[11px] text-muted md:truncate md:line-clamp-none">
-              {subtitle}
-            </p>
-          ) : null}
-        </div>
-        <div
-          className={`shrink-0 rounded-xl p-2 md:p-2.5 ${styles.bg} ${styles.icon}`}
-        >
-          {icon}
-        </div>
-      </div>
-    </div>
-  );
-}
-
 function DashboardSkeleton() {
   return (
     <div className="flex flex-col gap-4 md:gap-5 lg:gap-6">
@@ -214,10 +195,12 @@ function DashboardSkeleton() {
         ))}
       </div>
       <Skeleton className="h-52 rounded-2xl md:h-56" />
-      <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-        <Skeleton className="h-64 rounded-2xl" />
-        <Skeleton className="h-64 rounded-2xl" />
+      <Skeleton className="h-52 rounded-2xl md:h-56" />
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+        <Skeleton className="h-72 rounded-2xl" />
+        <Skeleton className="h-72 rounded-2xl" />
       </div>
+      <Skeleton className="h-64 rounded-2xl" />
     </div>
   );
 }
@@ -314,21 +297,173 @@ const quickActions = [
   },
   {
     href: appRoutes.sales.history,
-    label: "Ventas",
-    hint: "Registro",
+    label: "Ingresos",
+    hint: "Servicios y productos",
     icon: Receipt,
   },
 ] as const;
 
+type StatusChartEntry = {
+  key: string;
+  name: string;
+  value: number;
+  color: string;
+};
+
+function StatusDistributionCard({
+  periodDescription,
+  statusChartData,
+  totalStatus,
+  activeStatusKey,
+  onActiveStatusKeyChange,
+  activeStatusEntry,
+  activeStatusPct,
+}: {
+  periodDescription: string;
+  statusChartData: StatusChartEntry[];
+  totalStatus: number;
+  activeStatusKey: string | null;
+  onActiveStatusKeyChange: (key: string | null) => void;
+  activeStatusEntry: StatusChartEntry | null;
+  activeStatusPct: number;
+}) {
+  return (
+    <div
+      className="flex min-w-0 flex-col self-start rounded-2xl border border-separator bg-surface p-4 md:p-5"
+      data-onboarding="dash-status"
+    >
+      <div className="mb-4 min-w-0">
+        <h2 className="text-base font-semibold">Distribución por estado</h2>
+        <p className="text-xs text-muted">{periodDescription}</p>
+      </div>
+      {statusChartData.length > 0 ? (
+        <div className="flex flex-col items-center gap-5 xl:flex-row xl:items-center">
+          <div className="relative h-40 w-40 shrink-0 md:h-44 md:w-44">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={statusChartData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={50}
+                  outerRadius={70}
+                  paddingAngle={3}
+                  dataKey="value"
+                  stroke="none"
+                  onMouseEnter={(_, index) =>
+                    onActiveStatusKeyChange(statusChartData[index]?.key ?? null)
+                  }
+                  onMouseLeave={() => onActiveStatusKeyChange(null)}
+                >
+                  {statusChartData.map((entry) => {
+                    const dimmed =
+                      activeStatusKey != null && activeStatusKey !== entry.key;
+                    const active = activeStatusKey === entry.key;
+                    return (
+                      <Cell
+                        key={entry.key}
+                        fill={entry.color}
+                        fillOpacity={dimmed ? 0.35 : 1}
+                        stroke={active ? "var(--surface)" : "none"}
+                        strokeWidth={active ? 3 : 0}
+                        style={{
+                          outline: "none",
+                          cursor: "pointer",
+                          transition: "fill-opacity 150ms ease",
+                        }}
+                      />
+                    );
+                  })}
+                </Pie>
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
+              {activeStatusEntry ? (
+                <>
+                  <span className="text-3xl font-bold tabular-nums leading-none">
+                    {activeStatusPct}%
+                  </span>
+                  <span className="mt-1 max-w-[5.5rem] truncate text-[10px] font-medium text-muted">
+                    {activeStatusEntry.name}
+                  </span>
+                  <span className="text-[10px] tabular-nums text-muted">
+                    {activeStatusEntry.value} turnos
+                  </span>
+                </>
+              ) : (
+                <>
+                  <span className="text-3xl font-bold tabular-nums leading-none">
+                    {totalStatus}
+                  </span>
+                  <span className="mt-1 text-[10px] font-medium uppercase tracking-wide text-muted">
+                    turnos
+                  </span>
+                </>
+              )}
+            </div>
+          </div>
+          <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1">
+            {statusChartData.map((entry) => {
+              const pct =
+                totalStatus > 0
+                  ? Math.round((entry.value / totalStatus) * 100)
+                  : 0;
+              const active = activeStatusKey === entry.key;
+              const dimmed = activeStatusKey != null && !active;
+              return (
+                <div
+                  key={entry.key}
+                  onMouseEnter={() => onActiveStatusKeyChange(entry.key)}
+                  onMouseLeave={() => onActiveStatusKeyChange(null)}
+                  className={`flex min-w-0 cursor-default items-center gap-2.5 rounded-xl px-3 py-2 text-xs transition-colors ${
+                    active
+                      ? "bg-surface-secondary ring-1 ring-separator"
+                      : dimmed
+                        ? "bg-surface-secondary/40 opacity-55"
+                        : "bg-surface-secondary/70 hover:bg-surface-secondary"
+                  }`}
+                >
+                  <span
+                    className="h-2.5 w-2.5 shrink-0 rounded-full"
+                    style={{ background: entry.color }}
+                  />
+                  <span className="min-w-0 flex-1 truncate font-medium">
+                    {entry.name}
+                  </span>
+                  <span className="shrink-0 tabular-nums text-muted">{pct}%</span>
+                  <span className="shrink-0 font-bold tabular-nums">
+                    {entry.value}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-10 text-center">
+          <Gear width={28} height={28} className="mb-2 text-muted opacity-40" />
+          <p className="text-xs text-muted">Sin datos de turnos aún</p>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function DashboardPage() {
   const { user } = useAuth();
+  const { branches } = useBranches();
   const [period, setPeriod] = useState<DashboardPeriod>("week");
+  const [branchFilter, setBranchFilter] = useState<number | "all">("all");
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [activeStatusKey, setActiveStatusKey] = useState<string | null>(null);
+  const marginDetailModal = useOverlayState();
 
   const showRevenue = canViewRevenue(user?.role);
+  const isOwner = isOwnerRole(user?.role);
+  const isEmployee = isPureEmployeeRole(user?.role);
+  const userBranchLabel = branchDisplayLabel(user?.branch, user?.role);
 
   const loadDashboard = useCallback(
     async (opts?: { silent?: boolean }) => {
@@ -339,8 +474,11 @@ export default function DashboardPage() {
         setLoadError(false);
       }
       try {
+        const branchQuery =
+          branchFilter === "all" ? "" : `&branchId=${branchFilter}`;
         const res = await fetch(
-          apiUrl(`/api/dashboard?userId=${user.id}&period=${period}`),
+          apiUrl(`/api/dashboard?userId=${user.id}&period=${period}${branchQuery}`),
+          { credentials: "include" },
         );
         if (!res.ok) {
           if (!silent) {
@@ -366,7 +504,7 @@ export default function DashboardPage() {
         if (!silent) setLoading(false);
       }
     },
-    [user, period],
+    [user, period, branchFilter],
   );
 
   useEffect(() => {
@@ -443,6 +581,10 @@ export default function DashboardPage() {
   const comparisonLabel = getDashboardComparisonLabel(period);
   const chartTotal =
     data?.appointmentsByDay?.reduce((sum, d) => sum + d.count, 0) ?? 0;
+  const revenueChartTotal =
+    data?.revenueByDay?.reduce((sum, d) => sum + d.amount, 0) ?? 0;
+  const activityBarCount = data?.appointmentsByDay?.length ?? 0;
+  const activityBarSizing = getActivityBarSizing(activityBarCount, period);
   const activeStatusEntry = activeStatusKey
     ? statusChartData.find((e) => e.key === activeStatusKey) ?? null
     : null;
@@ -470,11 +612,31 @@ export default function DashboardPage() {
               {getGreeting()}, {user.name.split(" ")[0]}
             </h1>
             <p className="mt-1 max-w-xl text-sm text-muted">
-              Resumen operativo · {periodDescription.toLowerCase()}
+              {isOwner
+                ? "Panel ejecutivo · "
+                : isEmployee
+                  ? "Tus turnos · "
+                  : "Tu sucursal · "}
+              {periodDescription.toLowerCase()}
+              {userBranchLabel ? (
+                <>
+                  {" "}
+                  · <span className="font-medium text-foreground">{userBranchLabel}</span>
+                </>
+              ) : null}
             </p>
           </div>
-          <div className="w-full shrink-0 md:w-auto" data-onboarding="dash-period">
-            <PeriodFilter value={period} onChange={setPeriod} />
+          <div className="w-full shrink-0 md:w-auto flex flex-col gap-2 sm:flex-row sm:items-center">
+            {isOwnerRole(user?.role) ? (
+              <BranchSelector
+                branches={branches}
+                value={branchFilter}
+                onChange={setBranchFilter}
+              />
+            ) : null}
+            <div data-onboarding="dash-period">
+              <PeriodFilter value={period} onChange={setPeriod} />
+            </div>
           </div>
         </div>
       </section>
@@ -497,7 +659,9 @@ export default function DashboardPage() {
       ) : (
         <>
           <div
-            className={`grid grid-cols-2 gap-3 ${showRevenue ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}
+            className={`grid grid-cols-2 gap-3 ${
+              showRevenue ? "xl:grid-cols-3 2xl:grid-cols-5" : "xl:grid-cols-3"
+            }`}
             data-onboarding="dash-kpis"
           >
             {showRevenue ? (
@@ -515,6 +679,31 @@ export default function DashboardPage() {
                   (data?.pending_payment ?? 0) > 0
                     ? `${formatCurrency(data?.pendingPaymentAmount ?? 0)} por cobrar`
                     : "Turnos completados"
+                }
+              />
+            ) : null}
+            {showRevenue ? (
+              <StatCard
+                label="Mayor margen"
+                value={data?.topMarginService?.name ?? "—"}
+                valueVariant="text"
+                icon={<CrownDiamond width={20} height={20} />}
+                headerAction={
+                  data?.topMarginService ? (
+                    <button
+                      type="button"
+                      onClick={marginDetailModal.open}
+                      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-secondary hover:text-foreground"
+                      aria-label="Ver detalle del servicio"
+                    >
+                      <Eye width={14} height={14} />
+                    </button>
+                  ) : null
+                }
+                subtitle={
+                  data?.topMarginService
+                    ? `${formatCurrency(data.topMarginService.revenue)} · ${data.topMarginService.count} ${data.topMarginService.count === 1 ? "vez" : "veces"} · ${data.topMarginService.sharePct}%`
+                    : "Sin servicios completados en el período"
                 }
               />
             ) : null}
@@ -544,245 +733,359 @@ export default function DashboardPage() {
               subtitle={`${data?.completed ?? 0} de ${totalStatus} en el período`}
             />
             <StatCard
-              label="Clientes"
+              label={isEmployee ? "Mis clientes" : "Clientes"}
               value={data?.totalCustomers ?? 0}
               icon={<Person width={20} height={20} />}
               variant="success"
-              subtitle={`${data?.totalServices ?? 0} servicios activos`}
+              subtitle={
+                isEmployee
+                  ? `${data?.totalServices ?? 0} servicios realizados`
+                  : `${data?.totalServices ?? 0} servicios activos`
+              }
             />
           </div>
+
+          {isOwner && data?.ownerInsights ? (
+            <OwnerInsightsPanel
+              insights={data.ownerInsights}
+              comparisonLabel={comparisonLabel}
+              periodDescription={periodDescription}
+              showBranchComparison={branchFilter === "all"}
+            />
+          ) : null}
+
+          {showRevenue ? (
+            <div className="flex flex-col gap-4">
+              <div
+                className="min-w-0 rounded-2xl border border-separator bg-surface p-4 md:p-5"
+                data-onboarding="dash-revenue"
+              >
+                <div className="mb-4 flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <h2 className="text-base font-semibold">
+                      Ingresos del período
+                    </h2>
+                    <p className="text-xs text-muted">
+                      Turnos completados · {periodDescription}
+                    </p>
+                  </div>
+                  <div className="shrink-0 text-right">
+                    <p className="text-xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
+                      {formatCurrency(revenueChartTotal)}
+                    </p>
+                    <p className="text-[10px] font-medium text-muted">
+                      acumulado
+                    </p>
+                  </div>
+                </div>
+                {data ? (
+                  <div className="h-[200px] w-full min-w-0 md:h-[240px] lg:h-[260px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart
+                        data={data.revenueByDay ?? []}
+                        margin={{
+                          top: 8,
+                          right: 4,
+                          left: -8,
+                          bottom: data.period === "month" ? 8 : 0,
+                        }}
+                      >
+                        <CartesianGrid
+                          strokeDasharray="3 3"
+                          stroke="var(--separator)"
+                          vertical={false}
+                        />
+                        <XAxis
+                          dataKey="date"
+                          tick={{
+                            fill: "var(--muted)",
+                            fontSize: data.period === "month" ? 10 : 12,
+                          }}
+                          axisLine={{ stroke: "var(--separator)" }}
+                          tickLine={false}
+                          interval={
+                            data.period === "month" ? "preserveStartEnd" : 0
+                          }
+                          angle={data.period === "month" ? -30 : 0}
+                          textAnchor={
+                            data.period === "month" ? "end" : "middle"
+                          }
+                          height={data.period === "month" ? 40 : 28}
+                        />
+                        <YAxis
+                          tick={{ fill: "var(--muted)", fontSize: 11 }}
+                          axisLine={false}
+                          tickLine={false}
+                          width={44}
+                          tickFormatter={(value) =>
+                            new Intl.NumberFormat("es-CL", {
+                              notation: "compact",
+                              maximumFractionDigits: 1,
+                            }).format(Number(value))
+                          }
+                        />
+                        <Tooltip
+                          cursor={{
+                            stroke: "var(--success)",
+                            strokeWidth: 1,
+                            strokeDasharray: "4 4",
+                          }}
+                          contentStyle={{
+                            background: "var(--surface)",
+                            border: "1px solid var(--separator)",
+                            borderRadius: "12px",
+                            fontSize: 13,
+                            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                          }}
+                          formatter={(value) => [
+                            formatCurrency(Number(value)),
+                            "Ingresos",
+                          ]}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="amount"
+                          stroke="var(--success)"
+                          strokeWidth={2.5}
+                          dot={{
+                            fill: "var(--surface)",
+                            stroke: "var(--success)",
+                            strokeWidth: 2,
+                            r: 3,
+                          }}
+                          activeDot={{
+                            fill: "var(--success)",
+                            stroke: "var(--surface)",
+                            strokeWidth: 2,
+                            r: 5,
+                          }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                ) : null}
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+              <div className="flex min-w-0 flex-col rounded-2xl border border-separator bg-surface p-4 md:p-5" id="dash-margin-services">
+                <div className="mb-3 shrink-0">
+                  <h2 className="text-base font-semibold">
+                    Servicios por margen
+                  </h2>
+                  <p className="text-xs text-muted">
+                    Aporte por precio de catálogo en turnos completados ·{" "}
+                    {periodDescription}
+                  </p>
+                </div>
+                {(data?.topMarginServices?.length ?? 0) > 0 ? (
+                  <ul className="min-h-0 flex-1 divide-y divide-separator overflow-y-auto">
+                    {(data?.topMarginServices ?? []).map((service, index) => (
+                      <li
+                        key={service.id}
+                        className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
+                      >
+                        <span
+                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
+                            index === 0
+                              ? "bg-accent text-accent-foreground"
+                              : "bg-surface-secondary text-muted"
+                          }`}
+                        >
+                          {index + 1}
+                        </span>
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium">
+                            {service.name}
+                          </p>
+                          <p className="text-[11px] text-muted">
+                            {service.count}{" "}
+                            {service.count === 1 ? "venta" : "ventas"} ·{" "}
+                            {service.sharePct}% del margen
+                          </p>
+                        </div>
+                        <p className="shrink-0 text-sm font-semibold tabular-nums">
+                          {formatCurrency(service.revenue)}
+                        </p>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
+                    <CrownDiamond
+                      width={28}
+                      height={28}
+                      className="mb-2 text-muted opacity-40"
+                    />
+                    <p className="text-xs text-muted">
+                      Sin servicios completados en el período
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <StatusDistributionCard
+                periodDescription={periodDescription}
+                statusChartData={statusChartData}
+                totalStatus={totalStatus}
+                activeStatusKey={activeStatusKey}
+                onActiveStatusKeyChange={setActiveStatusKey}
+                activeStatusEntry={activeStatusEntry}
+                activeStatusPct={activeStatusPct}
+              />
+              </div>
+            </div>
+          ) : null}
 
           <div
             className="min-w-0 rounded-2xl border border-separator bg-surface p-4 md:p-5"
             data-onboarding="dash-activity"
           >
-            <div className="mb-4 flex items-start justify-between gap-3">
-              <div className="min-w-0">
-                <h2 className="text-base font-semibold">Actividad del período</h2>
-                <p className="text-xs text-muted">
-                  Turnos registrados · {periodDescription}
-                </p>
+              <div className="mb-4 flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <h2 className="text-base font-semibold">
+                    Actividad del período
+                  </h2>
+                  <p className="text-xs text-muted">
+                    Turnos registrados · {periodDescription}
+                  </p>
+                </div>
+                <div className="shrink-0 text-right">
+                  <p className="text-xl font-bold tabular-nums text-accent">
+                    {chartTotal}
+                  </p>
+                  <p className="text-[10px] font-medium text-muted">turnos</p>
+                </div>
               </div>
-              <div className="shrink-0 text-right">
-                <p className="text-xl font-bold tabular-nums text-accent">
-                  {chartTotal}
-                </p>
-                <p className="text-[10px] font-medium text-muted">turnos</p>
-              </div>
-            </div>
-            {data ? (
-              <div className="h-[200px] w-full min-w-0 md:h-[240px] lg:h-[260px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart
-                    data={data.appointmentsByDay ?? []}
-                    margin={{
-                      top: 8,
-                      right: 4,
-                      left: -16,
-                      bottom: data.period === "month" ? 8 : 0,
-                    }}
-                  >
-                    <defs>
-                      <linearGradient
-                        id="barGradient"
-                        x1="0"
-                        y1="0"
-                        x2="0"
-                        y2="1"
-                      >
-                        <stop
-                          offset="0%"
-                          stopColor="var(--accent)"
-                          stopOpacity={1}
-                        />
-                        <stop
-                          offset="100%"
-                          stopColor="var(--accent)"
-                          stopOpacity={0.45}
-                        />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid
-                      strokeDasharray="3 3"
-                      stroke="var(--separator)"
-                      vertical={false}
-                    />
-                    <XAxis
-                      dataKey="date"
-                      tick={{
-                        fill: "var(--muted)",
-                        fontSize: data.period === "month" ? 10 : 12,
+              {data ? (
+                <div className="h-[200px] w-full min-w-0 md:h-[240px] lg:h-[260px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={data.appointmentsByDay ?? []}
+                      barCategoryGap={activityBarSizing.barCategoryGap}
+                      margin={{
+                        top: 8,
+                        right: 8,
+                        left: -12,
+                        bottom:
+                          data.period === "month" || data.period === "week"
+                            ? 16
+                            : 0,
                       }}
-                      axisLine={{ stroke: "var(--separator)" }}
-                      tickLine={false}
-                      interval={
-                        data.period === "month" ? "preserveStartEnd" : 0
-                      }
-                      angle={data.period === "month" ? -30 : 0}
-                      textAnchor={data.period === "month" ? "end" : "middle"}
-                      height={data.period === "month" ? 40 : 28}
-                    />
-                    <YAxis
-                      allowDecimals={false}
-                      tick={{ fill: "var(--muted)", fontSize: 12 }}
-                      axisLine={false}
-                      tickLine={false}
-                      width={28}
-                    />
-                    <Tooltip
-                      cursor={{
-                        fill: "color-mix(in srgb, var(--accent) 8%, transparent)",
-                      }}
-                      contentStyle={{
-                        background: "var(--surface)",
-                        border: "1px solid var(--separator)",
-                        borderRadius: "12px",
-                        fontSize: 13,
-                        boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                      }}
-                      formatter={(value) => [`${value} turnos`, "Cantidad"]}
-                    />
-                    <Bar
-                      dataKey="count"
-                      fill="url(#barGradient)"
-                      radius={[8, 8, 0, 0]}
-                      maxBarSize={44}
-                    />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            ) : null}
-          </div>
-
-          <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
-            <div
-              className="flex min-w-0 flex-col self-start rounded-2xl border border-separator bg-surface p-4 md:p-5"
-              data-onboarding="dash-status"
-            >
-              <div className="mb-4 min-w-0">
-                <h2 className="text-base font-semibold">
-                  Distribución por estado
-                </h2>
-                <p className="text-xs text-muted">{periodDescription}</p>
-              </div>
-              {data && statusChartData.length > 0 ? (
-                <div className="flex flex-col items-center gap-5 xl:flex-row xl:items-center">
-                  <div className="relative h-40 w-40 shrink-0 md:h-44 md:w-44">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={statusChartData}
-                          cx="50%"
-                          cy="50%"
-                          innerRadius={50}
-                          outerRadius={70}
-                          paddingAngle={3}
-                          dataKey="value"
-                          stroke="none"
-                          onMouseEnter={(_, index) =>
-                            setActiveStatusKey(statusChartData[index]?.key ?? null)
-                          }
-                          onMouseLeave={() => setActiveStatusKey(null)}
+                    >
+                      <defs>
+                        <linearGradient
+                          id="barGradient"
+                          x1="0"
+                          y1="0"
+                          x2="0"
+                          y2="1"
                         >
-                          {statusChartData.map((entry) => {
-                            const dimmed =
-                              activeStatusKey != null &&
-                              activeStatusKey !== entry.key;
-                            const active = activeStatusKey === entry.key;
-                            return (
-                              <Cell
-                                key={entry.key}
-                                fill={entry.color}
-                                fillOpacity={dimmed ? 0.35 : 1}
-                                stroke={active ? "var(--surface)" : "none"}
-                                strokeWidth={active ? 3 : 0}
-                                style={{
-                                  outline: "none",
-                                  cursor: "pointer",
-                                  transition: "fill-opacity 150ms ease",
-                                }}
-                              />
-                            );
-                          })}
-                        </Pie>
-                      </PieChart>
-                    </ResponsiveContainer>
-                    <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
-                      {activeStatusEntry ? (
-                        <>
-                          <span className="text-3xl font-bold tabular-nums leading-none">
-                            {activeStatusPct}%
-                          </span>
-                          <span className="mt-1 max-w-[5.5rem] truncate text-[10px] font-medium text-muted">
-                            {activeStatusEntry.name}
-                          </span>
-                          <span className="text-[10px] tabular-nums text-muted">
-                            {activeStatusEntry.value} turnos
-                          </span>
-                        </>
-                      ) : (
-                        <>
-                          <span className="text-3xl font-bold tabular-nums leading-none">
-                            {totalStatus}
-                          </span>
-                          <span className="mt-1 text-[10px] font-medium uppercase tracking-wide text-muted">
-                            turnos
-                          </span>
-                        </>
-                      )}
-                    </div>
-                  </div>
-                  <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-1">
-                    {statusChartData.map((entry) => {
-                      const pct =
-                        totalStatus > 0
-                          ? Math.round((entry.value / totalStatus) * 100)
-                          : 0;
-                      const active = activeStatusKey === entry.key;
-                      const dimmed =
-                        activeStatusKey != null && !active;
-                      return (
-                        <div
-                          key={entry.key}
-                          onMouseEnter={() => setActiveStatusKey(entry.key)}
-                          onMouseLeave={() => setActiveStatusKey(null)}
-                          className={`flex min-w-0 cursor-default items-center gap-2.5 rounded-xl px-3 py-2 text-xs transition-colors ${
-                            active
-                              ? "bg-surface-secondary ring-1 ring-separator"
-                              : dimmed
-                                ? "bg-surface-secondary/40 opacity-55"
-                                : "bg-surface-secondary/70 hover:bg-surface-secondary"
-                          }`}
-                        >
-                          <span
-                            className="h-2.5 w-2.5 shrink-0 rounded-full"
-                            style={{ background: entry.color }}
+                          <stop
+                            offset="0%"
+                            stopColor="var(--accent)"
+                            stopOpacity={1}
                           />
-                          <span className="min-w-0 flex-1 truncate font-medium">
-                            {entry.name}
-                          </span>
-                          <span className="shrink-0 tabular-nums text-muted">
-                            {pct}%
-                          </span>
-                          <span className="shrink-0 font-bold tabular-nums">
-                            {entry.value}
-                          </span>
-                        </div>
-                      );
-                    })}
-                  </div>
+                          <stop
+                            offset="100%"
+                            stopColor="var(--accent)"
+                            stopOpacity={0.45}
+                          />
+                        </linearGradient>
+                      </defs>
+                      <CartesianGrid
+                        strokeDasharray="3 3"
+                        stroke="var(--separator)"
+                        vertical={false}
+                      />
+                      <XAxis
+                        dataKey="date"
+                        tick={{
+                          fill: "var(--muted)",
+                          fontSize:
+                            data.period === "month"
+                              ? 10
+                              : data.period === "week"
+                                ? 9
+                                : 10,
+                        }}
+                        axisLine={{ stroke: "var(--separator)" }}
+                        tickLine={false}
+                        interval={
+                          data.period === "month"
+                            ? "preserveStartEnd"
+                            : data.period === "week"
+                              ? 3
+                              : data.period === "today"
+                                ? 2
+                                : 0
+                        }
+                        angle={
+                          data.period === "month" || data.period === "week"
+                            ? -35
+                            : 0
+                        }
+                        textAnchor={
+                          data.period === "month" || data.period === "week"
+                            ? "end"
+                            : "middle"
+                        }
+                        height={
+                          data.period === "month" || data.period === "week"
+                            ? 48
+                            : 28
+                        }
+                      />
+                      <YAxis
+                        allowDecimals={false}
+                        tick={{ fill: "var(--muted)", fontSize: 12 }}
+                        axisLine={false}
+                        tickLine={false}
+                        width={28}
+                      />
+                      <Tooltip
+                        cursor={{
+                          fill: "color-mix(in srgb, var(--accent) 8%, transparent)",
+                        }}
+                        contentStyle={{
+                          background: "var(--surface)",
+                          border: "1px solid var(--separator)",
+                          borderRadius: "12px",
+                          fontSize: 13,
+                          boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
+                        }}
+                        formatter={(value) => [`${value} turnos`, "Cantidad"]}
+                      />
+                      <Bar
+                        dataKey="count"
+                        fill="url(#barGradient)"
+                        radius={[
+                          activityBarSizing.radius,
+                          activityBarSizing.radius,
+                          0,
+                          0,
+                        ]}
+                        maxBarSize={activityBarSizing.maxBarSize}
+                      />
+                    </BarChart>
+                  </ResponsiveContainer>
                 </div>
-              ) : (
-                <div className="flex flex-col items-center justify-center py-10 text-center">
-                  <Gear
-                    width={28}
-                    height={28}
-                    className="mb-2 text-muted opacity-40"
-                  />
-                  <p className="text-xs text-muted">Sin datos de turnos aún</p>
-                </div>
-              )}
+              ) : null}
             </div>
+
+          <div
+            className={`grid grid-cols-1 items-start gap-4 ${showRevenue ? "" : "lg:grid-cols-2"}`}
+          >
+            {!showRevenue ? (
+              <StatusDistributionCard
+                periodDescription={periodDescription}
+                statusChartData={statusChartData}
+                totalStatus={totalStatus}
+                activeStatusKey={activeStatusKey}
+                onActiveStatusKeyChange={setActiveStatusKey}
+                activeStatusEntry={activeStatusEntry}
+                activeStatusPct={activeStatusPct}
+              />
+            ) : null}
 
             <div
               className="flex max-h-[24rem] min-w-0 flex-col overflow-hidden rounded-2xl border border-separator bg-surface md:max-h-[28rem] lg:max-h-[32rem]"
@@ -867,6 +1170,115 @@ export default function DashboardPage() {
           </div>
         </>
       )}
+
+      <Modal state={marginDetailModal}>
+        <Modal.Backdrop isDismissable>
+          <Modal.Container placement="center" size="md" scroll="inside">
+            <Modal.Dialog>
+              <Modal.CloseTrigger />
+              <Modal.Header>
+                <Modal.Icon>
+                  <CrownDiamond width={20} height={20} />
+                </Modal.Icon>
+                <Modal.Heading>Servicios por margen</Modal.Heading>
+              </Modal.Header>
+              <Modal.Body>
+                {data?.topMarginService ? (
+                  <div className="space-y-4">
+                    <div className="rounded-xl border border-accent/30 bg-accent/5 p-4">
+                      <p className="text-xs font-medium uppercase tracking-wide text-muted">
+                        Mayor margen · {periodDescription}
+                      </p>
+                      <p className="mt-2 text-lg font-bold leading-snug break-words">
+                        {data.topMarginService.name}
+                      </p>
+                      <dl className="mt-3 grid grid-cols-3 gap-3 text-sm">
+                        <div>
+                          <dt className="text-xs text-muted">Ingresos</dt>
+                          <dd className="mt-0.5 font-semibold tabular-nums">
+                            {formatCurrency(data.topMarginService.revenue)}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-muted">Ventas</dt>
+                          <dd className="mt-0.5 font-semibold tabular-nums">
+                            {data.topMarginService.count}
+                          </dd>
+                        </div>
+                        <div>
+                          <dt className="text-xs text-muted">Participación</dt>
+                          <dd className="mt-0.5 font-semibold tabular-nums">
+                            {data.topMarginService.sharePct}%
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+
+                    {(data.topMarginServices?.length ?? 0) > 1 ? (
+                      <div>
+                        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
+                          Ranking del período
+                        </p>
+                        <ul className="divide-y divide-separator rounded-xl border border-separator">
+                          {(data?.topMarginServices ?? []).map((service, index) => (
+                            <li
+                              key={service.id}
+                              className="flex items-start gap-3 px-3 py-2.5"
+                            >
+                              <span
+                                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
+                                  index === 0
+                                    ? "bg-accent text-accent-foreground"
+                                    : "bg-surface-secondary text-muted"
+                                }`}
+                              >
+                                {index + 1}
+                              </span>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-medium leading-snug break-words">
+                                  {service.name}
+                                </p>
+                                <p className="mt-0.5 text-[11px] text-muted">
+                                  {service.count}{" "}
+                                  {service.count === 1 ? "venta" : "ventas"} ·{" "}
+                                  {service.sharePct}%
+                                </p>
+                              </div>
+                              <p className="shrink-0 text-sm font-semibold tabular-nums">
+                                {formatCurrency(service.revenue)}
+                              </p>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted">
+                    Sin servicios completados en el período.
+                  </p>
+                )}
+              </Modal.Body>
+              <Modal.Footer>
+                <Button
+                  variant="secondary"
+                  onPress={() => {
+                    marginDetailModal.close();
+                    document
+                      .getElementById("dash-margin-services")
+                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
+                  }}
+                >
+                  Ver en panel
+                </Button>
+                <Button variant="primary" onPress={marginDetailModal.close}>
+                  Cerrar
+                </Button>
+              </Modal.Footer>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
     </div>
   );
 }

@@ -24,6 +24,9 @@ export function CustomerForm({ defaultValues, onSubmit, formId = "customer-form"
           lastnames: defaultValues.lastnames,
           phone: defaultValues.phone,
           email: defaultValues.email,
+          identificationType: defaultValues.identificationType ?? "",
+          identification: defaultValues.identification ?? "",
+          address: defaultValues.address ?? "",
         }
       : undefined,
   });
@@ -70,6 +73,44 @@ export function CustomerForm({ defaultValues, onSubmit, formId = "customer-form"
           {...register("email")}
         />
         {errors.email && <p className="text-danger text-sm">{String(errors.email.message ?? "")}</p>}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-1">
+          <label htmlFor="identificationType" className="text-sm font-medium">
+            Tipo ID (SRI)
+          </label>
+          <select
+            id="identificationType"
+            className="px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground focus:outline-none focus:ring-2 focus:ring-focus"
+            {...register("identificationType")}
+          >
+            <option value="">Sin identificación</option>
+            <option value="04">RUC</option>
+            <option value="05">Cédula</option>
+            <option value="06">Pasaporte</option>
+            <option value="07">Consumidor final</option>
+          </select>
+        </div>
+        <div className="flex flex-col gap-1">
+          <label htmlFor="identification" className="text-sm font-medium">
+            Identificación
+          </label>
+          <input
+            id="identification"
+            placeholder="1724589630"
+            className="px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
+            {...register("identification")}
+          />
+        </div>
+      </div>
+      <div className="flex flex-col gap-1">
+        <label htmlFor="address" className="text-sm font-medium">Dirección</label>
+        <input
+          id="address"
+          placeholder="Dirección para facturación"
+          className="px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
+          {...register("address")}
+        />
       </div>
     </form>
   );

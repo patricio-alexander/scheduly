@@ -27,8 +27,8 @@ export default function SalesHistoryPage() {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <PageHeader
         icon={<Receipt width={24} height={24} />}
-        title="Registro de ventas"
-        description="Pagos registrados al cerrar turnos en la agenda"
+        title="Ingresos por turnos"
+        description="Servicios y productos cobrados al cerrar turnos en la agenda"
       />
 
       {error ? (

@@ -79,7 +79,7 @@ export default function ServicesPage() {
       <PageHeader
         icon={<Gear width={24} height={24} />}
         title="Servicios"
-        description="Define nombre, precio y duración de cada servicio"
+        description="Define nombre, precio, duración y comisión del empleado"
         action={
           isAdmin ? (
             <Button variant="primary" onPress={openCreate}>

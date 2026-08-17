@@ -10,6 +10,10 @@ import {
   type PaymentMethodValue,
 } from "@/shared/utils/payment-methods";
 import { checkAuth } from "@/shared/utils/check-auth";
+import {
+  calcAppointmentCommission,
+  DEFAULT_COMMISSION_PCT,
+} from "@/shared/utils/commissions";
 
 function parseMethod(value: string | null): PaymentMethodValue | null {
   if (!value) return null;
@@ -41,13 +45,26 @@ export async function GET(request: Request) {
               select: { id: true, name: true, lastnames: true },
             },
             user: { select: { id: true, name: true } },
+            branch: { select: { id: true, name: true } },
             services: {
-              include: { service: { select: { id: true, name: true, price: true } } },
+              include: {
+                service: {
+                  select: {
+                    id: true,
+                    name: true,
+                    price: true,
+                    commissionPct: true,
+                  },
+                },
+              },
             },
             products: {
               include: {
                 product: { select: { id: true, name: true, price: true } },
               },
+            },
+            commission: {
+              select: { amount: true, ratePct: true, baseAmount: true },
             },
           },
         },
@@ -62,6 +79,8 @@ export async function GET(request: Request) {
           id: s.service.id,
           name: s.service.name,
           price: toAmount(s.service.price),
+          commissionPct:
+            toAmount(s.service.commissionPct) || DEFAULT_COMMISSION_PCT,
         }));
         const products = payment.appointment.products.map((p) => ({
           id: p.product.id,
@@ -69,6 +88,28 @@ export async function GET(request: Request) {
           price: toAmount(p.product.price),
           quantity: p.quantity,
         }));
+        const amount = toAmount(payment.amount);
+        const storedCommission = payment.appointment.commission;
+        const commission = storedCommission
+          ? {
+              amount: toAmount(storedCommission.amount),
+              ratePct: toAmount(storedCommission.ratePct),
+              baseAmount: toAmount(storedCommission.baseAmount),
+            }
+          : (() => {
+              const calculated = calcAppointmentCommission(
+                payment.appointment.services,
+                payment.appointment.products,
+                amount,
+              );
+              return calculated.amount > 0
+                ? {
+                    amount: calculated.amount,
+                    ratePct: calculated.ratePct,
+                    baseAmount: calculated.baseAmount,
+                  }
+                : null;
+            })();
         const itemsSummary = [
           ...services.map((s) => s.name),
           ...products.map((p) =>
@@ -79,10 +120,11 @@ export async function GET(request: Request) {
         return {
           id: payment.id,
           appointmentId: payment.appointmentId,
-          amount: toAmount(payment.amount),
+          amount,
           method: payment.method,
           paidAt: payment.paidAt.toISOString(),
           notes: payment.notes,
+          commission,
           customer: {
             id: payment.appointment.customer.id,
             name: `${payment.appointment.customer.name} ${payment.appointment.customer.lastnames}`.trim(),
@@ -91,7 +133,15 @@ export async function GET(request: Request) {
             id: payment.appointment.user.id,
             name: payment.appointment.user.name,
           },
+          branch: payment.appointment.branch
+            ? {
+                id: payment.appointment.branch.id,
+                name: payment.appointment.branch.name,
+              }
+            : null,
           title: payment.appointment.title,
+          description: payment.appointment.description,
+          status: payment.appointment.status,
           appointmentDate: payment.appointment.appointmentDate.toISOString(),
           services,
           products,

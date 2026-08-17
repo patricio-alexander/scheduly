@@ -7,7 +7,7 @@ import { RoleForm, RoleList, useRoles } from "@/src/features/roles";
 import type { Role, RoleFormData } from "@/src/features/roles";
 import * as roleService from "@/src/features/roles/services/role-service";
 import { PageHeader } from "@/shared/components/ui";
-import { canDeleteRecords, isAdminRole } from "@/shared/utils/roles";
+import { canDeleteRecords, canManageUsers } from "@/shared/utils/roles";
 import Plus from "@gravity-ui/icons/Plus";
 import Shield from "@gravity-ui/icons/Shield";
 
@@ -73,7 +73,7 @@ export default function RolesPage() {
     [refetch],
   );
 
-  if (!user || !isAdminRole(user.role)) return null;
+  if (!user || !canManageUsers(user.role)) return null;
 
   return (
     <div className="flex flex-col gap-6">

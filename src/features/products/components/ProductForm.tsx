@@ -3,6 +3,7 @@
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ComboBox, Input, Label, ListBox } from "@heroui/react";
+import { AppNumberField } from "@/shared/components/AppNumberField";
 import { productSchema, type ProductFormData } from "../lib/product-schema";
 import type { Product } from "../types";
 import type { Category } from "@/src/features/categories";
@@ -93,39 +94,44 @@ export function ProductForm({
         )}
       />
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="product-price" className="text-sm font-medium">
-          Precio
-        </label>
-        <input
-          id="product-price"
-          type="number"
-          placeholder="12000"
-          className="px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
-          {...register("price", { valueAsNumber: true })}
-        />
-        {errors.price && (
-          <p className="text-danger text-sm">{String(errors.price.message ?? "")}</p>
+      <Controller
+        name="price"
+        control={control}
+        render={({ field }) => (
+          <div className="flex flex-col gap-1">
+            <AppNumberField
+              id="product-price"
+              label="Precio"
+              minValue={0}
+              value={field.value}
+              onChange={field.onChange}
+            />
+            {errors.price && (
+              <p className="text-danger text-sm">{String(errors.price.message ?? "")}</p>
+            )}
+          </div>
         )}
-      </div>
+      />
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="product-stock" className="text-sm font-medium">
-          Stock
-        </label>
-        <input
-          id="product-stock"
-          type="number"
-          min={0}
-          step={1}
-          placeholder="10"
-          className="px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
-          {...register("stock", { valueAsNumber: true })}
-        />
-        {errors.stock && (
-          <p className="text-danger text-sm">{String(errors.stock.message ?? "")}</p>
+      <Controller
+        name="stock"
+        control={control}
+        render={({ field }) => (
+          <div className="flex flex-col gap-1">
+            <AppNumberField
+              id="product-stock"
+              label="Stock"
+              minValue={0}
+              step={1}
+              value={field.value}
+              onChange={field.onChange}
+            />
+            {errors.stock && (
+              <p className="text-danger text-sm">{String(errors.stock.message ?? "")}</p>
+            )}
+          </div>
         )}
-      </div>
+      />
     </form>
   );
 }

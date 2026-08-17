@@ -1,4 +1,8 @@
 import type { Server as IOServer } from "socket.io";
+import {
+  normalizeThemeColors,
+  type ThemeColors,
+} from "@/shared/utils/business-profile";
 
 export const TASKS_ROOM = "tasks";
 export const APPOINTMENTS_ROOM = "appointments";
@@ -30,7 +34,7 @@ function emitAll(event: string, payload: unknown) {
   io.emit(event, toClientPayload(payload));
 }
 
-function invalidateDashboard(reason: string) {
+export function invalidateDashboard(reason: string) {
   emitAll("dashboard:invalidate", { reason, at: Date.now() });
 }
 
@@ -74,4 +78,9 @@ export function emitCustomerUpdated(customer: unknown) {
 export function emitCustomerDeleted(id: number) {
   emitAll("customer:deleted", { id });
   invalidateDashboard("customer:deleted");
+}
+
+/** Colores de marca globales (todas las sucursales / clientes conectados). */
+export function emitThemeColorsUpdated(colors: Partial<ThemeColors>) {
+  emitAll("theme:colors-updated", normalizeThemeColors(colors));
 }

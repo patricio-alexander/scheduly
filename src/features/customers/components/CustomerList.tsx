@@ -20,6 +20,9 @@ interface Props {
   onAdd?: () => void;
   loading?: boolean;
   canDelete?: boolean;
+  readOnly?: boolean;
+  canManagePortal?: boolean;
+  onActivatePortal?: (customer: Customer) => void;
 }
 
 const PAGE_SIZE = 10;
@@ -31,6 +34,9 @@ export function CustomerList({
   onAdd,
   loading,
   canDelete = true,
+  readOnly = false,
+  canManagePortal = false,
+  onActivatePortal,
 }: Props) {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
@@ -91,9 +97,13 @@ export function CustomerList({
         <EmptyState
           icon={<Person width={40} height={40} />}
           title="No hay clientes registrados"
-          description="Agrega tu primer cliente para poder agendar turnos en la agenda."
-          actionLabel="Agregar cliente"
-          onAction={onAdd}
+          description={
+            readOnly
+              ? "Aún no hay clientes en el sistema."
+              : "Agrega tu primer cliente para poder agendar turnos en la agenda."
+          }
+          actionLabel={readOnly ? undefined : "Agregar cliente"}
+          onAction={readOnly ? undefined : onAdd}
         />
       </ContentCard>
     );
@@ -119,12 +129,14 @@ export function CustomerList({
                 <Table.Column>Apellidos</Table.Column>
                 <Table.Column>Teléfono</Table.Column>
                 <Table.Column>Correo</Table.Column>
-                <Table.Column>Acciones</Table.Column>
+                {!readOnly || canManagePortal ? (
+                  <Table.Column>{readOnly ? "Portal" : "Acciones"}</Table.Column>
+                ) : null}
               </Table.Header>
               <Table.Body>
                 {pageRows.length === 0 ? (
                   <Table.Row>
-                    <Table.Cell colSpan={5}>
+                    <Table.Cell colSpan={!readOnly || canManagePortal ? 5 : 4}>
                       <div className="py-8 text-center text-sm text-muted">
                         No se encontraron clientes con &quot;{search}&quot;
                       </div>
@@ -141,18 +153,39 @@ export function CustomerList({
                         <Table.Cell>{customer.lastnames}</Table.Cell>
                         <Table.Cell className="text-muted">{customer.phone}</Table.Cell>
                         <Table.Cell className="text-muted">{customer.email}</Table.Cell>
-                        <Table.Cell>
-                          <div className="flex gap-1">
-                            <Button isIconOnly size="sm" variant="ghost" onPress={() => onEdit(customer)}>
-                              <Pencil width={16} height={16} />
-                            </Button>
-                            {canDelete ? (
-                              <Button isIconOnly size="sm" variant="danger" onPress={() => onDelete(customer.id)}>
-                                <TrashBin width={16} height={16} />
+                        {!readOnly ? (
+                          <Table.Cell>
+                            <div className="flex flex-wrap items-center gap-1">
+                              {canManagePortal ? (
+                                <Button
+                                  size="sm"
+                                  variant={customer.hasPortalAccess ? "secondary" : "primary"}
+                                  onPress={() => onActivatePortal?.(customer)}
+                                >
+                                  {customer.hasPortalAccess ? "Portal activo" : "Activar portal"}
+                                </Button>
+                              ) : null}
+                              <Button isIconOnly size="sm" variant="ghost" onPress={() => onEdit(customer)}>
+                                <Pencil width={16} height={16} />
                               </Button>
-                            ) : null}
-                          </div>
-                        </Table.Cell>
+                              {canDelete ? (
+                                <Button isIconOnly size="sm" variant="danger" onPress={() => onDelete(customer.id)}>
+                                  <TrashBin width={16} height={16} />
+                                </Button>
+                              ) : null}
+                            </div>
+                          </Table.Cell>
+                        ) : canManagePortal ? (
+                          <Table.Cell>
+                            <Button
+                              size="sm"
+                              variant={customer.hasPortalAccess ? "secondary" : "primary"}
+                              onPress={() => onActivatePortal?.(customer)}
+                            >
+                              {customer.hasPortalAccess ? "Portal activo" : "Activar portal"}
+                            </Button>
+                          </Table.Cell>
+                        ) : null}
                       </Table.Row>
                     );
                   })

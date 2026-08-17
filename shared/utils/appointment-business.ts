@@ -1,3 +1,4 @@
+import { deductBranchStock, incrementBranchStock } from "@/shared/utils/branch-stock";
 import type { PrismaClient } from "@/generated/prisma/client";
 import { lineTotal, toAmount } from "@/shared/utils/money";
 import { paymentMethodOptions, type PaymentMethodValue } from "@/shared/utils/payment-methods";
@@ -66,6 +67,7 @@ export async function validateProductStock(
   tx: Tx,
   items: AppointmentProductInput[],
   excludeAppointmentId?: number,
+  branchId?: number | null,
 ) {
   if (items.length === 0) return;
 
@@ -88,7 +90,16 @@ export async function validateProductStock(
       reserved = existing?.quantity ?? 0;
     }
 
-    const available = product.stock + reserved;
+    let available: number;
+    if (branchId) {
+      const row = await tx.branchStock.findUnique({
+        where: { branchId_productId: { branchId, productId } },
+      });
+      available = (row?.stock ?? 0) + reserved;
+    } else {
+      available = product.stock + reserved;
+    }
+
     if (available < quantity) {
       throw new Error(`Stock insuficiente para "${product.name}" (disponible: ${available})`);
     }
@@ -107,18 +118,35 @@ export async function deductStockForAppointment(tx: Tx, appointmentId: number) {
 
   const lowStockProducts: Array<{ id: number; name: string; stock: number }> = [];
 
-  for (const { productId, quantity } of appointment.products) {
-    const product = await tx.product.findUnique({ where: { id: productId } });
-    if (!product) continue;
-    if (product.stock < quantity) {
-      throw new Error(`Stock insuficiente para "${product.name}"`);
+  if (appointment.branchId) {
+    await deductBranchStock(
+      tx,
+      appointment.branchId,
+      appointment.products.map((p) => ({
+        productId: p.productId,
+        quantity: p.quantity,
+      })),
+    );
+    for (const { productId } of appointment.products) {
+      const product = await tx.product.findUnique({ where: { id: productId } });
+      if (product && isStockAlert(product.stock)) {
+        lowStockProducts.push(product);
+      }
     }
-    const updated = await tx.product.update({
-      where: { id: productId },
-      data: { stock: { decrement: quantity } },
-    });
-    if (isStockAlert(updated.stock)) {
-      lowStockProducts.push(updated);
+  } else {
+    for (const { productId, quantity } of appointment.products) {
+      const product = await tx.product.findUnique({ where: { id: productId } });
+      if (!product) continue;
+      if (product.stock < quantity) {
+        throw new Error(`Stock insuficiente para "${product.name}"`);
+      }
+      const updated = await tx.product.update({
+        where: { id: productId },
+        data: { stock: { decrement: quantity } },
+      });
+      if (isStockAlert(updated.stock)) {
+        lowStockProducts.push(updated);
+      }
     }
   }
 
@@ -166,6 +194,60 @@ export async function deductStockForAppointment(tx: Tx, appointmentId: number) {
       });
     }
   }
+}
+
+export async function restoreStockForAppointment(tx: Tx, appointmentId: number) {
+  const appointment = await tx.appointment.findUnique({
+    where: { id: appointmentId },
+    include: { products: true },
+  });
+
+  if (!appointment || !appointment.stockDeducted || appointment.products.length === 0) {
+    return;
+  }
+
+  if (appointment.branchId) {
+    await incrementBranchStock(
+      tx,
+      appointment.branchId,
+      appointment.products.map((p) => ({
+        productId: p.productId,
+        quantity: p.quantity,
+      })),
+    );
+  } else {
+    for (const { productId, quantity } of appointment.products) {
+      await tx.product.update({
+        where: { id: productId },
+        data: { stock: { increment: quantity } },
+      });
+    }
+  }
+
+  await tx.appointment.update({
+    where: { id: appointmentId },
+    data: { stockDeducted: false },
+  });
+}
+
+export async function deleteAppointmentRecord(tx: Tx, appointmentId: number) {
+  const appointment = await tx.appointment.findUnique({
+    where: { id: appointmentId },
+    select: { id: true, stockDeducted: true },
+  });
+
+  if (!appointment) {
+    throw new Error("Turno no encontrado");
+  }
+
+  if (appointment.stockDeducted) {
+    await restoreStockForAppointment(tx, appointmentId);
+  }
+
+  await tx.payment.deleteMany({ where: { appointmentId } });
+  await tx.appointmentsServices.deleteMany({ where: { appointmentId } });
+  await tx.appointmentsProducts.deleteMany({ where: { appointmentId } });
+  await tx.appointment.delete({ where: { id: appointmentId } });
 }
 
 export function parsePaymentMethod(value: unknown): PaymentMethodValue {

@@ -8,6 +8,7 @@ import {
   DateField,
   DatePicker,
   Label,
+  SearchField,
   toast,
 } from "@heroui/react";
 import {
@@ -26,6 +27,7 @@ import { apiUrl } from "@/shared/utils/api";
 import { appRoutes } from "@/shared/utils/app-routes";
 import { formatDurationLabel } from "@/shared/utils/booking";
 import { formatMoney } from "@/shared/utils/money";
+import { CustomerLoginForm, useCustomerAuth } from "@/src/features/loyalty";
 
 import { openReservationTicket } from "../lib/reservation-ticket";
 import {
@@ -41,7 +43,19 @@ type BookingService = {
   durationMinutes: number;
 };
 
-type Step = "services" | "schedule" | "details" | "done";
+type BookingBranch = {
+  id: number;
+  name: string;
+  address: string;
+  code: string;
+};
+
+type BookingStaff = {
+  id: number;
+  name: string;
+};
+
+type Step = "services" | "schedule" | "done";
 
 type Confirmation = {
   appointmentId: number;
@@ -57,7 +71,6 @@ type Confirmation = {
 const STEPS: { id: Step; label: string }[] = [
   { id: "services", label: "Servicio" },
   { id: "schedule", label: "Horario" },
-  { id: "details", label: "Datos" },
 ];
 
 function formatSlotLabel(iso: string) {
@@ -73,12 +86,16 @@ function stepIndex(step: Step) {
   return i < 0 ? STEPS.length : i;
 }
 
-const fieldClass =
-  "w-full rounded-xl border border-separator bg-field-background px-3.5 py-2.5 text-sm text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus";
 
 export function PublicBookingPage() {
   const minDate = today(getLocalTimeZone());
+  const { customer, loading: authLoading } = useCustomerAuth();
   const [services, setServices] = useState<BookingService[]>([]);
+  const [branches, setBranches] = useState<BookingBranch[]>([]);
+  const [staff, setStaff] = useState<BookingStaff[]>([]);
+  const [selectedBranchId, setSelectedBranchId] = useState<number | null>(null);
+  const [selectedStaffId, setSelectedStaffId] = useState<number | null>(null);
+  const [serviceSearch, setServiceSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [step, setStep] = useState<Step>("services");
@@ -90,17 +107,14 @@ export function PublicBookingPage() {
   const [slotsLoading, setSlotsLoading] = useState(false);
   const [slot, setSlot] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
-  const [form, setForm] = useState({
-    name: "",
-    lastnames: "",
-    phone: "",
-    email: "",
-  });
   const [confirmation, setConfirmation] = useState<Confirmation | null>(null);
   const [business, setBusiness] = useState<BusinessProfile>({
     businessName: DEFAULT_BUSINESS_NAME,
     address: "",
     logoPath: null,
+    ruc: "",
+    tradeName: "",
+    obligationAccounting: true,
     ...DEFAULT_THEME_COLORS,
   });
 
@@ -115,6 +129,9 @@ export function PublicBookingPage() {
             businessName: json.businessName || DEFAULT_BUSINESS_NAME,
             address: json.address ?? "",
             logoPath: json.logoPath ?? null,
+            ruc: json.ruc ?? "",
+            tradeName: json.tradeName ?? "",
+            obligationAccounting: json.obligationAccounting ?? true,
             accentColor: json.accentColor ?? DEFAULT_THEME_COLORS.accentColor,
             successColor: json.successColor ?? DEFAULT_THEME_COLORS.successColor,
             warningColor: json.warningColor ?? DEFAULT_THEME_COLORS.warningColor,
@@ -164,31 +181,89 @@ export function PublicBookingPage() {
     };
   }, []);
 
-  const loadSlots = useCallback(async (serviceId: number, day: string) => {
-    setSlotsLoading(true);
-    setSlot(null);
-    try {
-      const res = await fetch(
-        apiUrl(
-          `/api/booking/slots?serviceId=${serviceId}&date=${encodeURIComponent(day)}`,
-        ),
-        { cache: "no-store" },
-      );
-      const json = await res.json().catch(() => null);
-      setSlots(Array.isArray(json?.slots) ? json.slots : []);
-    } catch {
-      setSlots([]);
-    } finally {
-      setSlotsLoading(false);
-    }
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(apiUrl("/api/booking/branches"), { cache: "no-store" });
+        const json = await res.json().catch(() => null);
+        if (!cancelled && res.ok && Array.isArray(json)) {
+          setBranches(json);
+          if (json.length === 1) setSelectedBranchId(json[0].id);
+        }
+      } catch {
+        // ignore
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   useEffect(() => {
+    if (!selectedBranchId) {
+      setStaff([]);
+      setSelectedStaffId(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(
+          apiUrl(`/api/booking/staff?branchId=${selectedBranchId}`),
+          { cache: "no-store" },
+        );
+        const json = await res.json().catch(() => null);
+        if (!cancelled && res.ok && Array.isArray(json)) {
+          setStaff(json);
+          setSelectedStaffId(null);
+        }
+      } catch {
+        if (!cancelled) setStaff([]);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [selectedBranchId]);
+
+  const loadSlots = useCallback(
+    async (serviceId: number, day: string, branchId: number | null, userId: number | null) => {
+      setSlotsLoading(true);
+      setSlot(null);
+      try {
+        const params = new URLSearchParams({
+          serviceId: String(serviceId),
+          date: day,
+        });
+        if (branchId) params.set("branchId", String(branchId));
+        if (userId) params.set("userId", String(userId));
+        const res = await fetch(apiUrl(`/api/booking/slots?${params.toString()}`), {
+          cache: "no-store",
+        });
+        const json = await res.json().catch(() => null);
+        setSlots(Array.isArray(json?.slots) ? json.slots : []);
+      } catch {
+        setSlots([]);
+      } finally {
+        setSlotsLoading(false);
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
     if (step !== "schedule" || !selected) return;
-    void loadSlots(selected.id, date.toString());
-  }, [step, selected, date, loadSlots]);
+    void loadSlots(selected.id, date.toString(), selectedBranchId, selectedStaffId);
+  }, [step, selected, date, selectedBranchId, selectedStaffId, loadSlots]);
 
   const currentStep = stepIndex(step);
+
+  const filteredServices = useMemo(() => {
+    const q = serviceSearch.trim().toLowerCase();
+    if (!q) return services;
+    return services.filter((service) => service.name.toLowerCase().includes(q));
+  }, [services, serviceSearch]);
 
   const dateLabel = useMemo(() => {
     if (!slot) return null;
@@ -209,36 +284,30 @@ export function PublicBookingPage() {
   };
 
   const goDetails = () => {
+    if (!selectedBranchId) {
+      toast.danger("Selecciona una sucursal");
+      return;
+    }
     if (!slot) {
       toast.danger("Selecciona un horario");
       return;
     }
-    setStep("details");
+    void submit();
   };
 
   const submit = async () => {
-    if (!selected || !slot) return;
-    if (
-      !form.name.trim() ||
-      !form.lastnames.trim() ||
-      !form.phone.trim() ||
-      !form.email.trim()
-    ) {
-      toast.danger("Completa todos los datos");
-      return;
-    }
+    if (!selected || !slot || !customer) return;
     setPending(true);
     try {
       const res = await fetch(apiUrl("/api/booking"), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({
           serviceId: selected.id,
+          branchId: selectedBranchId,
+          userId: selectedStaffId,
           appointmentDate: slot,
-          name: form.name.trim(),
-          lastnames: form.lastnames.trim(),
-          phone: form.phone.trim(),
-          email: form.email.trim(),
         }),
       });
       const json = await res.json().catch(() => null);
@@ -249,15 +318,16 @@ export function PublicBookingPage() {
             : "No se pudo crear la reserva",
         );
       }
+      const customerName = `${customer.name} ${customer.lastnames}`.trim();
       setConfirmation({
         appointmentId: Number(json.id),
         appointmentDate: json.appointmentDate,
         serviceName: selected.name,
         servicePrice: selected.price,
         durationMinutes: selected.durationMinutes ?? 30,
-        customerName: `${form.name.trim()} ${form.lastnames.trim()}`.trim(),
-        customerPhone: form.phone.trim(),
-        customerEmail: form.email.trim(),
+        customerName,
+        customerPhone: customer.phone,
+        customerEmail: customer.email,
       });
       setStep("done");
       toast.success("Cita agendada");
@@ -271,19 +341,56 @@ export function PublicBookingPage() {
   const reset = () => {
     setSelected(null);
     setSlot(null);
-    setForm({ name: "", lastnames: "", phone: "", email: "" });
+    setSelectedBranchId(branches.length === 1 ? branches[0]?.id ?? null : null);
+    setSelectedStaffId(null);
     setConfirmation(null);
+    setServiceSearch("");
     setStep("services");
   };
 
   const goBack = () => {
-    if (step === "details") setStep("schedule");
-    else if (step === "schedule") {
+    if (step === "schedule") {
       setSelected(null);
       setSlot(null);
+      setServiceSearch("");
       setStep("services");
     }
   };
+
+  if (authLoading) {
+    return (
+      <PublicShell active="booking">
+        <div className="mx-auto w-full max-w-xl px-4 py-10">
+          <div className="h-48 animate-pulse rounded-2xl bg-surface-secondary" />
+        </div>
+      </PublicShell>
+    );
+  }
+
+  if (!customer) {
+    return (
+      <PublicShell active="booking">
+        <div className="mx-auto w-full max-w-md px-4 py-10 sm:px-6 sm:py-14">
+          <header className="mb-8">
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">
+              Reservar
+            </h1>
+            <p className="mt-2 text-sm leading-relaxed text-muted sm:text-base">
+              Inicia sesión con tu cuenta de cliente para agendar un turno.
+            </p>
+          </header>
+          <div className="rounded-2xl border border-separator bg-surface p-5">
+            <CustomerLoginForm redirectHint="Necesitas una cuenta activa del local para reservar." />
+          </div>
+          <p className="mt-4 text-center text-sm text-muted">
+            <Link href={appRoutes.loyalty.customerPortal} className="text-accent hover:underline">
+              Ir a Mi cuenta
+            </Link>
+          </p>
+        </div>
+      </PublicShell>
+    );
+  }
 
   return (
     <PublicShell active="booking">
@@ -293,7 +400,7 @@ export function PublicBookingPage() {
             Reservar
           </h1>
           <p className="mt-2 text-sm leading-relaxed text-muted sm:text-base">
-            Elige servicio, horario y tus datos. Sin crear cuenta.
+            Hola {customer.name}. Elige servicio y horario.
           </p>
         </header>
 
@@ -371,40 +478,65 @@ export function PublicBookingPage() {
                 </p>
               </div>
             ) : (
-              <ul className="overflow-hidden rounded-2xl border border-separator bg-surface">
-                {services.map((service, index) => (
-                  <li
-                    key={service.id}
-                    className={
-                      index > 0 ? "border-t border-separator" : undefined
-                    }
-                  >
-                    <button
-                      type="button"
-                      onClick={() => startReserve(service)}
-                      className="group flex w-full items-center gap-4 px-4 py-4 text-left transition-colors hover:bg-accent/10 sm:px-5"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-semibold tracking-tight text-foreground">
-                          {service.name}
-                        </p>
-                        <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
-                          <Clock width={13} height={13} className="shrink-0" />
-                          {formatDurationLabel(service.durationMinutes ?? 30)}
-                        </p>
-                      </div>
-                      <div className="flex shrink-0 items-center gap-3">
-                        <span className="text-sm font-semibold tabular-nums text-foreground">
-                          {formatMoney(service.price)}
-                        </span>
-                        <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-secondary text-muted transition-colors group-hover:bg-accent group-hover:text-accent-foreground">
-                          <ArrowRight width={14} height={14} />
-                        </span>
-                      </div>
-                    </button>
-                  </li>
-                ))}
-              </ul>
+              <div className="space-y-3">
+                <SearchField value={serviceSearch} onChange={setServiceSearch}>
+                  <Label className="sr-only">Buscar servicio</Label>
+                  <SearchField.Group>
+                    <SearchField.SearchIcon />
+                    <SearchField.Input
+                      className="w-full"
+                      placeholder="Buscar servicio..."
+                    />
+                    <SearchField.ClearButton />
+                  </SearchField.Group>
+                </SearchField>
+
+                {filteredServices.length === 0 ? (
+                  <div className="rounded-2xl border border-dashed border-separator bg-surface px-6 py-10 text-center">
+                    <p className="text-sm font-medium">
+                      No se encontraron servicios
+                    </p>
+                    <p className="mt-1 text-xs text-muted">
+                      Prueba con otro nombre o limpia la búsqueda.
+                    </p>
+                  </div>
+                ) : (
+                  <ul className="overflow-hidden rounded-2xl border border-separator bg-surface">
+                    {filteredServices.map((service, index) => (
+                      <li
+                        key={service.id}
+                        className={
+                          index > 0 ? "border-t border-separator" : undefined
+                        }
+                      >
+                        <button
+                          type="button"
+                          onClick={() => startReserve(service)}
+                          className="group flex w-full items-center gap-4 px-4 py-4 text-left transition-colors hover:bg-accent/10 sm:px-5"
+                        >
+                          <div className="min-w-0 flex-1">
+                            <p className="truncate font-semibold tracking-tight text-foreground">
+                              {service.name}
+                            </p>
+                            <p className="mt-1 flex items-center gap-1.5 text-sm text-muted">
+                              <Clock width={13} height={13} className="shrink-0" />
+                              {formatDurationLabel(service.durationMinutes ?? 30)}
+                            </p>
+                          </div>
+                          <div className="flex shrink-0 items-center gap-3">
+                            <span className="text-sm font-semibold tabular-nums text-foreground">
+                              {formatMoney(service.price)}
+                            </span>
+                            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-secondary text-muted transition-colors group-hover:bg-accent group-hover:text-accent-foreground">
+                              <ArrowRight width={14} height={14} />
+                            </span>
+                          </div>
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </div>
             )}
           </section>
         ) : null}
@@ -420,6 +552,67 @@ export function PublicBookingPage() {
                 </p>
               </div>
             </div>
+
+            {branches.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Sucursal</p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {branches.map((branch) => {
+                    const active = selectedBranchId === branch.id;
+                    return (
+                      <button
+                        key={branch.id}
+                        type="button"
+                        onClick={() => setSelectedBranchId(branch.id)}
+                        className={`rounded-xl border px-3 py-3 text-left text-sm transition-colors ${
+                          active
+                            ? "border-accent bg-accent/10"
+                            : "border-separator bg-surface hover:bg-surface-secondary"
+                        }`}
+                      >
+                        <span className="font-medium">{branch.name}</span>
+                        {branch.address ? (
+                          <span className="mt-1 block text-xs text-muted">{branch.address}</span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : null}
+
+            {selectedBranchId && staff.length > 0 ? (
+              <div className="space-y-3">
+                <p className="text-sm font-medium">Profesional (opcional)</p>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedStaffId(null)}
+                    className={`rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                      selectedStaffId == null
+                        ? "bg-accent text-accent-foreground"
+                        : "bg-surface-secondary text-foreground hover:bg-accent/20"
+                    }`}
+                  >
+                    Cualquiera
+                  </button>
+                  {staff.map((member) => (
+                    <button
+                      key={member.id}
+                      type="button"
+                      onClick={() => setSelectedStaffId(member.id)}
+                      className={`rounded-xl px-3 py-2 text-sm font-medium transition-colors ${
+                        selectedStaffId === member.id
+                          ? "bg-accent text-accent-foreground"
+                          : "bg-surface-secondary text-foreground hover:bg-accent/20"
+                      }`}
+                    >
+                      {member.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : null}
 
             <div className="flex flex-col gap-1.5">
               <Label>Día</Label>
@@ -514,91 +707,8 @@ export function PublicBookingPage() {
             <Button
               variant="primary"
               className="w-full"
-              isDisabled={!slot}
+              isDisabled={!slot || pending}
               onPress={goDetails}
-            >
-              Continuar
-            </Button>
-          </section>
-        ) : null}
-
-        {step === "details" && selected ? (
-          <section className="space-y-6">
-            <div className="border-b border-separator pb-4">
-              <p className="font-semibold tracking-tight">{selected.name}</p>
-              {dateLabel ? (
-                <p className="mt-1 text-sm capitalize text-muted">{dateLabel}</p>
-              ) : null}
-            </div>
-
-            <div className="grid gap-4 sm:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium" htmlFor="bk-name">
-                  Nombre
-                </label>
-                <input
-                  id="bk-name"
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, name: e.target.value }))
-                  }
-                  autoComplete="given-name"
-                  className={fieldClass}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium" htmlFor="bk-last">
-                  Apellidos
-                </label>
-                <input
-                  id="bk-last"
-                  value={form.lastnames}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, lastnames: e.target.value }))
-                  }
-                  autoComplete="family-name"
-                  className={fieldClass}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium" htmlFor="bk-phone">
-                  Teléfono
-                </label>
-                <input
-                  id="bk-phone"
-                  value={form.phone}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, phone: e.target.value }))
-                  }
-                  autoComplete="tel"
-                  inputMode="tel"
-                  className={fieldClass}
-                />
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-sm font-medium" htmlFor="bk-email">
-                  Correo
-                </label>
-                <input
-                  id="bk-email"
-                  type="email"
-                  value={form.email}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, email: e.target.value }))
-                  }
-                  autoComplete="email"
-                  className={fieldClass}
-                />
-              </div>
-            </div>
-
-            <Button
-              variant="primary"
-              className="w-full"
-              isDisabled={pending}
-              onPress={() => {
-                void submit();
-              }}
             >
               {pending ? "Agendando..." : "Confirmar cita"}
             </Button>

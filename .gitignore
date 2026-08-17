@@ -37,6 +37,10 @@ yarn-error.log*
 /public/uploads/*
 !/public/uploads/.gitkeep
 
+# certificados SRI (nunca versionar)
+/storage/sri/*
+!/storage/sri/.gitkeep
+
 # vercel
 .vercel
 

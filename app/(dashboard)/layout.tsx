@@ -10,14 +10,34 @@ import {
 import { Sidebar } from "@/shared/components/Sidebar";
 import { LayoutSkeleton } from "@/shared/components/ui";
 import { appRoutes } from "@/shared/utils/app-routes";
-import { isAdminRole } from "@/shared/utils/roles";
+import { isEmployeeRole, isManagementRole, isOwnerRole } from "@/shared/utils/roles";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 
 function isEmployeeBlockedPath(pathname: string) {
+  if (pathname.startsWith(appRoutes.loyalty.hub)) return true;
   if (pathname.startsWith(appRoutes.sales.history)) return true;
+  if (pathname.startsWith(appRoutes.sales.register)) return true;
+  if (pathname.startsWith(appRoutes.inventory.categories)) return true;
+  if (pathname.startsWith("/compras")) return true;
+  if (pathname.startsWith("/finanzas")) return true;
+  if (pathname.startsWith("/administracion/sucursales")) return true;
   if (pathname.startsWith("/comprobantes-electronicos")) return true;
   if (pathname.startsWith("/administracion")) return true;
+  if (pathname.startsWith("/sistema")) {
+    return (
+      pathname !== appRoutes.system.profile &&
+      !pathname.startsWith(`${appRoutes.system.profile}/`)
+    );
+  }
+  return false;
+}
+
+function isOwnerOnlyPath(pathname: string) {
+  if (pathname.startsWith(appRoutes.purchases.suppliers)) return true;
+  if (pathname.startsWith("/comprobantes-electronicos")) return true;
+  if (pathname.startsWith("/administracion")) return true;
+  if (pathname.startsWith(appRoutes.sales.history)) return true;
   if (pathname.startsWith("/sistema")) {
     return (
       pathname !== appRoutes.system.profile &&
@@ -34,14 +54,18 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!loading && !user) {
-      router.replace("/login");
+      router.replace(appRoutes.login);
     }
   }, [user, loading, router]);
 
   useEffect(() => {
     if (loading || !user) return;
-    if (!isAdminRole(user.role) && isEmployeeBlockedPath(pathname)) {
+    if (isEmployeeRole(user.role) && isEmployeeBlockedPath(pathname)) {
       router.replace(appRoutes.operation.tasks);
+      return;
+    }
+    if (isManagementRole(user.role) && !isOwnerRole(user.role) && isOwnerOnlyPath(pathname)) {
+      router.replace(appRoutes.dashboard);
     }
   }, [user, loading, pathname, router]);
 
@@ -51,7 +75,11 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!user) return null;
 
-  if (!isAdminRole(user.role) && isEmployeeBlockedPath(pathname)) {
+  if (isEmployeeRole(user.role) && isEmployeeBlockedPath(pathname)) {
+    return null;
+  }
+
+  if (isManagementRole(user.role) && !isOwnerRole(user.role) && isOwnerOnlyPath(pathname)) {
     return null;
   }
 
@@ -68,7 +96,9 @@ export default function DashboardLayout({
       <SubscriptionProvider>
         <OnboardingRoot>
           <div className="flex h-screen overflow-hidden">
-            <Sidebar />
+            <Suspense fallback={null}>
+              <Sidebar />
+            </Suspense>
             <main className="flex-1 min-h-0 overflow-y-auto bg-background p-4 sm:p-5 md:p-6 lg:p-8">
               <SubscriptionGate>{children}</SubscriptionGate>
             </main>

@@ -5,6 +5,7 @@ import {
   emitCustomerUpdated,
 } from "@/shared/utils/socket";
 import { checkAuth } from "@/shared/utils/check-auth";
+import { isManagementRole } from "@/shared/utils/roles";
 
 export async function GET(
   _request: Request,
@@ -17,6 +18,14 @@ export async function GET(
   try {
     const customer = await prisma.customer.findUnique({
       where: { id: Number(id) },
+      select: {
+        id: true,
+        name: true,
+        lastnames: true,
+        phone: true,
+        email: true,
+        password: true,
+      },
     });
     if (!customer) {
       return NextResponse.json(
@@ -24,7 +33,8 @@ export async function GET(
         { status: 404 }
       );
     }
-    return NextResponse.json(customer);
+    const { password, ...rest } = customer;
+    return NextResponse.json({ ...rest, hasPortalAccess: Boolean(password) });
   } catch {
     return NextResponse.json(
       { message: "Error al obtener el cliente" },
@@ -40,15 +50,29 @@ export async function PUT(
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
 
+  if (!isManagementRole(auth.user.role)) {
+    return NextResponse.json({ message: "No autorizado" }, { status: 403 });
+  }
+
   const { id } = await params;
   try {
     const body = await request.json();
+    const { password: _pw, ...data } = body as Record<string, unknown>;
     const customer = await prisma.customer.update({
       where: { id: Number(id) },
-      data: body,
+      data,
+      select: {
+        id: true,
+        name: true,
+        lastnames: true,
+        phone: true,
+        email: true,
+        password: true,
+      },
     });
-    emitCustomerUpdated(customer);
-    return NextResponse.json(customer);
+    const { password, ...rest } = customer;
+    emitCustomerUpdated(rest);
+    return NextResponse.json({ ...rest, hasPortalAccess: Boolean(password) });
   } catch {
     return NextResponse.json(
       { message: "Error al actualizar el cliente" },
@@ -63,6 +87,10 @@ export async function DELETE(
 ) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
+
+  if (!isManagementRole(auth.user.role)) {
+    return NextResponse.json({ message: "No autorizado" }, { status: 403 });
+  }
 
   const { id } = await params;
   try {

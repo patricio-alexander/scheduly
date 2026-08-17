@@ -16,6 +16,9 @@ function toProfile(row: {
   businessName: string;
   address: string;
   logoPath: string | null;
+  ruc?: string | null;
+  tradeName?: string | null;
+  obligationAccounting?: boolean | null;
   accentColor?: string | null;
   successColor?: string | null;
   warningColor?: string | null;
@@ -31,6 +34,9 @@ function toProfile(row: {
     businessName: row.businessName || DEFAULT_BUSINESS_NAME,
     address: row.address ?? "",
     logoPath: row.logoPath,
+    ruc: row.ruc ?? "",
+    tradeName: row.tradeName ?? "",
+    obligationAccounting: row.obligationAccounting ?? true,
     ...colors,
   };
 }
@@ -54,6 +60,9 @@ export async function getBusinessSettings(): Promise<BusinessProfile> {
 export async function updateBusinessSettings(input: {
   businessName: string;
   address: string;
+  ruc?: string;
+  tradeName?: string;
+  obligationAccounting?: boolean;
   accentColor?: string;
   successColor?: string;
   warningColor?: string;
@@ -76,11 +85,19 @@ export async function updateBusinessSettings(input: {
       businessName,
       address,
       logoPath: null,
+      ruc: input.ruc?.trim() ?? "",
+      tradeName: input.tradeName?.trim() ?? "",
+      obligationAccounting: input.obligationAccounting ?? true,
       ...colors,
     },
     update: {
       businessName,
       address,
+      ...(input.ruc !== undefined ? { ruc: input.ruc.trim() } : {}),
+      ...(input.tradeName !== undefined ? { tradeName: input.tradeName.trim() } : {}),
+      ...(input.obligationAccounting !== undefined
+        ? { obligationAccounting: input.obligationAccounting }
+        : {}),
       ...colors,
     },
   });

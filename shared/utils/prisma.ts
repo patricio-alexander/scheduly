@@ -1,8 +1,7 @@
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
-/** Incrementar al cambiar el schema de Prisma para invalidar el singleton en dev */
-const CLIENT_VERSION = "20260726-business-theme-colors-v1";
+const CLIENT_VERSION = "20260813190000-single-tenant-v1";
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
@@ -18,14 +17,16 @@ function createPrismaClient() {
 function isClientUpToDate(client?: PrismaClient): boolean {
   if (!client) return false;
   if (globalForPrisma.prismaVersion !== CLIENT_VERSION) return false;
-  // Verifica que modelos nuevos existan (evita singleton obsoleto en hot reload)
   return (
     typeof client.product?.findMany === "function" &&
     typeof client.payment?.create === "function" &&
     typeof client.category?.findMany === "function" &&
     typeof client.entitlement?.findMany === "function" &&
     typeof client.task?.findMany === "function" &&
-    typeof client.businessSettings?.findUnique === "function"
+    typeof client.businessSettings?.findUnique === "function" &&
+    typeof client.branch?.findMany === "function" &&
+    typeof client.purchase?.findMany === "function" &&
+    typeof client.productSale?.findMany === "function"
   );
 }
 

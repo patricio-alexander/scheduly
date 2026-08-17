@@ -35,12 +35,12 @@ export function SalesSummary({
       <div className="col-span-2 rounded-2xl border border-separator bg-surface p-4 sm:col-span-1 lg:col-span-1">
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="text-xs font-medium text-muted">Total vendido</p>
+            <p className="text-xs font-medium text-muted">Total cobrado</p>
             <p className="mt-1 truncate text-2xl font-bold tabular-nums tracking-tight">
               {formatMoney(totalAmount)}
             </p>
             <p className="mt-1 text-[11px] text-muted">
-              {totalCount} venta{totalCount === 1 ? "" : "s"} · {periodLabel}
+              {totalCount} cobro{totalCount === 1 ? "" : "s"} · {periodLabel}
             </p>
           </div>
           <span className="shrink-0 rounded-xl bg-accent/10 p-2.5 text-accent">

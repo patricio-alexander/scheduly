@@ -12,6 +12,7 @@ import {
 import { apiUrl } from "@/shared/utils/api";
 import { appRoutes } from "@/shared/utils/app-routes";
 import { useAuth } from "@/src/features/auth";
+import { isOwnerRole } from "@/shared/utils/roles";
 import type { SubscriptionModule, SubscriptionSection, SubscriptionState } from "../types";
 import {
   accessDescription,
@@ -103,7 +104,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const isDeveloper = user?.role === "admin";
+  const isDeveloper = isOwnerRole(user?.role);
 
   const applyEntitlementResponse = useCallback((json: unknown) => {
     setData(parseSubscriptionState(extractSubscriptionPayload(json)));

@@ -39,6 +39,18 @@ enum TaskPriority {
   high
 }
 
+enum ElectronicDocumentType {
+  invoice
+}
+
+enum ElectronicDocumentStatus {
+  draft
+  signed
+  received
+  authorized
+  rejected
+}
+
 model User {
   id       Int     @id @default(autoincrement())
   username String  @unique
@@ -54,6 +66,14 @@ model User {
   appointments  Appointment[]
   notifications Notification[]
   tasks         Task[]
+  purchases     Purchase[]
+  productSales  ProductSale[]
+  branches      UserBranch[]
+  expenses      Expense[]
+  stockTransfers StockTransfer[]
+  commissions   CommissionRecord[]
+  employeePayments       EmployeePayment[] @relation("EmployeePaymentRecipient")
+  registeredEmpPayments  EmployeePayment[] @relation("EmployeePaymentRegistrar")
 }
 
 model Role {
@@ -74,13 +94,22 @@ model UserRole {
 }
 
 model Customer {
-  id        Int    @id @default(autoincrement())
+  id        Int     @id @default(autoincrement())
   name      String
   lastnames String
   phone     String
-  email     String @unique
+  email     String  @unique
+  /** Hash bcrypt; null = sin acceso a portal cliente */
+  password  String?
+  /** SRI: 04 RUC, 05 cédula, 06 pasaporte, 07 consumidor final */
+  identificationType String?
+  identification     String?
+  address            String  @default("")
 
   appointments Appointment[]
+  productSales ProductSale[]
+  loyalty      CustomerLoyalty?
+  pointTransactions PointTransaction[]
 }
 
 model Service {
@@ -89,8 +118,12 @@ model Service {
   price           Float
   /** Duración del servicio en minutos */
   durationMinutes Int    @default(30)
+  /** Porcentaje de comisión del empleado (0-100) */
+  commissionPct   Float  @default(15)
 
   appointmentsServices AppointmentsServices[]
+  branches             ServiceBranch[]
+  rewards              Reward[]
 }
 
 model Product {
@@ -102,6 +135,14 @@ model Product {
 
   category             Category?              @relation(fields: [categoryId], references: [id])
   appointmentsProducts AppointmentsProducts[]
+  productSaleLines     ProductSaleLine[]
+  purchaseLines        PurchaseLine[]
+  branchStocks         BranchStock[]
+  transferLines        StockTransferLine[]
+  rewards              Reward[]
+
+  @@index([categoryId])
+  @@index([stock])
 }
 
 model Category {
@@ -120,6 +161,7 @@ model AppointmentsServices {
   service     Service     @relation(fields: [serviceId], references: [id])
 
   @@id([appointmentId, serviceId])
+  @@index([serviceId])
 }
 
 model AppointmentsProducts {
@@ -131,6 +173,7 @@ model AppointmentsProducts {
   product     Product     @relation(fields: [productId], references: [id])
 
   @@id([appointmentId, productId])
+  @@index([productId])
 }
 
 model Appointment {
@@ -143,12 +186,22 @@ model Appointment {
   status          AppointmentStatus
   reminderSent    String
   stockDeducted   Boolean           @default(false)
+  branchId        Int?
 
   customer Customer               @relation(fields: [customerId], references: [id])
   user     User                   @relation(fields: [userId], references: [id])
+  branch   Branch?                @relation(fields: [branchId], references: [id])
   services AppointmentsServices[]
   products AppointmentsProducts[]
   payment  Payment?
+  commission CommissionRecord?
+
+  @@index([appointmentDate])
+  @@index([branchId, appointmentDate])
+  @@index([userId, appointmentDate])
+  @@index([branchId, status, appointmentDate])
+  @@index([status, appointmentDate])
+  @@index([customerId])
 }
 
 model Payment {
@@ -159,7 +212,42 @@ model Payment {
   paidAt        DateTime      @default(now())
   notes         String        @default("")
 
-  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  appointment        Appointment         @relation(fields: [appointmentId], references: [id])
+  electronicDocument ElectronicDocument?
+}
+
+model ProductSale {
+  id         Int           @id @default(autoincrement())
+  customerId Int?
+  userId     Int
+  branchId   Int
+  amount     Float
+  method     PaymentMethod
+  paidAt     DateTime      @default(now())
+  notes      String        @default("")
+
+  customer Customer?         @relation(fields: [customerId], references: [id])
+  user     User              @relation(fields: [userId], references: [id])
+  branch   Branch            @relation(fields: [branchId], references: [id])
+  lines    ProductSaleLine[]
+  electronicDocument ElectronicDocument?
+
+  @@index([paidAt])
+  @@index([branchId, paidAt])
+  @@index([userId, paidAt])
+  @@index([customerId])
+}
+
+model ProductSaleLine {
+  saleId    Int
+  productId Int
+  quantity  Int
+  unitPrice Float
+
+  sale    ProductSale @relation(fields: [saleId], references: [id], onDelete: Cascade)
+  product Product     @relation(fields: [productId], references: [id])
+
+  @@id([saleId, productId])
 }
 
 model Notification {
@@ -174,6 +262,9 @@ model Notification {
   createdAt DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
 }
 
 model Entitlement {
@@ -183,6 +274,8 @@ model Entitlement {
   status    EntitlementStatus
   createdAt DateTime          @default(now())
   updatedAt DateTime          @updatedAt
+
+  @@index([status, updatedAt])
 }
 
 model Task {
@@ -198,6 +291,9 @@ model Task {
   updatedAt   DateTime     @updatedAt
 
   assignee User? @relation(fields: [assigneeId], references: [id])
+
+  @@index([status, sortOrder])
+  @@index([assigneeId, status])
 }
 
 /** Perfil del negocio (singleton id = 1) */
@@ -212,5 +308,363 @@ model BusinessSettings {
   successColor String   @default("#5FD46A")
   warningColor String   @default("#F0B429")
   dangerColor  String   @default("#F04438")
+  /** RUC del emisor (13 dígitos) */
+  ruc          String   @default("")
+  tradeName    String   @default("")
+  obligationAccounting Boolean @default(true)
   updatedAt    DateTime @updatedAt
+}
+
+/** Configuración SRI / firma electrónica (Ecuador, singleton id = 1) */
+model SriSettings {
+  id              Int       @id @default(1)
+  /** Nombre original del archivo .p12 / .pfx */
+  certFileName    String?
+  /** Ruta interna del certificado (fuera de public/) */
+  certStoragePath String?
+  /** Contraseña del .p12 cifrada */
+  certPasswordEnc String?   @db.Text
+  /** Ambiente SRI: pruebas | produccion */
+  environment     String    @default("pruebas")
+  autoEmitOnPayment Boolean @default(false)
+  uploadedAt      DateTime?
+  updatedAt       DateTime  @updatedAt
+}
+
+model Supplier {
+  id        Int        @id @default(autoincrement())
+  name      String
+  phone     String     @default("")
+  email     String     @default("")
+  taxId     String?
+  address   String     @default("") @db.Text
+  purchases Purchase[]
+}
+
+model Purchase {
+  id          Int           @id @default(autoincrement())
+  supplierId  Int?
+  userId      Int
+  purchasedAt DateTime      @default(now())
+  notes       String        @default("")
+  totalAmount Float
+  method      PaymentMethod @default(cash)
+  branchId    Int?
+
+  supplier Supplier?      @relation(fields: [supplierId], references: [id])
+  user     User           @relation(fields: [userId], references: [id])
+  branch   Branch?        @relation(fields: [branchId], references: [id])
+  lines    PurchaseLine[]
+
+  @@index([purchasedAt])
+  @@index([branchId, purchasedAt])
+  @@index([userId, purchasedAt])
+}
+
+model PurchaseLine {
+  purchaseId Int
+  productId  Int
+  quantity   Int
+  unitCost   Float
+
+  purchase Purchase @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id])
+
+  @@id([purchaseId, productId])
+}
+
+model Branch {
+  id        Int      @id @default(autoincrement())
+  name      String
+  code      String   @unique
+  address   String   @db.Text
+  phone     String   @default("")
+  isActive  Boolean  @default(true)
+  /** Casa matriz del negocio */
+  isMain    Boolean  @default(false)
+  sortOrder Int      @default(0)
+  /** Código establecimiento SRI (3 dígitos) */
+  emissionEstablishment String @default("")
+  /** Punto de emisión SRI (3 dígitos) */
+  emissionPoint         String @default("")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users            UserBranch[]
+  stocks           BranchStock[]
+  appointments     Appointment[]
+  purchases        Purchase[]
+  productSales     ProductSale[]
+  expenses         Expense[]
+  employeePayments EmployeePayment[]
+  transfersFrom    StockTransfer[] @relation("TransferFrom")
+  transfersTo      StockTransfer[] @relation("TransferTo")
+  serviceBranches  ServiceBranch[]
+  electronicDocuments ElectronicDocument[]
+}
+
+model UserBranch {
+  userId    Int
+  branchId  Int
+  isPrimary Boolean @default(false)
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  branch Branch @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@id([userId, branchId])
+  @@index([branchId])
+  @@index([userId, isPrimary])
+}
+
+model BranchStock {
+  branchId  Int
+  productId Int
+  stock     Int @default(0)
+  minStock  Int @default(5)
+
+  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@id([branchId, productId])
+  @@index([branchId, stock])
+}
+
+model StockTransfer {
+  id           Int      @id @default(autoincrement())
+  fromBranchId Int
+  toBranchId   Int
+  userId       Int
+  status       String   @default("completed")
+  notes        String   @default("")
+  createdAt    DateTime @default(now())
+
+  fromBranch Branch              @relation("TransferFrom", fields: [fromBranchId], references: [id])
+  toBranch   Branch              @relation("TransferTo", fields: [toBranchId], references: [id])
+  user       User                @relation(fields: [userId], references: [id])
+  lines      StockTransferLine[]
+
+  @@index([fromBranchId, createdAt])
+  @@index([toBranchId, createdAt])
+}
+
+model StockTransferLine {
+  transferId Int
+  productId  Int
+  quantity   Int
+
+  transfer StockTransfer @relation(fields: [transferId], references: [id], onDelete: Cascade)
+  product  Product       @relation(fields: [productId], references: [id])
+
+  @@id([transferId, productId])
+}
+
+model ExpenseCategory {
+  id       Int      @id @default(autoincrement())
+  name     String   @unique
+  type     String   @default("other")
+  expenses Expense[]
+}
+
+model Expense {
+  id          Int           @id @default(autoincrement())
+  branchId    Int?
+  categoryId  Int
+  userId      Int
+  amount      Float
+  description String        @default("")
+  expenseDate DateTime      @default(now())
+  method      PaymentMethod @default(cash)
+  createdAt   DateTime      @default(now())
+
+  branch   Branch?         @relation(fields: [branchId], references: [id])
+  category ExpenseCategory @relation(fields: [categoryId], references: [id])
+  user     User            @relation(fields: [userId], references: [id])
+
+  @@index([expenseDate])
+  @@index([branchId, expenseDate])
+  @@index([categoryId])
+}
+
+model ServiceBranch {
+  serviceId     Int
+  branchId      Int
+  isActive      Boolean @default(true)
+  priceOverride Float?
+
+  service Service @relation(fields: [serviceId], references: [id], onDelete: Cascade)
+  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@id([serviceId, branchId])
+  @@index([branchId, isActive])
+}
+
+model ServicePromotion {
+  id            Int       @id @default(autoincrement())
+  name          String
+  description   String    @db.Text
+  discountPct   Float?
+  discountFixed Float?
+  comboLabel    String?
+  startsAt      DateTime
+  endsAt        DateTime?
+  isActive      Boolean   @default(true)
+  serviceIds    Json
+  branchIds     Json
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([isActive, startsAt])
+}
+
+model LoyaltySettings {
+  id                   Int      @id @default(1)
+  pointsPerAppointment Int      @default(10)
+  pointsPerAmount      Float    @default(1)
+  amountUnit           Float    @default(10)
+  silverThreshold      Int      @default(100)
+  goldThreshold        Int      @default(300)
+  updatedAt            DateTime @updatedAt
+}
+
+model CustomerLoyalty {
+  customerId Int      @id
+  points     Int      @default(0)
+  tier       String   @default("bronze")
+  updatedAt  DateTime @updatedAt
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+}
+
+model PointTransaction {
+  id            Int      @id @default(autoincrement())
+  customerId    Int
+  points        Int
+  reason        String
+  appointmentId Int?
+  rewardId      Int?
+
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  reward   Reward?  @relation(fields: [rewardId], references: [id], onDelete: SetNull)
+  createdAt     DateTime @default(now())
+
+  @@index([customerId, createdAt])
+}
+
+model Reward {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String   @db.Text
+  pointsCost  Int
+  isActive    Boolean  @default(true)
+  sortOrder   Int      @default(0)
+  /** Servicio al que aplica el beneficio (opcional) */
+  serviceId   Int?
+  /** Producto al que aplica el beneficio (opcional) */
+  productId   Int?
+  /** Descuento % sobre el servicio o producto vinculado (0-100) */
+  discountPct Float?
+  createdAt   DateTime @default(now())
+
+  service     Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  redemptions PointTransaction[]
+
+  @@index([isActive, sortOrder])
+}
+
+model FeedPost {
+  id        Int       @id @default(autoincrement())
+  title     String
+  body      String    @db.Text
+  type      String    @default("news")
+  imageUrl  String?
+  startsAt  DateTime  @default(now())
+  endsAt    DateTime?
+  isActive  Boolean   @default(true)
+  sortOrder Int       @default(0)
+  createdAt DateTime  @default(now())
+
+  @@index([isActive, startsAt])
+}
+
+model CommissionRecord {
+  id            Int       @id @default(autoincrement())
+  userId        Int
+  appointmentId Int       @unique
+  baseAmount    Float
+  ratePct       Float
+  amount        Float
+  settledAt     DateTime?
+  createdAt     DateTime  @default(now())
+
+  user        User        @relation(fields: [userId], references: [id])
+  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+
+  @@index([userId, settledAt])
+  @@index([userId, createdAt])
+}
+
+model EmployeePayment {
+  id             Int           @id @default(autoincrement())
+  userId         Int
+  branchId       Int?
+  registeredById Int
+  amount         Float
+  method         PaymentMethod
+  paidAt         DateTime      @default(now())
+  notes          String        @default("")
+
+  user         User    @relation("EmployeePaymentRecipient", fields: [userId], references: [id])
+  registeredBy User    @relation("EmployeePaymentRegistrar", fields: [registeredById], references: [id])
+  branch       Branch? @relation(fields: [branchId], references: [id])
+
+  @@index([userId, paidAt])
+  @@index([branchId, paidAt])
+}
+
+/** Comprobante electrónico SRI (Ecuador) */
+model ElectronicDocument {
+  id        Int                      @id @default(autoincrement())
+  type      ElectronicDocumentType   @default(invoice)
+  status    ElectronicDocumentStatus @default(draft)
+
+  branchId      Int?
+  paymentId     Int? @unique
+  productSaleId Int? @unique
+
+  accessKey  String @unique
+  estab      String
+  ptoEmi     String
+  secuencial String
+  environment String @default("pruebas")
+
+  issueDate DateTime @default(now())
+
+  buyerName               String
+  buyerIdentification     String
+  buyerIdentificationType String @default("05")
+  buyerAddress            String @default("")
+  buyerEmail              String @default("")
+  buyerPhone              String @default("")
+
+  subtotal  Float
+  ivaAmount Float
+  total     Float
+  lines     Json
+
+  xmlUnsigned         String? @db.Text
+  xmlSigned           String? @db.Text
+  authorizationNumber String?
+  authorizationDate   DateTime?
+  sriMessages         Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  branch      Branch?      @relation(fields: [branchId], references: [id])
+  payment     Payment?     @relation(fields: [paymentId], references: [id])
+  productSale ProductSale? @relation(fields: [productSaleId], references: [id])
+
+  @@index([status, issueDate])
+  @@index([branchId, issueDate])
 }

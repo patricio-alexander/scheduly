@@ -13,6 +13,10 @@ export type AuthSessionUser = {
   role: string;
 };
 
+export type AuthResult =
+  | { ok: true; user: AuthSessionUser }
+  | { ok: false; response: NextResponse };
+
 function getAuthSecret() {
   const secret =
     process.env.AUTH_SECRET?.trim() ||
@@ -30,21 +34,17 @@ function cookiePath() {
 
 export function signSessionToken(userId: number) {
   const payload = String(userId);
-  const sig = createHmac("sha256", getAuthSecret())
-    .update(payload)
-    .digest("hex");
+  const sig = createHmac("sha256", getAuthSecret()).update(payload).digest("hex");
   return `${payload}.${sig}`;
 }
 
 export function verifySessionToken(token: string): number | null {
-  const [payload, sig] = token.split(".");
-  if (!payload || !sig) return null;
+  const [body, sig] = token.split(".");
+  if (!body || !sig) return null;
 
   let expected: string;
   try {
-    expected = createHmac("sha256", getAuthSecret())
-      .update(payload)
-      .digest("hex");
+    expected = createHmac("sha256", getAuthSecret()).update(body).digest("hex");
   } catch {
     return null;
   }
@@ -53,7 +53,7 @@ export function verifySessionToken(token: string): number | null {
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
 
-  const userId = Number(payload);
+  const userId = Number(body);
   return Number.isFinite(userId) && userId > 0 ? userId : null;
 }
 
@@ -81,13 +81,7 @@ export function clearAuthCookie() {
   };
 }
 
-/**
- * Valida la cookie de sesión. Si no hay sesión válida, retorna 401.
- */
-export async function checkAuth(): Promise<
-  | { ok: true; user: AuthSessionUser }
-  | { ok: false; response: NextResponse }
-> {
+export async function checkAuth(): Promise<AuthResult> {
   const unauthorized = () =>
     NextResponse.json({ message: "No autorizado" }, { status: 401 });
 

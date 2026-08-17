@@ -7,6 +7,9 @@ export const routeModuleKeys: Array<{ prefix: string; moduleKey: string }> = [
   { prefix: "/comprobantes-electronicos", moduleKey: "electronicDocs" },
   { prefix: "/operacion", moduleKey: "operation" },
   { prefix: "/ventas", moduleKey: "sales" },
+  { prefix: "/compras", moduleKey: "purchases" },
+  { prefix: "/finanzas", moduleKey: "admin" },
+  { prefix: "/empleado", moduleKey: "operation" },
   { prefix: "/inventario", moduleKey: "inventory" },
   { prefix: "/administracion", moduleKey: "admin" },
   { prefix: "/sistema", moduleKey: "system" },
@@ -31,6 +34,7 @@ const moduleKeyAliases: Record<string, string[]> = {
   admin: ["admin", "administracion", "administration"],
   operation: ["operation", "operations", "operacion", "operaciones"],
   sales: ["sales", "ventas"],
+  purchases: ["purchases", "compras"],
   inventory: ["inventory", "inventario"],
   system: ["system", "sistema"],
   electronicDocs: [

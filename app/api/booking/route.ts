@@ -3,6 +3,7 @@ import { prisma } from "@/shared/utils/prisma";
 import { getAppointmentCalendarEvent } from "@/shared/utils/appointment-calendar";
 import { notifyStaffNewBooking } from "@/shared/utils/booking-notify";
 import { emitAppointmentCreated } from "@/shared/utils/socket";
+import { checkCustomerAuth } from "@/shared/utils/check-customer-auth";
 import {
   buildDaySlots,
   DEFAULT_SERVICE_DURATION_MINUTES,
@@ -10,8 +11,11 @@ import {
   startOfLocalDay,
 } from "@/shared/utils/booking";
 
-/** Crear reserva pública (sin cuenta de cliente) */
+/** Crear reserva pública (cliente autenticado) */
 export async function POST(request: Request) {
+  const auth = await checkCustomerAuth();
+  if (!auth.ok) return auth.response;
+
   try {
     const body = (await request.json().catch(() => ({}))) as Record<
       string,
@@ -19,11 +23,17 @@ export async function POST(request: Request) {
     >;
 
     const serviceId = Number(body.serviceId);
+    const branchIdRaw = body.branchId;
+    const branchId =
+      branchIdRaw == null || branchIdRaw === ""
+        ? null
+        : Number(branchIdRaw);
+    const staffIdRaw = body.userId ?? body.staffId;
+    const staffId =
+      staffIdRaw == null || staffIdRaw === ""
+        ? null
+        : Number(staffIdRaw);
     const appointmentDateRaw = String(body.appointmentDate ?? "").trim();
-    const name = String(body.name ?? "").trim();
-    const lastnames = String(body.lastnames ?? "").trim();
-    const phone = String(body.phone ?? "").trim();
-    const email = String(body.email ?? "").trim().toLowerCase();
 
     if (!Number.isFinite(serviceId)) {
       return NextResponse.json(
@@ -31,15 +41,12 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
+    if (branchId != null && (!Number.isInteger(branchId) || branchId <= 0)) {
+      return NextResponse.json({ message: "Sucursal inválida" }, { status: 400 });
+    }
     if (!appointmentDateRaw) {
       return NextResponse.json(
         { message: "Selecciona fecha y hora" },
-        { status: 400 },
-      );
-    }
-    if (!name || !lastnames || !phone || !email) {
-      return NextResponse.json(
-        { message: "Completa nombre, apellido, teléfono y correo" },
         { status: 400 },
       );
     }
@@ -85,6 +92,8 @@ export async function POST(request: Request) {
       where: {
         appointmentDate: { gte: dayStart, lte: dayEnd },
         status: { not: "cancelled" },
+        ...(branchId && branchId > 0 ? { branchId } : {}),
+        ...(staffId && staffId > 0 ? { userId: staffId } : {}),
       },
       include: {
         services: {
@@ -116,12 +125,30 @@ export async function POST(request: Request) {
       );
     }
 
-    const staff =
-      (await prisma.user.findFirst({
-        where: { role: "admin" },
-        orderBy: { id: "asc" },
-      })) ??
-      (await prisma.user.findFirst({ orderBy: { id: "asc" } }));
+    let staff =
+      staffId && staffId > 0
+        ? await prisma.user.findFirst({
+            where: {
+              id: staffId,
+              branches: branchId ? { some: { branchId } } : undefined,
+            },
+          })
+        : null;
+
+    if (!staff) {
+      staff =
+        (await prisma.user.findFirst({
+          where: {
+            role: "admin",
+            ...(branchId ? { branches: { some: { branchId } } } : {}),
+          },
+          orderBy: { id: "asc" },
+        })) ??
+        (await prisma.user.findFirst({
+          where: branchId ? { branches: { some: { branchId } } } : {},
+          orderBy: { id: "asc" },
+        }));
+    }
 
     if (!staff) {
       return NextResponse.json(
@@ -131,16 +158,11 @@ export async function POST(request: Request) {
     }
 
     const appointment = await prisma.$transaction(async (tx) => {
-      let customer = await tx.customer.findUnique({ where: { email } });
-      if (customer) {
-        customer = await tx.customer.update({
-          where: { id: customer.id },
-          data: { name, lastnames, phone },
-        });
-      } else {
-        customer = await tx.customer.create({
-          data: { name, lastnames, phone, email },
-        });
+      const customer = await tx.customer.findUnique({
+        where: { id: auth.customer.id },
+      });
+      if (!customer) {
+        throw new Error("Cliente no encontrado");
       }
 
       const created = await tx.appointment.create({
@@ -149,6 +171,7 @@ export async function POST(request: Request) {
           description: "Reserva online",
           customerId: customer.id,
           userId: staff.id,
+          branchId: branchId && branchId > 0 ? branchId : null,
           appointmentDate,
           status: "scheduled",
           reminderSent: "",
@@ -162,18 +185,18 @@ export async function POST(request: Request) {
         },
       });
 
-      return created;
+      return { created, customer };
     });
 
-    const calendarEvent = await getAppointmentCalendarEvent(appointment.id);
+    const calendarEvent = await getAppointmentCalendarEvent(appointment.created.id);
     if (calendarEvent) emitAppointmentCreated(calendarEvent);
 
     try {
       await notifyStaffNewBooking({
-        appointmentId: appointment.id,
+        appointmentId: appointment.created.id,
         serviceName: service.name,
-        customerName: `${name} ${lastnames}`.trim(),
-        appointmentDate: appointment.appointmentDate,
+        customerName: `${appointment.customer.name} ${appointment.customer.lastnames}`.trim(),
+        appointmentDate: appointment.created.appointmentDate,
       });
     } catch (notifyError) {
       console.error("POST /api/booking notify", notifyError);
@@ -181,15 +204,20 @@ export async function POST(request: Request) {
 
     return NextResponse.json(
       {
-        id: appointment.id,
-        appointmentDate: appointment.appointmentDate.toISOString(),
+        id: appointment.created.id,
+        appointmentDate: appointment.created.appointmentDate.toISOString(),
         service: {
           id: service.id,
           name: service.name,
           price: service.price,
           durationMinutes: duration,
         },
-        customer: { name, lastnames, phone, email },
+        customer: {
+          name: appointment.customer.name,
+          lastnames: appointment.customer.lastnames,
+          phone: appointment.customer.phone,
+          email: appointment.customer.email,
+        },
       },
       { status: 201 },
     );

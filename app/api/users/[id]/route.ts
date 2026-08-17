@@ -2,18 +2,39 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { hashPassword } from "@/shared/utils/password";
 import { checkAuth } from "@/shared/utils/check-auth";
+import {
+  getUserBranchSummary,
+  resolveUserBranchId,
+  setUserPrimaryBranch,
+} from "@/shared/utils/branches";
+import { isOwnerRole } from "@/shared/utils/roles";
+
+function parseBranchIdFromBody(body: Record<string, unknown>): number | null {
+  const raw = body.branchId;
+  if (raw == null || raw === "") return null;
+  const id = Number(raw);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
 
 export async function PUT(
   request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
+  if (!isOwnerRole(auth.user.role)) {
+    return NextResponse.json({ message: "No autorizado" }, { status: 403 });
+  }
 
   const { id } = await params;
   try {
-    const body = await request.json();
-    const { username, name, email, role } = body;
+    const body = (await request.json()) as Record<string, unknown>;
+    const username = String(body.username ?? "").trim();
+    const name = String(body.name ?? "").trim();
+    const email = String(body.email ?? "").trim();
+    const role = String(body.role ?? "");
+    const branchId = parseBranchIdFromBody(body);
+    const resolvedBranchId = await resolveUserBranchId(prisma, role, branchId);
     const password =
       typeof body.password === "string" ? body.password.trim() : "";
 
@@ -31,13 +52,20 @@ export async function PUT(
       );
     }
 
+    if (!resolvedBranchId) {
+      return NextResponse.json(
+        { message: "Selecciona una sucursal para el usuario" },
+        { status: 400 },
+      );
+    }
+
     const existing = await prisma.user.findFirst({
       where: { username, NOT: { id: Number(id) } },
     });
     if (existing) {
       return NextResponse.json(
         { message: "El nombre de usuario ya existe" },
-        { status: 409 }
+        { status: 409 },
       );
     }
 
@@ -53,31 +81,57 @@ export async function PUT(
       data.password = await hashPassword(password);
     }
 
-    const user = await prisma.user.update({
-      where: { id: Number(id) },
-      data,
-      select: { id: true, username: true, name: true, email: true, role: true },
+    const user = await prisma.$transaction(async (tx) => {
+      const updated = await tx.user.update({
+        where: { id: Number(id) },
+        data,
+        select: {
+          id: true,
+          username: true,
+          name: true,
+          email: true,
+          role: true,
+          photo: true,
+        },
+      });
+
+      if (body.branchId !== undefined || role === "owner") {
+        await setUserPrimaryBranch(tx, updated.id, resolvedBranchId);
+      }
+
+      return updated;
     });
 
+    const branch = await getUserBranchSummary(prisma, user.id);
+
     return NextResponse.json({
-      ...user,
+      id: user.id,
+      username: user.username,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+      photo: user.photo,
+      branch,
       passwordUpdated: Boolean(password),
     });
   } catch (error) {
     console.error("PUT /api/users/[id]", error);
     return NextResponse.json(
       { message: "Error al actualizar el usuario" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
 
 export async function DELETE(
   _request: Request,
-  { params }: { params: Promise<{ id: string }> }
+  { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
+  if (!isOwnerRole(auth.user.role)) {
+    return NextResponse.json({ message: "No autorizado" }, { status: 403 });
+  }
 
   const { id } = await params;
   try {
@@ -86,7 +140,7 @@ export async function DELETE(
   } catch {
     return NextResponse.json(
       { message: "Error al eliminar el usuario" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

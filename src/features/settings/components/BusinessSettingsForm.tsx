@@ -10,11 +10,10 @@ import { apiUrl } from "@/shared/utils/api";
 import {
   ACCENT_PRESETS,
   DEFAULT_THEME_COLORS,
-  THEME_COLORS_UPDATED_EVENT,
+  broadcastThemeColorsLocally,
   applyThemeColors,
   normalizeHex,
   normalizeThemeColors,
-  storeThemeColors,
   type ThemeColors,
 } from "@/shared/utils/business-profile";
 import type { BusinessSettings } from "../types";
@@ -96,12 +95,17 @@ export function BusinessSettingsForm() {
   const [pending, setPending] = useState(false);
   const [businessName, setBusinessName] = useState("Scheduly");
   const [address, setAddress] = useState("");
+  const [ruc, setRuc] = useState("");
+  const [tradeName, setTradeName] = useState("");
+  const [obligationAccounting, setObligationAccounting] = useState(true);
   const [logoPath, setLogoPath] = useState<string | null>(null);
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [removeLogo, setRemoveLogo] = useState(false);
   const [colors, setColors] = useState<ThemeColors>(DEFAULT_THEME_COLORS);
   const fileRef = useRef<HTMLInputElement>(null);
+  const persistedColorsRef = useRef<ThemeColors>(DEFAULT_THEME_COLORS);
+  const colorsReadyRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -115,8 +119,14 @@ export function BusinessSettingsForm() {
         if (!cancelled && res.ok && json) {
           setBusinessName(json.businessName || "Scheduly");
           setAddress(json.address || "");
+          setRuc(json.ruc || "");
+          setTradeName(json.tradeName || "");
+          setObligationAccounting(json.obligationAccounting ?? true);
           setLogoPath(json.logoPath);
-          setColors(normalizeThemeColors(json));
+          const loaded = normalizeThemeColors(json);
+          setColors(loaded);
+          persistedColorsRef.current = loaded;
+          colorsReadyRef.current = true;
         }
       } catch {
         if (!cancelled) toast.danger("No se pudo cargar la configuración");
@@ -139,10 +149,43 @@ export function BusinessSettingsForm() {
     return () => URL.revokeObjectURL(url);
   }, [logoFile]);
 
-  // Vista previa en vivo de los colores
+  // Vista previa en vivo de los colores (pestaña actual)
   useEffect(() => {
     if (loading) return;
     applyThemeColors(colors);
+  }, [colors, loading]);
+
+  // Propaga colores a todas las sucursales mientras se editan (debounced)
+  useEffect(() => {
+    if (loading || !colorsReadyRef.current) return;
+
+    const unchanged = (
+      Object.keys(colors) as Array<keyof ThemeColors>
+    ).every((key) => colors[key] === persistedColorsRef.current[key]);
+    if (unchanged) return;
+
+    const timer = setTimeout(() => {
+      void (async () => {
+        try {
+          const res = await fetch(apiUrl("/api/settings/theme"), {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(colors),
+          });
+          if (!res.ok) return;
+          const json = (await res.json().catch(() => null)) as
+            | Partial<ThemeColors>
+            | null;
+          if (!json) return;
+          const saved = normalizeThemeColors(json);
+          persistedColorsRef.current = saved;
+        } catch {
+          // ignore; el usuario puede guardar manualmente
+        }
+      })();
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, [colors, loading]);
 
   const displayedLogo = removeLogo
@@ -183,6 +226,9 @@ export function BusinessSettingsForm() {
       const form = new FormData();
       form.set("businessName", businessName.trim());
       form.set("address", address.trim());
+      form.set("ruc", ruc.trim());
+      form.set("tradeName", tradeName.trim());
+      form.set("obligationAccounting", obligationAccounting ? "1" : "0");
       form.set("accentColor", colors.accentColor);
       form.set("successColor", colors.successColor);
       form.set("warningColor", colors.warningColor);
@@ -204,14 +250,14 @@ export function BusinessSettingsForm() {
       }
       setBusinessName(json.businessName);
       setAddress(json.address ?? "");
+      setRuc(json.ruc ?? "");
+      setTradeName(json.tradeName ?? "");
+      setObligationAccounting(json.obligationAccounting ?? true);
       setLogoPath(json.logoPath);
       const nextColors = normalizeThemeColors(json);
       setColors(nextColors);
-      applyThemeColors(nextColors);
-      storeThemeColors(nextColors);
-      window.dispatchEvent(
-        new CustomEvent(THEME_COLORS_UPDATED_EVENT, { detail: nextColors }),
-      );
+      persistedColorsRef.current = nextColors;
+      broadcastThemeColorsLocally(nextColors);
       setLogoFile(null);
       setRemoveLogo(false);
       toast.success("Configuración guardada");
@@ -269,6 +315,44 @@ export function BusinessSettingsForm() {
             className="min-h-[88px] w-full resize-y rounded-xl border border-separator bg-field-background py-2.5 pl-10 pr-3 text-sm text-field-foreground placeholder:text-field-placeholder focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus"
             placeholder="Calle, número, comuna, ciudad"
           />
+        </div>
+      </div>
+
+      <div className="border-t border-separator pt-6">
+        <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
+          Datos tributarios (SRI)
+        </h3>
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="ruc">RUC del negocio</Label>
+            <input
+              id="ruc"
+              value={ruc}
+              onChange={(e) => setRuc(e.target.value.replace(/\D/g, "").slice(0, 13))}
+              className="w-full rounded-xl border border-separator bg-field-background px-3.5 py-2.5 font-mono text-sm focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus"
+              placeholder="1791234567001"
+              maxLength={13}
+            />
+          </div>
+          <div className="flex flex-col gap-1.5">
+            <Label htmlFor="tradeName">Nombre comercial</Label>
+            <input
+              id="tradeName"
+              value={tradeName}
+              onChange={(e) => setTradeName(e.target.value)}
+              className="w-full rounded-xl border border-separator bg-field-background px-3.5 py-2.5 text-sm focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus"
+              placeholder="Opcional · aparece en la factura"
+            />
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={obligationAccounting}
+              onChange={(e) => setObligationAccounting(e.target.checked)}
+              className="rounded border-separator"
+            />
+            Obligado a llevar contabilidad
+          </label>
         </div>
       </div>
 

@@ -44,7 +44,7 @@ export function ElectronicDocsPreview({
       <PageHeader
         icon={<FileDollar width={24} height={24} />}
         title="Comprobantes electrónicos"
-        description="Facturas, notas y documentos SRI según tu suscripción"
+        description="Facturación electrónica SRI"
       />
 
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">

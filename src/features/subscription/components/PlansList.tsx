@@ -12,6 +12,13 @@ import type {
   SubscriptionPlanPrice,
 } from "@/shared/utils/subscription-plans";
 
+function formatPeriodLabel(period: string) {
+  const normalized = period.trim().toUpperCase();
+  if (normalized === "MONTHLY") return "mes";
+  if (normalized === "ANNUALLY" || normalized === "YEARLY") return "año";
+  return period.trim();
+}
+
 function formatPriceValue(value: unknown) {
   const amount = Number(value);
   if (!Number.isFinite(amount)) return null;
@@ -41,10 +48,11 @@ function formatPrices(prices: SubscriptionPlan["prices"]) {
       formatPriceValue(price.price) ??
       (typeof price.label === "string" ? price.label : null);
 
-    const period = String(price.period ?? price.interval ?? "").trim();
-    if (amount && period) return `${amount} / ${period}`;
+    const periodRaw = String(price.period ?? price.interval ?? "").trim();
+    const periodLabel = periodRaw ? formatPeriodLabel(periodRaw) : "";
+    if (amount && periodLabel) return `${amount} / ${periodLabel}`;
     if (amount) return amount;
-    if (period) return period;
+    if (periodLabel) return periodLabel;
     return "Consultar precio";
   });
 }
@@ -112,7 +120,7 @@ export function PlansList() {
         <PageHeader
           icon={<Rocket width={24} height={24} />}
           title="Planes"
-          description="Planes disponibles desde el gestor de suscripciones"
+          description="Planes disponibles según el entitlement sincronizado del gestor"
         />
         <Button
           size="sm"
@@ -140,32 +148,51 @@ export function PlansList() {
           <Rocket width={28} height={28} className="mx-auto text-muted opacity-50" />
           <p className="mt-3 text-sm font-medium">No hay planes disponibles</p>
           <p className="mt-1 text-xs text-muted">
-            Cuando el gestor publique planes, aparecerán aquí.
+            Cuando el gestor sincronice planes en el entitlement, aparecerán aquí.
           </p>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {plans.map((plan, planIndex) => {
+          {plans.map((plan) => {
             const priceLabels = formatPrices(plan.prices);
             return (
               <article
-                key={`plan-${planIndex}-${plan.name}`}
+                key={`plan-${plan.id ?? plan.name}`}
                 className="flex min-w-0 flex-col overflow-hidden rounded-2xl border border-separator bg-surface shadow-sm"
               >
                 <div className="border-b border-separator px-5 py-4">
-                  <h2 className="truncate text-lg font-semibold tracking-tight">
-                    {plan.name}
-                  </h2>
+                  <div className="flex items-start justify-between gap-2">
+                    <h2 className="truncate text-lg font-semibold tracking-tight">
+                      {plan.name}
+                    </h2>
+                    {plan.channel ? (
+                      <span className="shrink-0 rounded-full bg-surface-secondary px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                        {plan.channel}
+                      </span>
+                    ) : null}
+                  </div>
                   <div className="mt-2 flex flex-col gap-1">
                     {priceLabels.map((label, priceIndex) => (
                       <p
-                        key={`plan-${planIndex}-price-${priceIndex}`}
+                        key={`plan-${plan.id ?? plan.name}-price-${priceIndex}`}
                         className="text-base font-bold tabular-nums text-accent"
                       >
                         {label}
                       </p>
                     ))}
                   </div>
+                  {(plan.offers?.length ?? 0) > 0 ? (
+                    <ul className="mt-3 flex flex-wrap gap-1.5">
+                      {plan.offers!.map((offer) => (
+                        <li
+                          key={`plan-${plan.id ?? plan.name}-offer-${offer.offer_id}`}
+                          className="rounded-full bg-accent/10 px-2.5 py-0.5 text-[11px] font-medium text-accent"
+                        >
+                          {offer.offer_name}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                 </div>
 
                 <div className="flex flex-1 flex-col gap-2 px-5 py-4">
@@ -177,13 +204,31 @@ export function PlansList() {
                     <p className="text-sm text-muted">Sin módulos listados</p>
                   ) : (
                     <ul className="flex flex-col gap-2">
-                      {plan.modules.map((mod, moduleIndex) => (
+                      {plan.modules.map((mod) => (
                         <li
-                          key={`plan-${planIndex}-module-${moduleIndex}`}
+                          key={`plan-${plan.id ?? plan.name}-module-${mod.key || mod.name}`}
                           className="rounded-xl bg-surface-secondary/60 px-3 py-2"
                         >
-                          <p className="text-sm font-medium">{mod.name}</p>
-                          {mod.description ? (
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-medium">{mod.name}</p>
+                            {mod.is_trial ? (
+                              <span className="rounded-full bg-warning/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-warning">
+                                Trial
+                              </span>
+                            ) : null}
+                          </div>
+                          {mod.sections.length > 0 ? (
+                            <ul className="mt-2 space-y-1 border-t border-separator/60 pt-2">
+                              {mod.sections.map((section) => (
+                                <li
+                                  key={`${mod.key}-${section.key || section.name}`}
+                                  className="text-xs text-muted"
+                                >
+                                  {section.name}
+                                </li>
+                              ))}
+                            </ul>
+                          ) : mod.description ? (
                             <p className="mt-0.5 text-xs leading-relaxed text-muted">
                               {mod.description}
                             </p>

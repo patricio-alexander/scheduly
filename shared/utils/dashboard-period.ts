@@ -72,7 +72,7 @@ export function getDashboardChartBuckets(
       day.setDate(range.start.getDate() + i);
       buckets.push({
         key: day.toISOString().slice(0, 10),
-        label: day.toLocaleDateString("es-CL", { weekday: "short" }),
+        label: day.toLocaleDateString("es-EC", { weekday: "short" }),
         start: startOfDay(day),
         end: endOfDay(day),
       });
@@ -86,10 +86,96 @@ export function getDashboardChartBuckets(
   while (cursor <= reference) {
     buckets.push({
       key: cursor.toISOString().slice(0, 10),
-      label: cursor.toLocaleDateString("es-CL", { day: "numeric", month: "short" }),
+      label: cursor.toLocaleDateString("es-EC", { day: "numeric", month: "short" }),
       start: startOfDay(cursor),
       end: endOfDay(cursor),
     });
+    cursor.setDate(cursor.getDate() + 1);
+  }
+
+  return buckets;
+}
+
+/** Buckets más finos solo para el gráfico de barras de actividad. */
+export function getDashboardActivityChartBuckets(
+  period: DashboardPeriod,
+  reference = new Date(),
+): Array<{ key: string; label: string; start: Date; end: Date }> {
+  const buckets: Array<{ key: string; label: string; start: Date; end: Date }> = [];
+
+  if (period === "today") {
+    for (let hour = 8; hour <= 19; hour++) {
+      for (const minute of [0, 30] as const) {
+        const start = startOfDay(reference);
+        start.setHours(hour, minute, 0, 0);
+        const end = new Date(start);
+        end.setMinutes(end.getMinutes() + 29, 59, 999);
+        buckets.push({
+          key: `${hour}-${minute}`,
+          label: `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`,
+          start,
+          end,
+        });
+      }
+    }
+    return buckets;
+  }
+
+  if (period === "week") {
+    const range = getDashboardPeriodRange("week", reference);
+    const daySlots = [
+      { suffix: "9-11", startHour: 9, endHour: 11, endMinute: 59 },
+      { suffix: "12-14", startHour: 12, endHour: 14, endMinute: 59 },
+      { suffix: "15-17", startHour: 15, endHour: 17, endMinute: 59 },
+      { suffix: "18-20", startHour: 18, endHour: 19, endMinute: 59 },
+    ] as const;
+
+    for (let i = 0; i < 7; i++) {
+      const day = new Date(range.start);
+      day.setDate(range.start.getDate() + i);
+      const dayLabel = day.toLocaleDateString("es-EC", { weekday: "short" });
+
+      for (const slot of daySlots) {
+        const start = startOfDay(day);
+        start.setHours(slot.startHour, 0, 0, 0);
+        const end = startOfDay(day);
+        end.setHours(slot.endHour, slot.endMinute, 59, 999);
+
+        buckets.push({
+          key: `${day.toISOString().slice(0, 10)}-${slot.suffix}`,
+          label: `${dayLabel} ${slot.suffix}`,
+          start,
+          end,
+        });
+      }
+    }
+    return buckets;
+  }
+
+  const monthStart = startOfDay(reference);
+  monthStart.setDate(1);
+  const cursor = new Date(monthStart);
+  while (cursor <= reference) {
+    for (const slot of [
+      { suffix: "AM", startHour: 9, endHour: 13, endMinute: 59 },
+      { suffix: "PM", startHour: 14, endHour: 19, endMinute: 59 },
+    ] as const) {
+      const start = startOfDay(cursor);
+      start.setHours(slot.startHour, 0, 0, 0);
+      const end = startOfDay(cursor);
+      end.setHours(slot.endHour, slot.endMinute, 59, 999);
+      const dayLabel = cursor.toLocaleDateString("es-EC", {
+        day: "numeric",
+        month: "short",
+      });
+
+      buckets.push({
+        key: `${cursor.toISOString().slice(0, 10)}-${slot.suffix}`,
+        label: `${dayLabel} ${slot.suffix}`,
+        start,
+        end,
+      });
+    }
     cursor.setDate(cursor.getDate() + 1);
   }
 

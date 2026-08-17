@@ -13,6 +13,16 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const date = searchParams.get("date")?.trim() ?? "";
     const serviceId = Number(searchParams.get("serviceId"));
+    const branchIdRaw = searchParams.get("branchId");
+    const branchId =
+      branchIdRaw && branchIdRaw !== ""
+        ? Number(branchIdRaw)
+        : null;
+    const userIdRaw = searchParams.get("userId");
+    const userId =
+      userIdRaw && userIdRaw !== ""
+        ? Number(userIdRaw)
+        : null;
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return NextResponse.json(
@@ -50,6 +60,8 @@ export async function GET(request: Request) {
       where: {
         appointmentDate: { gte: dayStart, lte: dayEnd },
         status: { not: "cancelled" },
+        ...(branchId && branchId > 0 ? { branchId } : {}),
+        ...(userId && userId > 0 ? { userId } : {}),
       },
       include: {
         services: {
@@ -75,7 +87,14 @@ export async function GET(request: Request) {
     });
 
     const slots = buildDaySlots(date, duration, busy);
-    return NextResponse.json({ date, serviceId, durationMinutes: duration, slots });
+    return NextResponse.json({
+      date,
+      serviceId,
+      branchId,
+      userId,
+      durationMinutes: duration,
+      slots,
+    });
   } catch (error) {
     console.error("GET /api/booking/slots", error);
     return NextResponse.json(

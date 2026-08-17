@@ -11,18 +11,23 @@ import {
 import type { Customer } from "@/src/features/customers";
 import type { CustomerFormData } from "@/src/features/customers";
 import * as customerService from "@/src/features/customers/services/customer-service";
+import * as customerAccountService from "@/src/features/customers/services/customer-account-service";
 import { PageHeader } from "@/shared/components/ui";
-import { canDeleteRecords } from "@/shared/utils/roles";
+import { canDeleteRecords, isManagementRole } from "@/shared/utils/roles";
 import Plus from "@gravity-ui/icons/Plus";
 import Person from "@gravity-ui/icons/Person";
 
 export default function CustomersPage() {
   const { user } = useAuth();
   const canDelete = canDeleteRecords(user?.role);
+  const canManage = isManagementRole(user?.role);
   const { customers, loading, refetch } = useCustomers();
   const [editing, setEditing] = useState<Customer | null>(null);
+  const [portalCustomer, setPortalCustomer] = useState<Customer | null>(null);
+  const [portalPassword, setPortalPassword] = useState("");
   const [pending, setPending] = useState(false);
   const modal = useOverlayState();
+  const portalModal = useOverlayState();
 
   if (!user) return null;
 
@@ -78,19 +83,52 @@ export default function CustomersPage() {
     [refetch],
   );
 
+  const openPortalModal = useCallback(
+    (customer: Customer) => {
+      setPortalCustomer(customer);
+      setPortalPassword("");
+      portalModal.open();
+    },
+    [portalModal],
+  );
+
+  const handleActivatePortal = useCallback(async () => {
+    if (!portalCustomer) return;
+    setPending(true);
+    try {
+      await customerAccountService.activateCustomerPortal(
+        portalCustomer.id,
+        portalPassword,
+      );
+      toast.success("Cuenta de cliente activada");
+      portalModal.close();
+      refetch();
+    } catch (e) {
+      toast.danger(e instanceof Error ? e.message : "Error al activar");
+    } finally {
+      setPending(false);
+    }
+  }, [portalCustomer, portalPassword, portalModal, refetch]);
+
   return (
     <div className="flex flex-col gap-6">
       <PageHeader
         icon={<Person width={24} height={24} />}
         title="Clientes"
-        description="Gestiona tu base de clientes y sus datos de contacto"
+        description={
+          canManage
+            ? "Gestiona tu base de clientes y sus datos de contacto"
+            : "Consulta la base de clientes y busca contactos"
+        }
         action={
-          <div data-onboarding="customers-create">
-            <Button variant="primary" onPress={openCreate}>
-              <Plus width={16} height={16} />
-              Agregar cliente
-            </Button>
-          </div>
+          canManage ? (
+            <div data-onboarding="customers-create">
+              <Button variant="primary" onPress={openCreate}>
+                <Plus width={16} height={16} />
+                Agregar cliente
+              </Button>
+            </div>
+          ) : undefined
         }
       />
 
@@ -99,12 +137,64 @@ export default function CustomersPage() {
           customers={customers}
           onEdit={openEdit}
           onDelete={handleDelete}
-          onAdd={openCreate}
+          onAdd={canManage ? openCreate : undefined}
           loading={loading}
           canDelete={canDelete}
+          readOnly={!canManage}
+          canManagePortal={canManage}
+          onActivatePortal={openPortalModal}
         />
       </div>
 
+      {canManage ? (
+      <Modal state={portalModal}>
+        <Modal.Backdrop>
+          <Modal.Container placement="center">
+            <Modal.Dialog>
+              <Modal.CloseTrigger />
+              <Modal.Header>
+                <Modal.Heading>
+                  {portalCustomer?.hasPortalAccess
+                    ? "Actualizar acceso al portal"
+                    : "Activar cuenta de cliente"}
+                </Modal.Heading>
+              </Modal.Header>
+              <Modal.Body className="flex flex-col gap-3">
+                <p className="text-sm text-muted">
+                  {portalCustomer
+                    ? `${portalCustomer.name} · ${portalCustomer.email}`
+                    : ""}
+                </p>
+                <label className="flex flex-col gap-1.5 text-sm">
+                  <span className="font-medium">Contraseña</span>
+                  <input
+                    type="password"
+                    className="rounded-xl border border-separator bg-field-background px-3 py-2 text-field-foreground placeholder:text-field-placeholder"
+                    value={portalPassword}
+                    onChange={(e) => setPortalPassword(e.target.value)}
+                    placeholder="Mínimo 6 caracteres"
+                  />
+                </label>
+              </Modal.Body>
+              <Modal.Footer>
+                <Button variant="secondary" onPress={() => portalModal.close()}>
+                  Cancelar
+                </Button>
+                <Button
+                  variant="primary"
+                  isDisabled={pending || portalPassword.length < 6}
+                  onPress={() => void handleActivatePortal()}
+                >
+                  {pending ? "Guardando..." : "Guardar contraseña"}
+                </Button>
+              </Modal.Footer>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
+      ) : null}
+
+      {canManage ? (
       <Modal state={modal}>
         <Modal.Backdrop>
           <Modal.Container placement="center">
@@ -145,6 +235,7 @@ export default function CustomersPage() {
           </Modal.Container>
         </Modal.Backdrop>
       </Modal>
+      ) : null}
     </div>
   );
 }

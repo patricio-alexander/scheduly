@@ -1,6 +1,6 @@
 "use client";
 
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { taskSchema, type TaskSchemaData } from "../lib/task-schema";
 import {
@@ -10,6 +10,7 @@ import {
   taskStatusOptions,
 } from "../lib/task-status";
 import type { Task, TaskFormData } from "../types";
+import { SelectField } from "@/shared/components/SelectField";
 
 interface AssigneeOption {
   id: number;
@@ -34,6 +35,7 @@ export function TaskForm({
   const {
     register,
     handleSubmit,
+    control,
     formState: { errors },
   } = useForm<TaskSchemaData>({
     resolver: zodResolver(taskSchema),
@@ -102,61 +104,65 @@ export function TaskForm({
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="status" className="text-sm font-medium">
-            Estado
-          </label>
-          <select
-            id="status"
-            className="rounded-xl border border-separator bg-field-background px-3 py-2 text-field-foreground focus:outline-none focus:ring-2 focus:ring-focus"
-            {...register("status")}
-          >
-            {taskStatusOptions.map((status) => (
-              <option key={status} value={status}>
-                {taskStatusLabel[status]}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Controller
+          name="status"
+          control={control}
+          render={({ field }) => (
+            <SelectField
+              label="Estado"
+              selectedKey={field.value}
+              onSelectionChange={(key) => field.onChange(key ?? field.value)}
+              options={taskStatusOptions.map((status) => ({
+                id: status,
+                label: taskStatusLabel[status],
+              }))}
+            />
+          )}
+        />
 
-        <div className="flex flex-col gap-1">
-          <label htmlFor="priority" className="text-sm font-medium">
-            Prioridad
-          </label>
-          <select
-            id="priority"
-            className="rounded-xl border border-separator bg-field-background px-3 py-2 text-field-foreground focus:outline-none focus:ring-2 focus:ring-focus"
-            {...register("priority")}
-          >
-            {taskPriorityOptions.map((priority) => (
-              <option key={priority} value={priority}>
-                {taskPriorityLabel[priority]}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Controller
+          name="priority"
+          control={control}
+          render={({ field }) => (
+            <SelectField
+              label="Prioridad"
+              selectedKey={field.value}
+              onSelectionChange={(key) => field.onChange(key ?? field.value)}
+              options={taskPriorityOptions.map((priority) => ({
+                id: priority,
+                label: taskPriorityLabel[priority],
+              }))}
+            />
+          )}
+        />
       </div>
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="assigneeId" className="text-sm font-medium">
-            Responsable
-          </label>
-          <select
-            id="assigneeId"
-            className="rounded-xl border border-separator bg-field-background px-3 py-2 text-field-foreground focus:outline-none focus:ring-2 focus:ring-focus"
-            {...register("assigneeId", {
-              setValueAs: (v) => (v === "" || v == null ? null : Number(v)),
-            })}
-          >
-            <option value="">Sin asignar</option>
-            {assignees.map((user) => (
-              <option key={user.id} value={user.id}>
-                {user.name}
-              </option>
-            ))}
-          </select>
-        </div>
+        <Controller
+          name="assigneeId"
+          control={control}
+          render={({ field }) => (
+            <SelectField
+              label="Responsable"
+              placeholder="Sin asignar"
+              selectedKey={
+                field.value != null ? String(field.value) : "none"
+              }
+              onSelectionChange={(key) =>
+                field.onChange(
+                  key == null || key === "none" ? null : Number(key),
+                )
+              }
+              options={[
+                { id: "none", label: "Sin asignar" },
+                ...assignees.map((user) => ({
+                  id: String(user.id),
+                  label: user.name,
+                })),
+              ]}
+            />
+          )}
+        />
 
         <div className="flex flex-col gap-1">
           <label htmlFor="dueDate" className="text-sm font-medium">

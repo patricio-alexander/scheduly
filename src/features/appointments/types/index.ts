@@ -7,5 +7,7 @@ export type AppointmentCalendarEvent = {
     customer: string;
     user: string;
     status: string;
+    branchId?: number | null;
+    userId?: number;
   };
 };

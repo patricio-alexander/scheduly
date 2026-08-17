@@ -1,11 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { parseAppointmentDate, parseAppointmentStatus } from "@/shared/utils/appointment-api";
-import { deductStockForAppointment, parseAppointmentProducts, validateProductStock } from "@/shared/utils/appointment-business";
+import { deductStockForAppointment, parseAppointmentProducts, validateProductStock, deleteAppointmentRecord } from "@/shared/utils/appointment-business";
+import { findClaimableRewardsForAppointment } from "@/shared/utils/reward-discount";
 import { toAmount, toQuantity } from "@/shared/utils/money";
 import { getAppointmentCalendarEvent } from "@/shared/utils/appointment-calendar";
-import { emitAppointmentUpdated } from "@/shared/utils/socket";
+import { emitAppointmentDeleted, emitAppointmentUpdated } from "@/shared/utils/socket";
 import { checkAuth } from "@/shared/utils/check-auth";
+import { getUserPrimaryBranchId, resolveAppointmentBranchId } from "@/shared/utils/branches";
+import { canDeleteRecords, isBranchAdminRole } from "@/shared/utils/roles";
 
 export async function GET(
   _request: Request,
@@ -37,6 +40,15 @@ export async function GET(
         { status: 404 }
       );
     }
+
+    const serviceIds = appointment.services.map((s) => s.service.id);
+    const productIds = appointment.products.map((p) => p.product.id);
+    const loyalty = await findClaimableRewardsForAppointment(
+      prisma,
+      appointment.customerId,
+      serviceIds,
+      productIds,
+    );
 
     return NextResponse.json({
       id: appointment.id,
@@ -71,6 +83,8 @@ export async function GET(
           stock: toAmount(p.product.stock),
         },
       })),
+      customerPoints: loyalty.points,
+      claimableRewards: loyalty.rewards,
     });
   } catch {
     return NextResponse.json(
@@ -95,6 +109,7 @@ export async function PUT(
       description,
       customerId,
       userId,
+      branchId: branchIdRaw,
       appointmentDate,
       status,
       serviceIds,
@@ -102,9 +117,25 @@ export async function PUT(
       products: productsInput,
     } = body;
 
+    const branchId =
+      branchIdRaw == null || branchIdRaw === ""
+        ? null
+        : Number(branchIdRaw);
+
     const appointment = await prisma.$transaction(async (tx) => {
+      const existing = await tx.appointment.findUnique({
+        where: { id: Number(id) },
+        select: { branchId: true },
+      });
+      const resolvedBranchId = await resolveAppointmentBranchId(
+        tx,
+        auth.user,
+        branchId,
+        existing?.branchId,
+      );
+      const stockBranchId = resolvedBranchId;
       const products = parseAppointmentProducts(productsInput, productIds);
-      await validateProductStock(tx, products, Number(id));
+      await validateProductStock(tx, products, Number(id), stockBranchId);
 
       const updated = await tx.appointment.update({
         where: { id: Number(id) },
@@ -113,6 +144,7 @@ export async function PUT(
           description: description ?? "",
           customerId: Number(customerId),
           userId: Number(userId),
+          branchId: resolvedBranchId,
           appointmentDate: parseAppointmentDate(appointmentDate),
           status: parseAppointmentStatus(status),
         },
@@ -221,6 +253,58 @@ export async function PATCH(
     console.error("PATCH /api/appointments/[id]", error);
     const message =
       error instanceof Error ? error.message : "Error al reprogramar el turno";
+    return NextResponse.json({ message }, { status: 500 });
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
+  if (!canDeleteRecords(auth.user.role)) {
+    return NextResponse.json({ message: "No autorizado" }, { status: 403 });
+  }
+
+  const { id } = await params;
+  const appointmentId = Number(id);
+  if (!Number.isFinite(appointmentId)) {
+    return NextResponse.json({ message: "ID inválido" }, { status: 400 });
+  }
+
+  try {
+    const existing = await prisma.appointment.findUnique({
+      where: { id: appointmentId },
+      select: { id: true, branchId: true },
+    });
+
+    if (!existing) {
+      return NextResponse.json({ message: "Turno no encontrado" }, { status: 404 });
+    }
+
+    if (isBranchAdminRole(auth.user.role)) {
+      const branchId = await getUserPrimaryBranchId(prisma, auth.user.id);
+      if (existing.branchId !== branchId) {
+        return NextResponse.json(
+          { message: "No puedes eliminar turnos de otra sucursal" },
+          { status: 403 },
+        );
+      }
+    }
+
+    await prisma.$transaction(async (tx) => {
+      await deleteAppointmentRecord(tx, appointmentId);
+    });
+
+    emitAppointmentDeleted(appointmentId);
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("DELETE /api/appointments/[id]", error);
+    const message =
+      error instanceof Error ? error.message : "Error al eliminar el turno";
     return NextResponse.json({ message }, { status: 500 });
   }
 }

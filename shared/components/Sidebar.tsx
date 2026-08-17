@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type ComponentType, type ReactNode, type SVGProps } from "react";
 import { Button } from "@heroui/react";
 import { useTheme } from "next-themes";
@@ -25,13 +25,14 @@ import Tag from "@gravity-ui/icons/Tag";
 import ListCheck from "@gravity-ui/icons/ListCheck";
 import Puzzle from "@gravity-ui/icons/Puzzle";
 import Rocket from "@gravity-ui/icons/Rocket";
+import CrownDiamond from "@gravity-ui/icons/CrownDiamond";
+import ChartColumn from "@gravity-ui/icons/ChartColumn";
 import ShoppingCart from "@gravity-ui/icons/ShoppingCart";
+import ArrowDownToLine from "@gravity-ui/icons/ArrowDownToLine";
 import Receipt from "@gravity-ui/icons/Receipt";
 import Briefcase from "@gravity-ui/icons/Briefcase";
 import FileDollar from "@gravity-ui/icons/FileDollar";
-import File from "@gravity-ui/icons/File";
 import FileCheck from "@gravity-ui/icons/FileCheck";
-import FileText from "@gravity-ui/icons/FileText";
 import Layers from "@gravity-ui/icons/Layers";
 import { useAuth } from "@/src/features/auth";
 import { useOnboarding } from "@/src/features/onboarding";
@@ -41,7 +42,8 @@ import {
   resolveAccessView,
   type AccessViewKind,
 } from "@/src/features/subscription/lib/access-status";
-import { isAdminRole } from "@/shared/utils/roles";
+import { isBranchAdminRole, isManagementRole, isOwnerRole, hasEmployeeExperience, roleLabel } from "@/shared/utils/roles";
+import { branchDisplayLabel } from "@/shared/utils/auth-user";
 import CircleQuestion from "@gravity-ui/icons/CircleQuestion";
 
 const STORAGE_KEY = "scheduly-sidebar-collapsed";
@@ -52,9 +54,16 @@ type IconComponent = ComponentType<SVGProps<SVGSVGElement> & { width?: number; h
 type NavItem = {
   href: string;
   label: string;
+  employeeLabel?: string;
+  branchAdminLabel?: string;
   icon: IconComponent;
   showBadge?: boolean;
+  /** Owner + encargado de sucursal */
   adminOnly?: boolean;
+  /** Solo owner central */
+  ownerOnly?: boolean;
+  /** Solo encargado de sucursal */
+  branchAdminOnly?: boolean;
   tourId?: string;
 };
 
@@ -64,6 +73,9 @@ type NavModule = {
   icon: IconComponent;
   entitlementKey: string;
   adminOnly?: boolean;
+  ownerOnly?: boolean;
+  /** Empleados y encargados de sucursal (no owner) */
+  employeeExperienceOnly?: boolean;
   items: NavItem[];
 };
 
@@ -88,9 +100,24 @@ const navModules: NavModule[] = [
     icon: Briefcase,
     entitlementKey: "operation",
     items: [
-      { href: appRoutes.operation.agenda, label: "Agenda", icon: Calendar, tourId: "nav-agenda" },
+      {
+        href: appRoutes.operation.agenda,
+        label: "Agenda",
+        icon: Calendar,
+        tourId: "nav-agenda",
+        employeeLabel: "Mi agenda",
+        branchAdminLabel: "Agenda sucursal",
+      },
+      {
+        href: `${appRoutes.operation.agenda}?view=mine`,
+        label: "Mi agenda",
+        icon: Person,
+        branchAdminOnly: true,
+      },
       { href: appRoutes.operation.services, label: "Servicios", icon: Gear, tourId: "nav-services" },
       { href: appRoutes.operation.tasks, label: "Tareas", icon: ListCheck, tourId: "nav-tasks" },
+      { href: appRoutes.promotions.list, label: "Promociones", icon: Tag, adminOnly: true },
+      { href: appRoutes.loyalty.hub, label: "Fidelización", icon: CrownDiamond, adminOnly: true },
     ],
   },
   {
@@ -98,33 +125,39 @@ const navModules: NavModule[] = [
     label: "Documentos electrónicos",
     icon: FileDollar,
     entitlementKey: "electronicDocs",
-    adminOnly: true,
+    ownerOnly: true,
     items: [
-      { href: appRoutes.electronicDocs.hub, label: "Centro", icon: Layers, adminOnly: true },
-      { href: appRoutes.electronicDocs.invoices, label: "Facturas", icon: FileDollar, adminOnly: true },
-      { href: appRoutes.electronicDocs.salesNotes, label: "Notas de venta", icon: File, adminOnly: true },
-      { href: appRoutes.electronicDocs.creditNotes, label: "Notas de crédito", icon: FileText, adminOnly: true },
-      { href: appRoutes.electronicDocs.debitNotes, label: "Notas de débito", icon: FileText, adminOnly: true },
-      { href: appRoutes.electronicDocs.withholdings, label: "Retenciones", icon: FileCheck, adminOnly: true },
-      {
-        href: appRoutes.electronicDocs.deliveryGuides,
-        label: "Guías de remisión",
-        icon: File,
-        adminOnly: true,
-      },
-      {
-        href: appRoutes.electronicDocs.purchaseSettlement,
-        label: "Liquidación compras",
-        icon: FileDollar,
-        adminOnly: true,
-      },
-      { href: appRoutes.electronicDocs.issued, label: "Emitidos", icon: FileCheck, adminOnly: true },
+      { href: appRoutes.electronicDocs.hub, label: "Centro", icon: Layers, ownerOnly: true },
+      { href: appRoutes.electronicDocs.invoices, label: "Facturas", icon: FileDollar, ownerOnly: true },
+      { href: appRoutes.electronicDocs.issued, label: "Emitidos", icon: FileCheck, ownerOnly: true },
       {
         href: appRoutes.electronicDocs.sriSettings,
         label: "Configuración SRI",
         icon: Gear,
-        adminOnly: true,
+        ownerOnly: true,
       },
+    ],
+  },
+  {
+    id: "employee",
+    label: "Mi trabajo",
+    icon: Calendar,
+    entitlementKey: "operation",
+    employeeExperienceOnly: true,
+    items: [
+      { href: appRoutes.employee.myDay, label: "Mi día", icon: Calendar },
+    ],
+  },
+  {
+    id: "finance",
+    label: "Finanzas",
+    icon: ChartColumn,
+    entitlementKey: "admin",
+    adminOnly: true,
+    items: [
+      { href: appRoutes.finance.hub, label: "Centro financiero", icon: ChartColumn, adminOnly: true },
+      { href: appRoutes.finance.payroll, label: "Sueldos", icon: Persons, adminOnly: true },
+      { href: appRoutes.finance.expenses, label: "Gastos", icon: Receipt, adminOnly: true },
     ],
   },
   {
@@ -134,13 +167,53 @@ const navModules: NavModule[] = [
     entitlementKey: "sales",
     items: [
       {
-        href: appRoutes.sales.history,
-        label: "Registro de ventas",
-        icon: Receipt,
-        tourId: "nav-sales",
+        href: appRoutes.sales.register,
+        label: "Registrar venta",
+        icon: ShoppingCart,
+        tourId: "nav-register-sale",
         adminOnly: true,
       },
+      {
+        href: appRoutes.sales.history,
+        label: "Ingresos por turnos",
+        icon: Receipt,
+        tourId: "nav-sales",
+        ownerOnly: true,
+      },
+      {
+        href: appRoutes.sales.productSales,
+        label: "Productos vendidos",
+        icon: Boxes3,
+        ownerOnly: true,
+      },
       { href: appRoutes.sales.customers, label: "Clientes", icon: Person, tourId: "nav-customers" },
+    ],
+  },
+  {
+    id: "purchases",
+    label: "Compras",
+    icon: ArrowDownToLine,
+    entitlementKey: "purchases",
+    adminOnly: true,
+    items: [
+      {
+        href: appRoutes.purchases.register,
+        label: "Registrar compra",
+        icon: ArrowDownToLine,
+        adminOnly: true,
+      },
+      {
+        href: appRoutes.purchases.history,
+        label: "Historial de compras",
+        icon: Receipt,
+        adminOnly: true,
+      },
+      {
+        href: appRoutes.purchases.suppliers,
+        label: "Proveedores",
+        icon: Person,
+        ownerOnly: true,
+      },
     ],
   },
   {
@@ -150,8 +223,9 @@ const navModules: NavModule[] = [
     entitlementKey: "inventory",
     items: [
       { href: appRoutes.inventory.products, label: "Productos", icon: Boxes3, tourId: "nav-inventory" },
+      { href: appRoutes.branches.stock, label: "Multistock", icon: Layers, adminOnly: true },
       { href: appRoutes.inventory.units, label: "Unidades", icon: Cube },
-      { href: appRoutes.inventory.categories, label: "Categorías", icon: Tag },
+      { href: appRoutes.inventory.categories, label: "Categorías", icon: Tag, adminOnly: true },
     ],
   },
   {
@@ -159,10 +233,11 @@ const navModules: NavModule[] = [
     label: "Administración",
     icon: Shield,
     entitlementKey: "admin",
-    adminOnly: true,
+    ownerOnly: true,
     items: [
-      { href: appRoutes.admin.users, label: "Usuarios", icon: Persons, adminOnly: true },
-      { href: appRoutes.admin.roles, label: "Roles", icon: Shield, adminOnly: true },
+      { href: appRoutes.admin.users, label: "Usuarios", icon: Persons, ownerOnly: true },
+      { href: appRoutes.admin.roles, label: "Roles", icon: Shield, ownerOnly: true },
+      { href: appRoutes.branches.list, label: "Sucursales", icon: House, ownerOnly: true },
     ],
   },
   {
@@ -170,19 +245,19 @@ const navModules: NavModule[] = [
     label: "Sistema",
     icon: Gear,
     entitlementKey: "system",
-    adminOnly: true,
+    ownerOnly: true,
     items: [
-      { href: appRoutes.system.settings, label: "Configuración", icon: Gear, adminOnly: true },
-      { href: appRoutes.system.plans, label: "Planes", icon: Rocket, adminOnly: true },
-      { href: appRoutes.system.modules, label: "Módulos", icon: Puzzle, adminOnly: true },
-      { href: appRoutes.system.profile, label: "Perfil", icon: Person, adminOnly: true },
+      { href: appRoutes.system.settings, label: "Configuración", icon: Gear, ownerOnly: true },
+      { href: appRoutes.system.plans, label: "Planes", icon: Rocket, ownerOnly: true },
+      { href: appRoutes.system.modules, label: "Módulos", icon: Puzzle, ownerOnly: true },
+      { href: appRoutes.system.profile, label: "Perfil", icon: Person },
       {
         href: appRoutes.system.notifications,
         label: "Notificaciones",
         icon: Bell,
         showBadge: true,
         tourId: "nav-notifications",
-        adminOnly: true,
+        ownerOnly: true,
       },
     ],
   },
@@ -192,10 +267,44 @@ function pathWithoutQuery(href: string) {
   return href.split("?")[0] ?? href;
 }
 
-function isRouteActive(pathname: string, href: string) {
+function hrefQuery(href: string) {
+  const q = href.split("?")[1];
+  return q ? `?${q}` : "";
+}
+
+function isRouteActive(pathname: string, href: string, search = "") {
   const path = pathWithoutQuery(href);
-  if (path === appRoutes.dashboard) return pathname === appRoutes.dashboard;
-  return pathname === path || pathname.startsWith(`${path}/`);
+  const wantedQuery = hrefQuery(href);
+  const currentSearch = search.startsWith("?") ? search : search ? `?${search}` : "";
+
+  if (path === appRoutes.dashboard) {
+    return pathname === appRoutes.dashboard && !wantedQuery;
+  }
+
+  const pathMatches =
+    pathname === path || pathname.startsWith(`${path}/`);
+  if (!pathMatches) return false;
+
+  // Distinguir /sistema/configuracion vs ?tab=sri
+  if (path === appRoutes.system.settings) {
+    const onSri = currentSearch.includes("tab=sri");
+    if (wantedQuery.includes("tab=sri")) return onSri;
+    if (wantedQuery) return currentSearch === wantedQuery;
+    return !onSri;
+  }
+
+  if (path === appRoutes.operation.agenda) {
+    const onMine = currentSearch.includes("view=mine");
+    if (wantedQuery.includes("view=mine")) return onMine;
+    if (wantedQuery) return currentSearch === wantedQuery;
+    return !onMine;
+  }
+
+  if (wantedQuery) {
+    return currentSearch === wantedQuery || currentSearch.includes(wantedQuery.slice(1));
+  }
+
+  return true;
 }
 
 function statusBadgeTone(kind: AccessViewKind) {
@@ -314,6 +423,10 @@ function NavButton({
 
 export function Sidebar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const search = searchParams.toString()
+    ? `?${searchParams.toString()}`
+    : "";
   const router = useRouter();
   const { user, logout } = useAuth();
   const { startTour, startModuleTour, activeModule } = useOnboarding();
@@ -457,15 +570,37 @@ export function Sidebar() {
     .toUpperCase();
 
   const themeLabel = resolvedTheme === "dark" ? "Modo claro" : "Modo oscuro";
-  const isAdmin = isAdminRole(user?.role);
+  const isOwner = isOwnerRole(user?.role);
+  const isManagement = isManagementRole(user?.role);
+  const isBranchAdmin = isBranchAdminRole(user?.role);
+  const showEmployeeExperience = hasEmployeeExperience(user?.role);
+  const userBranchLabel = branchDisplayLabel(user?.branch, user?.role);
 
   const visibleModules = navModules
-    .filter((mod) => !mod.adminOnly || isAdmin)
+    .filter(
+      (mod) =>
+        (!mod.ownerOnly || isOwner) &&
+        (!mod.adminOnly || isManagement) &&
+        (!mod.employeeExperienceOnly || showEmployeeExperience),
+    )
     .map((mod) => ({
       ...mod,
-      items: mod.items.filter((item) => !item.adminOnly || isAdmin),
+      items: mod.items.filter(
+        (item) =>
+          (!item.ownerOnly || isOwner) &&
+          (!item.adminOnly || isManagement) &&
+          (!item.branchAdminOnly || isBranchAdmin),
+      ),
     }))
     .filter((mod) => mod.items.length > 0);
+
+  const navItemLabel = (item: NavItem) => {
+    if (isBranchAdmin && item.branchAdminLabel) return item.branchAdminLabel;
+    if (showEmployeeExperience && !isBranchAdmin && item.employeeLabel) {
+      return item.employeeLabel;
+    }
+    return item.label;
+  };
 
   return (
     <aside
@@ -568,7 +703,7 @@ export function Sidebar() {
                   >
                     {visibleItems.map((item) => {
                   const Icon = item.icon;
-                  const isActive = isRouteActive(pathname, item.href);
+                  const isActive = isRouteActive(pathname, item.href, search);
                   const badge = item.showBadge ? unreadCount : 0;
                   const { section } = getSectionForPath(pathWithoutQuery(item.href));
                   const sectionAccess = section
@@ -585,6 +720,8 @@ export function Sidebar() {
                     ? accessTitle(sectionStatusKind)
                     : null;
 
+                  const displayLabel = navItemLabel(item);
+
                       return (
                         <NavButton
                           key={item.href}
@@ -592,8 +729,8 @@ export function Sidebar() {
                           collapsed={collapsed}
                           label={
                             collapsed
-                              ? `${mod.label}: ${item.label}`
-                              : item.label
+                              ? `${mod.label}: ${displayLabel}`
+                              : displayLabel
                           }
                           badge={badge}
                           statusLabel={sectionStatusLabel}
@@ -609,7 +746,7 @@ export function Sidebar() {
                           />
                           {!collapsed && (
                             <span className="flex-1 truncate text-left">
-                              {item.label}
+                              {displayLabel}
                             </span>
                           )}
                         </NavButton>
@@ -628,13 +765,33 @@ export function Sidebar() {
           <NavButton
             isActive={pathname === appRoutes.system.profile || pathname.startsWith(`${appRoutes.system.profile}/`)}
             collapsed={collapsed}
-            label={user.name}
+            label={
+              userBranchLabel
+                ? `${user.name} · ${roleLabel(user.role)} · ${userBranchLabel}`
+                : `${user.name} · ${roleLabel(user.role)}`
+            }
             onPress={() => router.push(appRoutes.system.profile)}
           >
             <div className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[10px] font-bold text-accent">
               {initials}
             </div>
-            {!collapsed && <span className="truncate">{user.name}</span>}
+            {!collapsed && (
+              <span className="flex min-w-0 flex-1 flex-col truncate text-left leading-tight">
+                <span className="truncate">{user.name}</span>
+                <span
+                  className={`truncate text-[10px] font-semibold uppercase tracking-wide ${
+                    isOwner ? "text-accent" : isManagement ? "text-warning" : "text-muted"
+                  }`}
+                >
+                  {roleLabel(user.role)}
+                </span>
+                {userBranchLabel ? (
+                  <span className="truncate text-[10px] font-medium text-muted">
+                    {userBranchLabel}
+                  </span>
+                ) : null}
+              </span>
+            )}
           </NavButton>
         )}
         {collapsed ? (

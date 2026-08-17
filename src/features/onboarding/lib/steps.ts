@@ -123,28 +123,28 @@ export const moduleTours: ModuleTour[] = [
   },
   {
     id: "sales",
-    label: "Registro de ventas",
+    label: "Ingresos por turnos",
     match: ["/ventas/historial"],
     steps: [
       {
         id: "sales-summary",
-        title: "Resumen de ventas",
+        title: "Resumen de ingresos",
         description:
-          "Total vendido del período y desglose por efectivo, tarjeta y transferencia.",
+          "Total cobrado en el período (servicios y productos) y desglose por efectivo, tarjeta y transferencia.",
         target: "sales-summary",
       },
       {
         id: "sales-filters",
         title: "Filtros y búsqueda",
         description:
-          "Filtra por Hoy / Semana / Mes y por método de pago. Busca por cliente, servicio o staff.",
+          "Filtra por Hoy / Semana / Mes y por método de pago. Busca por cliente, servicio, producto o staff.",
         target: "sales-filters",
       },
       {
         id: "sales-list",
         title: "Historial",
         description:
-          "Cada fila es un pago registrado al cerrar un turno: fecha, cliente, detalle y monto.",
+          "Cada fila es un cobro al cerrar un turno: servicios, productos vendidos, cliente y monto.",
         target: "sales-list",
       },
     ],
@@ -235,7 +235,7 @@ export const onboardingSteps: OnboardingStep[] = [
   {
     id: "nav-sales",
     title: "Ventas",
-    description: "Historial de cobros y cartera de clientes.",
+    description: "Ingresos por turnos (servicios y productos) y cartera de clientes.",
     href: appRoutes.sales.history,
     target: "nav-sales",
     expandModule: "sales",

@@ -17,15 +17,15 @@ export function PageHeader({
   action?: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-      <div className="flex items-center gap-3">
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+      <div className="flex min-w-0 items-center gap-3">
         <div className="bg-accent/10 rounded-xl p-3 text-accent shrink-0">{icon}</div>
-        <div>
+        <div className="min-w-0">
           <h1 className="text-2xl font-bold tracking-tight">{title}</h1>
           {description && <p className="text-muted text-sm mt-0.5">{description}</p>}
         </div>
       </div>
-      {action}
+      {action ? <div className="shrink-0">{action}</div> : null}
     </div>
   );
 }

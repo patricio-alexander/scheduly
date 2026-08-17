@@ -48,6 +48,7 @@ export function ServiceList({
       { accessorKey: "name" as const, header: "Nombre" },
       { accessorKey: "durationMinutes" as const, header: "Duración" },
       { accessorKey: "price" as const, header: "Precio" },
+      { accessorKey: "commissionPct" as const, header: "Comisión" },
     ],
     [],
   );
@@ -123,12 +124,13 @@ export function ServiceList({
                 <Table.Column isRowHeader>Nombre</Table.Column>
                 <Table.Column>Duración</Table.Column>
                 <Table.Column>Precio</Table.Column>
+                <Table.Column>Comisión</Table.Column>
                 <Table.Column>Acciones</Table.Column>
               </Table.Header>
               <Table.Body>
                 {pageRows.length === 0 ? (
                   <Table.Row>
-                    <Table.Cell colSpan={4}>
+                    <Table.Cell colSpan={5}>
                       <div className="py-8 text-center text-sm text-muted">
                         No se encontraron servicios con &quot;{search}&quot;
                       </div>
@@ -150,6 +152,11 @@ export function ServiceList({
                         <Table.Cell>
                           <span className="font-medium tabular-nums">
                             {formatPrice(service.price)}
+                          </span>
+                        </Table.Cell>
+                        <Table.Cell>
+                          <span className="tabular-nums text-muted">
+                            {service.commissionPct ?? 15}%
                           </span>
                         </Table.Cell>
                         <Table.Cell>
