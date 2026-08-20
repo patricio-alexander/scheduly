@@ -10,7 +10,11 @@ import {
 } from "react";
 import { apiUrl } from "@/shared/utils/api";
 import type { AuthUser } from "../types";
-import { loginUser, logoutUser } from "../services/auth-service";
+import {
+  changeUserRole,
+  loginUser,
+  logoutUser,
+} from "../services/auth-service";
 
 interface AuthContextType {
   user: AuthUser | null;
@@ -18,6 +22,7 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>;
   logout: () => void;
   refreshUser: () => Promise<void>;
+  changeRole: (roleId: number) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -37,9 +42,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshUser = useCallback(async () => {
     try {
       const res = await fetch(apiUrl("/api/auth/me"), { credentials: "include" });
-      if (!res.ok) {
+      if (res.status === 401) {
         setUser(null);
         persistUser(null);
+        return;
+      }
+      if (!res.ok) {
+        // Error de servidor: no botar la sesión local
+        const stored = localStorage.getItem("scheduly_user");
+        if (stored) {
+          try {
+            setUser(JSON.parse(stored) as AuthUser);
+          } catch {
+            /* ignore */
+          }
+        }
         return;
       }
       const userData = (await res.json()) as AuthUser;
@@ -80,8 +97,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     void logoutUser();
   }, []);
 
+  const changeRole = useCallback(async (roleId: number) => {
+    const userData = await changeUserRole(roleId);
+    setUser(userData);
+    persistUser(userData);
+  }, []);
+
   return (
-    <AuthContext.Provider value={{ user, loading, login, logout, refreshUser }}>
+    <AuthContext.Provider
+      value={{ user, loading, login, logout, refreshUser, changeRole }}
+    >
       {children}
     </AuthContext.Provider>
   );

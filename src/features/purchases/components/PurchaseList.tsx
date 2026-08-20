@@ -21,6 +21,7 @@ import {
   dashboardPeriodOptions,
   type DashboardPeriod,
 } from "@/shared/utils/dashboard-period";
+import { useOperationFlags } from "@/src/features/settings/hooks/useOperationFlags";
 import type { PurchaseRecord } from "../types";
 
 const PAGE_SIZE = 12;
@@ -58,6 +59,9 @@ export function PurchaseList({
   onSearchChange,
 }: Props) {
   const [page, setPage] = useState(1);
+  const flags = useOperationFlags();
+  const showBranch = flags.showBranchColumn;
+  const showSupplier = flags.purchasesShowSupplierColumn;
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -157,10 +161,11 @@ export function PurchaseList({
           <>
             <Table>
               <Table.ScrollContainer>
-                <Table.Content aria-label="Historial de compras" className="min-w-[720px]">
+                <Table.Content aria-label="Historial de compras" className="min-w-[880px]">
                   <Table.Header>
                     <Table.Column isRowHeader>Fecha</Table.Column>
-                    <Table.Column>Proveedor</Table.Column>
+                    {showBranch ? <Table.Column>Sucursal</Table.Column> : null}
+                    {showSupplier ? <Table.Column>Proveedor</Table.Column> : null}
                     <Table.Column>Productos</Table.Column>
                     <Table.Column>Método</Table.Column>
                     <Table.Column>Registró</Table.Column>
@@ -178,9 +183,20 @@ export function PurchaseList({
                               <p className="text-xs text-muted tabular-nums">{time}</p>
                             </div>
                           </Table.Cell>
-                          <Table.Cell>
-                            {purchase.supplier?.name ?? "—"}
-                          </Table.Cell>
+                          {showBranch ? (
+                            <Table.Cell>
+                              <span className="text-sm text-muted">
+                                {purchase.branch?.name ?? "—"}
+                              </span>
+                            </Table.Cell>
+                          ) : null}
+                          {showSupplier ? (
+                            <Table.Cell>
+                              <span className="text-sm font-semibold uppercase tracking-wide">
+                                {purchase.supplier?.name ?? "—"}
+                              </span>
+                            </Table.Cell>
+                          ) : null}
                           <Table.Cell>
                             <span className="line-clamp-2 max-w-xs text-muted">
                               {purchase.itemsSummary || "—"}

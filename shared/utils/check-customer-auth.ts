@@ -27,8 +27,8 @@ function getAuthSecret() {
 }
 
 function cookiePath() {
-  const base = process.env.NEXT_PUBLIC_BASE_PATH?.trim() || "";
-  return base || "/";
+  // Path "/" funciona con basePath (/scheduly) en navegador y en Next cookies().
+  return "/";
 }
 
 export function signCustomerSessionToken(customerId: number) {

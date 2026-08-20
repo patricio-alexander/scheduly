@@ -11,6 +11,7 @@ import {
 } from "react";
 import { apiUrl } from "@/shared/utils/api";
 import { appRoutes } from "@/shared/utils/app-routes";
+import { buildDevOpenSubscriptionState } from "@/shared/utils/dev-subscription";
 import { useAuth } from "@/src/features/auth";
 import { isOwnerRole } from "@/shared/utils/roles";
 import type { SubscriptionModule, SubscriptionSection, SubscriptionState } from "../types";
@@ -28,7 +29,9 @@ import {
   parseSubscriptionState,
 } from "../lib/subscription-utils";
 
-/** Accesibles sin suscripción activa (para poder ver/activar planes) */
+/** Solo "gestor" activa el gate; sin valor o "dev" = abierto. */
+const DEV_RUNTIME = process.env.NEXT_PUBLIC_SCHEDULY_RUNTIME !== "gestor";
+
 const OPEN_WHEN_UNSUBSCRIBED = [
   appRoutes.system.plans,
   appRoutes.system.modules,
@@ -99,8 +102,10 @@ function extractSubscriptionPayload(raw: unknown): unknown {
 
 export function SubscriptionProvider({ children }: { children: ReactNode }) {
   const { user } = useAuth();
-  const [data, setData] = useState<SubscriptionState | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [data, setData] = useState<SubscriptionState | null>(
+    DEV_RUNTIME ? buildDevOpenSubscriptionState() : null,
+  );
+  const [loading, setLoading] = useState(!DEV_RUNTIME);
   const [syncing, setSyncing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -112,6 +117,13 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
 
   const refetch = useCallback(
     async (options?: { silent?: boolean }) => {
+      if (DEV_RUNTIME) {
+        setData(buildDevOpenSubscriptionState());
+        setLoading(false);
+        setError(null);
+        return;
+      }
+
       const silent = Boolean(options?.silent);
       if (!silent) {
         setLoading(true);
@@ -141,6 +153,12 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   );
 
   const syncPull = useCallback(async () => {
+    if (DEV_RUNTIME) {
+      setData(buildDevOpenSubscriptionState());
+      setError(null);
+      return;
+    }
+
     setSyncing(true);
     setError(null);
     try {
@@ -161,9 +179,7 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
             : "No se pudo verificar la suscripción";
         throw new Error(message);
       }
-      // Actualiza la UI de inmediato con la respuesta del PUT
       applyEntitlementResponse(json);
-      // Y relee el listado por si el GET ordena/normaliza distinto
       await refetch({ silent: true });
     } catch (e) {
       setError(e instanceof Error ? e.message : "Error al verificar suscripción");
@@ -173,6 +189,11 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
   }, [applyEntitlementResponse, refetch]);
 
   useEffect(() => {
+    if (DEV_RUNTIME) {
+      setData(buildDevOpenSubscriptionState());
+      setLoading(false);
+      return;
+    }
     if (!user) {
       setData(null);
       setLoading(false);
@@ -181,9 +202,9 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     void refetch();
   }, [user, refetch]);
 
-  // Polling: refleja pushes del gestor sin recargar la página
+  // Polling solo con Gestor
   useEffect(() => {
-    if (!user) return;
+    if (DEV_RUNTIME || !user) return;
 
     const POLL_MS = 15_000;
     const id = window.setInterval(() => {
@@ -208,6 +229,16 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
     const getSectionForPathFn = (pathname: string) => findSectionInState(data, pathname);
 
     const resolvePathAccess = (pathname: string) => {
+      if (DEV_RUNTIME) {
+        return {
+          kind: "ok" as const,
+          title: "",
+          description: "",
+          module: null,
+          section: null,
+        };
+      }
+
       if (data?.maintenance) {
         return {
           kind: "maintenance" as const,
@@ -218,7 +249,6 @@ export function SubscriptionProvider({ children }: { children: ReactNode }) {
         };
       }
 
-      // Planes / módulos: siempre accesibles (para activar o revisar la suscripción)
       if (isOpenWhenUnsubscribed(pathname)) {
         return {
           kind: "ok" as const,

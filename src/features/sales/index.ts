@@ -1,6 +1,7 @@
 export { SalesList } from "./components/SalesList";
 export { ProductSalesList } from "./components/ProductSalesList";
 export { DirectProductSaleForm } from "./components/DirectProductSaleForm";
+export { PosCashRegister } from "./components/PosCashRegister";
 export { SaleDetailModal } from "./components/SaleDetailModal";
 export { SalesSummary } from "./components/SalesSummary";
 export { useSales } from "./hooks/useSales";

@@ -9,20 +9,33 @@ export async function GET() {
 
   try {
     const branches = await prisma.branch.findMany({
-      orderBy: [{ isMain: "desc" }, { sortOrder: "asc" }, { name: "asc" }],
+      where: { isActive: true },
+      orderBy: [{ position: "asc" }, { name: "asc" }],
       include: {
         _count: {
           select: {
-            users: true,
             appointments: true,
             stocks: true,
           },
         },
       },
     });
-    return NextResponse.json(branches);
-  } catch {
-    return NextResponse.json({ message: "Error al obtener sucursales" }, { status: 500 });
+
+    // Compat UI legacy: isMain / code / sortOrder
+    return NextResponse.json(
+      branches.map((b, idx) => ({
+        ...b,
+        code: b.establishmentCode || `suc-${b.id}`,
+        isMain: idx === 0 || b.locationKind === "propia",
+        sortOrder: b.position,
+      })),
+    );
+  } catch (error) {
+    console.error("GET /api/branches", error);
+    return NextResponse.json(
+      { message: "Error al obtener sucursales" },
+      { status: 500 },
+    );
   }
 }
 
@@ -36,30 +49,36 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Record<string, unknown>;
     const name = String(body.name ?? "").trim();
-    const code = String(body.code ?? "").trim().toLowerCase();
-    if (!name || !code) {
-      return NextResponse.json({ message: "Nombre y código requeridos" }, { status: 400 });
-    }
-
-    const isMain = body.isMain === true;
-
-    if (isMain) {
-      await prisma.branch.updateMany({ data: { isMain: false } });
+    if (!name) {
+      return NextResponse.json({ message: "Nombre requerido" }, { status: 400 });
     }
 
     const branch = await prisma.branch.create({
       data: {
         name,
-        code,
-        address: String(body.address ?? "").trim(),
-        phone: String(body.phone ?? "").trim(),
+        address: String(body.address ?? "").trim() || "—",
+        phone: String(body.phone ?? "").trim() || null,
         isActive: body.isActive !== false,
-        isMain,
-        sortOrder: Number(body.sortOrder ?? 0) || 0,
+        position: Number(body.sortOrder ?? body.position ?? 0) || 0,
+        locationKind: "propia",
+        establishmentCode: String(body.code ?? "001").slice(0, 3),
       },
     });
-    return NextResponse.json(branch, { status: 201 });
-  } catch {
-    return NextResponse.json({ message: "Error al crear sucursal" }, { status: 500 });
+
+    return NextResponse.json(
+      {
+        ...branch,
+        code: branch.establishmentCode,
+        isMain: true,
+        sortOrder: branch.position,
+      },
+      { status: 201 },
+    );
+  } catch (error) {
+    console.error("POST /api/branches", error);
+    return NextResponse.json(
+      { message: "Error al crear sucursal" },
+      { status: 400 },
+    );
   }
 }

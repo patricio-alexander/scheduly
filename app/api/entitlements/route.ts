@@ -10,19 +10,33 @@ import {
   pullSubscriptionFromGestor,
 } from "@/shared/utils/subscription-sync";
 import { checkAuth } from "@/shared/utils/check-auth";
+import { isSchedulyDevRuntime } from "@/shared/utils/runtime-mode";
+import { buildDevOpenSubscriptionState } from "@/shared/utils/dev-subscription";
 
 const GESTOR_SOURCE = "gestor";
+const DEV_SOURCE = "dev_local";
 
 export async function GET(request: Request) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
 
   try {
+    if (isSchedulyDevRuntime()) {
+      return NextResponse.json([
+        {
+          id: 0,
+          payload: buildDevOpenSubscriptionState(),
+          source: DEV_SOURCE,
+          status: "gestor_pull",
+        },
+      ]);
+    }
+
     const url = new URL(request.url);
     const status = url.searchParams.get("status");
     const source = url.searchParams.get("source");
 
-    const entitlements = await prisma.entitlement.findMany({
+    const entitlements = await prisma.appEntitlement.findMany({
       where: {
         ...(status ? { status: parseEntitlementStatus(status) } : {}),
         ...(source ? { source: source.trim() } : {}),
@@ -41,6 +55,19 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    if (isSchedulyDevRuntime() && !request.headers.get("authorization")?.trim()) {
+      const auth = await checkAuth();
+      if (!auth.ok) return auth.response;
+      const payload = buildDevOpenSubscriptionState();
+      return NextResponse.json({
+        ok: true,
+        payload,
+        source: DEV_SOURCE,
+        status: "gestor_pull",
+        message: "Modo desarrollo: sin sync al Gestor",
+      });
+    }
+
     const hasAuthHeader = Boolean(request.headers.get("authorization")?.trim());
     const source = GESTOR_SOURCE;
 
@@ -48,7 +75,6 @@ export async function PUT(request: Request) {
     let payload;
 
     if (hasAuthHeader) {
-      // Push desde el gestor: Bearer obligatorio y válido
       if (!isValidGestorBearer(request)) {
         return NextResponse.json(
           { ok: false, message: "No autorizado" },
@@ -62,7 +88,6 @@ export async function PUT(request: Request) {
       status = "gestor_push";
       payload = parseEntitlementPayload(body);
     } else {
-      // Pull interno: solo usuarios logueados
       const auth = await checkAuth();
       if (!auth.ok) return auth.response;
 
@@ -70,11 +95,19 @@ export async function PUT(request: Request) {
       payload = await pullSubscriptionFromGestor();
     }
 
-    const entitlement = await prisma.entitlement.create({
-      data: {
+    const entitlement = await prisma.appEntitlement.upsert({
+      where: { id: 1 },
+      create: {
+        id: 1,
         payload,
         source,
         status,
+      },
+      update: {
+        payload,
+        source,
+        status,
+        syncedAt: new Date(),
       },
     });
 

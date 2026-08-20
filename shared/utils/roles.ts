@@ -1,13 +1,37 @@
 export type AppRole = "owner" | "admin" | "employee" | "user";
 
+/**
+ * Normaliza nombres de rol EdDeli / legacy → AppRole Scheduly.
+ * Programador/Administrador → owner (Dueño); Empleado → employee.
+ */
+export function mapExternalRoleName(name: string | null | undefined): AppRole {
+  const n = String(name ?? "")
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/\p{M}/gu, "");
+  if (
+    n === "owner" ||
+    n === "programador" ||
+    n === "administrador" ||
+    n === "dueno" ||
+    n === "dueño"
+  ) {
+    return "owner";
+  }
+  if (n === "admin" || n === "encargado") return "admin";
+  if (n === "employee" || n === "empleado" || n === "user") return "employee";
+  return "employee";
+}
+
 /** Rol central del negocio (Andrea / dueño) */
 export function isOwnerRole(role: string | null | undefined): boolean {
-  return role === "owner";
+  return mapExternalRoleName(role) === "owner";
 }
 
 /** Encargado/a de sucursal (admin + empleado) */
 export function isBranchAdminRole(role: string | null | undefined): boolean {
-  return role === "admin";
+  return mapExternalRoleName(role) === "admin";
 }
 
 /** Empleado operativo sin rol de encargado */
@@ -26,10 +50,7 @@ export function isAdminRole(role: string | null | undefined): boolean {
 }
 
 export function normalizeRole(role: string | null | undefined): AppRole {
-  if (role === "owner") return "owner";
-  if (role === "admin") return "admin";
-  if (role === "employee" || role === "user") return "employee";
-  return "employee";
+  return mapExternalRoleName(role);
 }
 
 /** Empleado puro (alias de isPureEmployeeRole) */
@@ -47,7 +68,7 @@ export function hasEmployeeExperience(
 export function roleLabel(role: string | null | undefined): string {
   switch (role) {
     case "owner":
-      return "Owner";
+      return "Dueño";
     case "admin":
       return "Encargado sucursal";
     case "employee":

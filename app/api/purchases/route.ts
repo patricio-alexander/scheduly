@@ -70,22 +70,21 @@ export async function GET(request: Request) {
       requestedBranchId,
     );
 
-    const purchases = await prisma.purchase.findMany({
+    const purchases = await prisma.purchaseOrder.findMany({
       where: {
-        purchasedAt: { gte: start, lte: end },
-        ...(scope.branchId ? { branchId: scope.branchId } : {}),
+        date: { gte: start, lte: end },
+        ...(scope.branchId ? { receivedStoreId: scope.branchId } : {}),
       },
       include: {
         supplier: { select: { id: true, name: true } },
-        user: { select: { id: true, name: true } },
-        branch: { select: { id: true, name: true } },
+        receivedBranch: { select: { id: true, name: true } },
         lines: {
           include: {
             product: { select: { id: true, name: true, price: true } },
           },
         },
       },
-      orderBy: { purchasedAt: "desc" },
+      orderBy: { date: "desc" },
       take: 200,
     });
 
@@ -95,24 +94,31 @@ export async function GET(request: Request) {
           id: line.product.id,
           name: line.product.name,
           quantity: line.quantity,
-          unitCost: toAmount(line.unitCost),
+          unitCost: toAmount(line.unitPrice),
         }));
+        const amount = products.reduce(
+          (sum, p) => sum + toAmount(p.quantity) * p.unitCost,
+          0,
+        );
         const itemsSummary = products
           .map((p) => (p.quantity > 1 ? `${p.name} ×${p.quantity}` : p.name))
           .join(", ");
 
         return {
           id: purchase.id,
-          amount: toAmount(purchase.totalAmount),
-          method: purchase.method,
-          purchasedAt: purchase.purchasedAt.toISOString(),
-          notes: purchase.notes,
+          amount,
+          method: purchase.paymentMethod || "cash",
+          purchasedAt: purchase.date.toISOString(),
+          notes: purchase.notes ?? "",
           supplier: purchase.supplier
             ? { id: purchase.supplier.id, name: purchase.supplier.name }
             : null,
-          staff: { id: purchase.user.id, name: purchase.user.name },
-          branch: purchase.branch
-            ? { id: purchase.branch.id, name: purchase.branch.name }
+          staff: { id: 0, name: "—" },
+          branch: purchase.receivedBranch
+            ? {
+                id: purchase.receivedBranch.id,
+                name: purchase.receivedBranch.name,
+              }
             : null,
           products,
           itemsSummary,
@@ -122,7 +128,6 @@ export async function GET(request: Request) {
         if (!q) return true;
         return (
           (record.supplier?.name.toLowerCase().includes(q) ?? false) ||
-          record.staff.name.toLowerCase().includes(q) ||
           record.itemsSummary.toLowerCase().includes(q) ||
           record.notes.toLowerCase().includes(q)
         );
@@ -167,6 +172,9 @@ export async function POST(request: Request) {
     const totalAmount = calcPurchaseTotal(lines);
     const method = parseMethod(body.method);
     const notes = String(body.notes ?? "").trim();
+    const invoiceNumber = String(body.invoiceNumber ?? "")
+      .trim()
+      .slice(0, 80);
     const supplierIdRaw = body.supplierId;
     const supplierId =
       supplierIdRaw == null || supplierIdRaw === ""
@@ -180,13 +188,31 @@ export async function POST(request: Request) {
       );
     }
 
-    if (supplierId != null) {
-      const supplier = await prisma.supplier.findUnique({
-        where: { id: supplierId },
+    if (supplierId == null) {
+      return NextResponse.json(
+        { message: "Proveedor requerido" },
+        { status: 400 },
+      );
+    }
+
+    const supplier = await prisma.supplier.findUnique({
+      where: { id: supplierId },
+    });
+    if (!supplier) {
+      return NextResponse.json(
+        { message: "Proveedor no encontrado" },
+        { status: 400 },
+      );
+    }
+
+    for (const line of lines) {
+      const product = await prisma.product.findUnique({
+        where: { id: line.productId },
+        select: { id: true },
       });
-      if (!supplier) {
+      if (!product) {
         return NextResponse.json(
-          { message: "Proveedor no encontrado" },
+          { message: "Producto no encontrado" },
           { status: 400 },
         );
       }
@@ -216,28 +242,31 @@ export async function POST(request: Request) {
     }
 
     const branchId = await resolvePurchaseBranchId(auth.user, requestedBranchId);
+    const receiveNow = body.receiveNow === true;
+    const payNow = body.payNow === true;
 
     const purchase = await prisma.$transaction(async (tx) => {
-      const created = await tx.purchase.create({
+      const created = await tx.purchaseOrder.create({
         data: {
           supplierId,
-          userId: auth.user.id,
-          branchId,
-          purchasedAt,
-          notes,
-          totalAmount,
-          method,
+          date: purchasedAt,
+          notes: notes || null,
+          invoiceNumber: invoiceNumber || null,
+          status: receiveNow ? "recibido" : "pendiente",
+          receivedAt: receiveNow ? new Date() : null,
+          receivedStoreId: receiveNow ? branchId : null,
+          paidAt: payNow ? new Date() : null,
+          paymentMethod: payNow ? method : null,
           lines: {
             create: lines.map((line) => ({
               productId: line.productId,
               quantity: line.quantity,
-              unitCost: line.unitCost,
+              unitPrice: line.unitCost,
             })),
           },
         },
         include: {
           supplier: { select: { id: true, name: true } },
-          user: { select: { id: true, name: true } },
           lines: {
             include: {
               product: { select: { id: true, name: true, price: true } },
@@ -246,7 +275,9 @@ export async function POST(request: Request) {
         },
       });
 
-      await incrementStockForPurchase(tx, lines, branchId);
+      if (receiveNow) {
+        await incrementStockForPurchase(tx, lines, branchId);
+      }
       return created;
     });
 
@@ -265,17 +296,16 @@ export async function POST(request: Request) {
     return NextResponse.json(
       {
         id: purchase.id,
-        amount: toAmount(purchase.totalAmount),
-        method: purchase.method,
-        purchasedAt: purchase.purchasedAt.toISOString(),
-        notes: purchase.notes,
+        amount: totalAmount,
+        method: purchase.paymentMethod || method,
+        purchasedAt: purchase.date.toISOString(),
+        notes: purchase.notes ?? "",
         supplier: purchase.supplier,
-        staff: purchase.user,
         products: purchase.lines.map((line) => ({
           id: line.product.id,
           name: line.product.name,
           quantity: line.quantity,
-          unitCost: toAmount(line.unitCost),
+          unitCost: toAmount(line.unitPrice),
         })),
       },
       { status: 201 },

@@ -26,3 +26,22 @@ export async function logoutUser(): Promise<void> {
     credentials: "include",
   }).catch(() => undefined);
 }
+
+export async function changeUserRole(roleId: number): Promise<AuthUser> {
+  const res = await fetch(apiUrl("/api/auth/change-role"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ roleId }),
+  });
+
+  if (!res.ok) {
+    const error = await res.json().catch(() => ({}));
+    throw new Error(
+      (error as { message?: string }).message || "Error al cambiar rol",
+    );
+  }
+
+  const data = (await res.json()) as AuthUser & { message?: string };
+  return data;
+}

@@ -10,12 +10,7 @@ import {
   Tooltip,
   ResponsiveContainer,
   CartesianGrid,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
-import Person from "@gravity-ui/icons/Person";
-import Receipt from "@gravity-ui/icons/Receipt";
 import TriangleExclamation from "@gravity-ui/icons/TriangleExclamation";
 import ChartColumn from "@gravity-ui/icons/ChartColumn";
 import ArrowUp from "@gravity-ui/icons/ArrowUp";
@@ -101,13 +96,6 @@ function MiniStat({
   );
 }
 
-const PAYMENT_COLORS = [
-  "var(--accent)",
-  "var(--success)",
-  "var(--warning)",
-  "#6366f1",
-];
-
 type OwnerInsightsPanelProps = {
   insights: OwnerInsights;
   comparisonLabel: string;
@@ -121,8 +109,13 @@ export function OwnerInsightsPanel({
   periodDescription,
   showBranchComparison,
 }: OwnerInsightsPanelProps) {
-  const { financial, byBranch, topEmployees, topProducts, paymentBreakdown, topExpenseCategories, lowStockAlerts } =
-    insights;
+  const {
+    financial,
+    byBranch,
+    topProducts,
+    topExpenseCategories,
+    lowStockAlerts,
+  } = insights;
 
   const pnlItems = [
     { label: "Ingresos", amount: financial.revenue, tone: "positive" as const },
@@ -399,121 +392,7 @@ export function OwnerInsightsPanel({
         </section>
       ) : null}
 
-      <section className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <div className="min-w-0 rounded-2xl border border-separator bg-surface p-4 md:p-5">
-          <div className="mb-3 flex items-center gap-2">
-            <Person width={18} height={18} className="text-accent" />
-            <div>
-              <h2 className="text-base font-semibold">Top empleados</h2>
-              <p className="text-xs text-muted">Por ingresos generados</p>
-            </div>
-          </div>
-          {topEmployees.length > 0 ? (
-            <ul className="divide-y divide-separator">
-              {topEmployees.map((emp, index) => (
-                <li
-                  key={emp.id}
-                  className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
-                >
-                  <span
-                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
-                      index === 0
-                        ? "bg-accent text-accent-foreground"
-                        : "bg-surface-secondary text-muted"
-                    }`}
-                  >
-                    {index + 1}
-                  </span>
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate text-sm font-medium">{emp.name}</p>
-                    <p className="text-[11px] text-muted">
-                      {emp.appointments}{" "}
-                      {emp.appointments === 1 ? "turno" : "turnos"}
-                    </p>
-                  </div>
-                  <p className="shrink-0 text-sm font-semibold tabular-nums">
-                    {formatCurrency(emp.revenue)}
-                  </p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="py-6 text-center text-xs text-muted">
-              Sin turnos completados en el período
-            </p>
-          )}
-        </div>
-
-        <div className="min-w-0 rounded-2xl border border-separator bg-surface p-4 md:p-5">
-          <div className="mb-3 flex items-center gap-2">
-            <Receipt width={18} height={18} className="text-accent" />
-            <div>
-              <h2 className="text-base font-semibold">Métodos de pago</h2>
-              <p className="text-xs text-muted">Distribución de cobros</p>
-            </div>
-          </div>
-          {paymentBreakdown.length > 0 ? (
-            <div className="flex flex-col items-center gap-4 sm:flex-row">
-              <div className="h-36 w-36 shrink-0">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={paymentBreakdown}
-                      dataKey="amount"
-                      nameKey="label"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={38}
-                      outerRadius={58}
-                      paddingAngle={3}
-                      stroke="none"
-                    >
-                      {paymentBreakdown.map((_, i) => (
-                        <Cell
-                          key={i}
-                          fill={PAYMENT_COLORS[i % PAYMENT_COLORS.length]}
-                        />
-                      ))}
-                    </Pie>
-                    <Tooltip
-                      formatter={(value) => formatCurrency(Number(value))}
-                      contentStyle={{
-                        background: "var(--surface)",
-                        border: "1px solid var(--separator)",
-                        borderRadius: "12px",
-                        fontSize: 13,
-                      }}
-                    />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              <ul className="w-full min-w-0 space-y-2">
-                {paymentBreakdown.map((item, i) => (
-                  <li
-                    key={item.method}
-                    className="flex items-center justify-between gap-2 text-sm"
-                  >
-                    <div className="flex min-w-0 items-center gap-2">
-                      <span
-                        className="h-2.5 w-2.5 shrink-0 rounded-full"
-                        style={{
-                          background: PAYMENT_COLORS[i % PAYMENT_COLORS.length],
-                        }}
-                      />
-                      <span className="truncate">{item.label}</span>
-                    </div>
-                    <span className="shrink-0 tabular-nums text-muted">
-                      {item.sharePct}% · {formatCurrency(item.amount)}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          ) : (
-            <p className="py-6 text-center text-xs text-muted">Sin cobros registrados</p>
-          )}
-        </div>
-
+      <section className="grid grid-cols-1 gap-4 xl:grid-cols-1">
         <div className="min-w-0 rounded-2xl border border-separator bg-surface p-4 md:p-5">
           <div className="mb-3 flex items-center gap-2">
             <ChartColumn width={18} height={18} className="text-accent" />

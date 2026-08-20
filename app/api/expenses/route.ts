@@ -65,21 +65,28 @@ export async function GET(request: Request) {
 
     const expenses = await prisma.expense.findMany({
       where: {
-        expenseDate: { gte: start, lte: end },
-        ...(scope.branchId ? { branchId: scope.branchId } : {}),
+        date: { gte: start, lte: end },
+        status: "paid",
       },
       include: {
-        category: true,
-        branch: { select: { id: true, name: true } },
-        user: { select: { id: true, name: true } },
+        creator: { select: { id: true, username: true } },
       },
-      orderBy: { expenseDate: "desc" },
+      orderBy: { date: "desc" },
       take: 200,
     });
 
-    const categories = await prisma.expenseCategory.findMany({
-      orderBy: { name: "asc" },
-    });
+    const categoryNames = [
+      ...new Set(
+        expenses
+          .map((e) => e.category?.trim())
+          .filter((c): c is string => Boolean(c)),
+      ),
+    ].sort();
+
+    const categories = categoryNames.map((name, idx) => ({
+      id: idx + 1,
+      name,
+    }));
 
     return NextResponse.json({
       period,
@@ -87,15 +94,21 @@ export async function GET(request: Request) {
       expenses: expenses.map((e) => ({
         id: e.id,
         amount: toAmount(e.amount),
-        description: e.description,
-        method: e.method,
-        expenseDate: e.expenseDate.toISOString(),
-        category: e.category,
-        branch: e.branch,
-        staff: e.user,
+        description: e.concept ?? "",
+        method: "cash",
+        expenseDate: e.date.toISOString(),
+        category: {
+          id: Math.max(1, categoryNames.indexOf(e.category?.trim() || "") + 1),
+          name: e.category || "Sin categoría",
+        },
+        branch: null,
+        staff: e.creator
+          ? { id: e.creator.id, name: e.creator.username ?? "—" }
+          : null,
       })),
     });
-  } catch {
+  } catch (error) {
+    console.error("GET /api/expenses", error);
     return NextResponse.json({ message: "Error al obtener gastos" }, { status: 500 });
   }
 }

@@ -2,11 +2,14 @@ import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
+import { mapExternalRoleName } from "@/shared/utils/roles";
 
 export const AUTH_COOKIE = "scheduly_session";
 
 export type AuthSessionUser = {
+  /** Account.id */
   id: number;
+  personId: number | null;
   username: string;
   name: string;
   email: string;
@@ -28,12 +31,13 @@ function getAuthSecret() {
 }
 
 function cookiePath() {
-  const base = process.env.NEXT_PUBLIC_BASE_PATH?.trim() || "";
-  return base || "/";
+  // Con basePath (/scheduly) Path="/" es el que el navegador y Next
+  // envían/leen de forma fiable en todas las rutas de la app.
+  return "/";
 }
 
-export function signSessionToken(userId: number) {
-  const payload = String(userId);
+export function signSessionToken(accountId: number) {
+  const payload = String(accountId);
   const sig = createHmac("sha256", getAuthSecret()).update(payload).digest("hex");
   return `${payload}.${sig}`;
 }
@@ -53,14 +57,14 @@ export function verifySessionToken(token: string): number | null {
   const b = Buffer.from(expected);
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
 
-  const userId = Number(body);
-  return Number.isFinite(userId) && userId > 0 ? userId : null;
+  const accountId = Number(body);
+  return Number.isFinite(accountId) && accountId > 0 ? accountId : null;
 }
 
-export function buildAuthCookie(userId: number) {
+export function buildAuthCookie(accountId: number) {
   return {
     name: AUTH_COOKIE,
-    value: signSessionToken(userId),
+    value: signSessionToken(accountId),
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax" as const,
@@ -69,6 +73,7 @@ export function buildAuthCookie(userId: number) {
   };
 }
 
+/** Limpia cookie en "/" y en basePath (por si quedó una sesión vieja). */
 export function clearAuthCookie() {
   return {
     name: AUTH_COOKIE,
@@ -79,6 +84,31 @@ export function clearAuthCookie() {
     path: cookiePath(),
     maxAge: 0,
   };
+}
+
+export function clearAuthCookieLegacyBasePath() {
+  const base = (process.env.NEXT_PUBLIC_BASE_PATH?.trim() || "/scheduly").replace(
+    /\/$/,
+    "",
+  );
+  if (!base || base === "/") return null;
+  return {
+    name: AUTH_COOKIE,
+    value: "",
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax" as const,
+    path: base,
+    maxAge: 0,
+  };
+}
+
+function personName(person: {
+  firstName: string | null;
+  firstLastName: string | null;
+} | null) {
+  if (!person) return "Usuario";
+  return [person.firstName, person.firstLastName].filter(Boolean).join(" ") || "Usuario";
 }
 
 export async function checkAuth(): Promise<AuthResult> {
@@ -92,28 +122,43 @@ export async function checkAuth(): Promise<AuthResult> {
       return { ok: false, response: unauthorized() };
     }
 
-    const userId = verifySessionToken(token);
-    if (!userId) {
+    const accountId = verifySessionToken(token);
+    if (!accountId) {
       return { ok: false, response: unauthorized() };
     }
 
-    const user = await prisma.user.findUnique({
-      where: { id: userId },
-      select: {
-        id: true,
-        username: true,
-        name: true,
-        email: true,
-        role: true,
+    const account = await prisma.account.findUnique({
+      where: { id: accountId },
+      include: {
+        person: true,
+        roles: { include: { role: true } },
       },
     });
 
-    if (!user) {
+    if (!account || !account.isActive) {
       return { ok: false, response: unauthorized() };
     }
 
-    return { ok: true, user };
-  } catch {
+    const personData = account.userId
+      ? await prisma.personData.findUnique({ where: { idUser: account.userId } })
+      : null;
+
+    const rawRole = account.roles[0]?.role.name ?? "Empleado";
+    const role = mapExternalRoleName(rawRole);
+
+    return {
+      ok: true,
+      user: {
+        id: account.id,
+        personId: account.userId ?? null,
+        username: account.username ?? "",
+        name: personName(account.person),
+        email: personData?.personalEmail ?? "",
+        role,
+      },
+    };
+  } catch (error) {
+    console.error("checkAuth", error);
     return { ok: false, response: unauthorized() };
   }
 }

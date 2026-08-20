@@ -155,8 +155,8 @@ export default function MultiStockPage() {
     <div className="mx-auto flex w-full max-w-6xl flex-col gap-6">
       <PageHeader
         icon={<Layers width={24} height={24} />}
-        title="Multistock"
-        description="Stock por sucursal, alertas de reposición y transferencias entre locales"
+        title="Stock por local"
+        description="Multistock permanente: existencias por sucursal, alertas y transferencias entre locales"
       />
 
       <div className="flex flex-wrap items-center gap-3">

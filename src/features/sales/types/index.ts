@@ -89,6 +89,9 @@ export interface CreateDirectProductSalePayload {
   branchId?: number | null;
   method: SaleMethod;
   notes?: string;
+  /** contado → pagado; credito → pendiente */
+  saleType?: "contado" | "credito";
+  documentType?: string;
   lines: Array<{
     productId: number;
     quantity: number;

@@ -3,10 +3,8 @@
 import { apiUrl } from "@/shared/utils/api";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Button, Modal, useOverlayState } from "@heroui/react";
-import { StatusChip } from "@/shared/components/StatusChip";
+import { Button } from "@heroui/react";
 import {
-  getStatusTone,
   statusChartColor,
   statusLabel,
 } from "@/shared/utils/appointment-status";
@@ -15,11 +13,18 @@ import { useAuth } from "@/src/features/auth";
 import { canViewRevenue, isOwnerRole, isPureEmployeeRole } from "@/shared/utils/roles";
 import { branchDisplayLabel } from "@/shared/utils/auth-user";
 import { appRoutes } from "@/shared/utils/app-routes";
-import { useDashboardSocket, OwnerInsightsPanel } from "@/src/features/dashboard";
-import type { OwnerInsights } from "@/shared/utils/dashboard-owner-insights";
+import { useDashboardSocket, TopEmployeesCard, RecentAppointmentsCard, FinanceHeroCards, StockAlertsPanel, AppointmentStatusSummaryPanel, DashboardFinanceCharts, AppointmentStatusPieCard } from "@/src/features/dashboard";
+import type {
+  DashboardPaymentBreakdownItem,
+  DashboardRecentAppointment,
+  DashboardTopEmployee,
+} from "@/shared/utils/dashboard-widgets";
+import type {
+  AppointmentStatusOverviewItem,
+  FinanceHeroSummary,
+  StockAlertsBuckets,
+} from "@/shared/utils/dashboard-finance-hero";
 import Person from "@gravity-ui/icons/Person";
-import Gear from "@gravity-ui/icons/Gear";
-import ChartColumn from "@gravity-ui/icons/ChartColumn";
 import Check from "@gravity-ui/icons/Check";
 import Calendar from "@gravity-ui/icons/Calendar";
 import Boxes3 from "@gravity-ui/icons/Boxes3";
@@ -28,22 +33,6 @@ import ArrowRight from "@gravity-ui/icons/ArrowRight";
 import ArrowUp from "@gravity-ui/icons/ArrowUp";
 import ArrowDown from "@gravity-ui/icons/ArrowDown";
 import Receipt from "@gravity-ui/icons/Receipt";
-import CrownDiamond from "@gravity-ui/icons/CrownDiamond";
-import Eye from "@gravity-ui/icons/Eye";
-import {
-  PieChart,
-  Pie,
-  Cell,
-  ResponsiveContainer,
-  BarChart,
-  Bar,
-  LineChart,
-  Line,
-  XAxis,
-  YAxis,
-  Tooltip,
-  CartesianGrid,
-} from "recharts";
 import { Skeleton } from "@/shared/components/ui";
 import { StatCard } from "@/shared/components/StatCard";
 import {
@@ -57,14 +46,6 @@ import {
 interface ComparisonMetric {
   previous: number;
   changePct: number | null;
-}
-
-interface TopMarginService {
-  id: number;
-  name: string;
-  revenue: number;
-  count: number;
-  sharePct: number;
 }
 
 interface DashboardData {
@@ -83,21 +64,17 @@ interface DashboardData {
   completionRate: number;
   appointmentsByDay: { date: string; count: number }[];
   revenueByDay: { date: string; amount: number }[];
-  topMarginService: TopMarginService | null;
-  topMarginServices: TopMarginService[];
-  recentAppointments: Array<{
-    id: number;
-    title: string;
-    customer: string;
-    date: string;
-    status: string;
-  }>;
+  topEmployees: DashboardTopEmployee[];
+  paymentBreakdown: DashboardPaymentBreakdownItem[];
+  recentAppointments: DashboardRecentAppointment[];
+  financeHero?: FinanceHeroSummary | null;
+  stockAlerts?: StockAlertsBuckets | null;
+  appointmentStatusOverview?: AppointmentStatusOverviewItem[];
   comparison: {
     revenue: ComparisonMetric;
     appointments: ComparisonMetric;
     completionRate: ComparisonMetric;
   };
-  ownerInsights?: OwnerInsights | null;
 }
 
 function getGreeting() {
@@ -105,42 +82,6 @@ function getGreeting() {
   if (hour < 12) return "Buenos días";
   if (hour < 19) return "Buenas tardes";
   return "Buenas noches";
-}
-
-function formatCurrency(n: number) {
-  return new Intl.NumberFormat("es-CL", {
-    style: "currency",
-    currency: "CLP",
-    maximumFractionDigits: 0,
-  }).format(n);
-}
-
-function getActivityBarSizing(pointCount: number, period: DashboardPeriod) {
-  if (period === "today" || pointCount > 20) {
-    return { barCategoryGap: "8%", maxBarSize: 32, radius: 6 };
-  }
-  if (period === "week" || pointCount > 10) {
-    return { barCategoryGap: "6%", maxBarSize: 28, radius: 6 };
-  }
-  return { barCategoryGap: "4%", maxBarSize: 36, radius: 6 };
-}
-
-function formatDateTime(iso: string) {
-  const date = new Date(iso);
-  const isToday = new Date().toDateString() === date.toDateString();
-  return {
-    date: isToday
-      ? "Hoy"
-      : date.toLocaleDateString("es-CL", {
-          weekday: "short",
-          day: "numeric",
-          month: "short",
-        }),
-    time: date.toLocaleTimeString("es-CL", {
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
-  };
 }
 
 function DeltaBadge({
@@ -189,18 +130,21 @@ function DeltaBadge({
 function DashboardSkeleton() {
   return (
     <div className="flex flex-col gap-4 md:gap-5 lg:gap-6">
-      <div className="grid grid-cols-2 gap-3 xl:grid-cols-4">
-        {Array.from({ length: 4 }).map((_, i) => (
-          <Skeleton key={i} className="h-24 rounded-2xl md:h-28" />
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-5">
+        {Array.from({ length: 10 }).map((_, i) => (
+          <Skeleton key={i} className="h-[7.5rem] rounded-2xl" />
         ))}
       </div>
-      <Skeleton className="h-52 rounded-2xl md:h-56" />
-      <Skeleton className="h-52 rounded-2xl md:h-56" />
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-        <Skeleton className="h-72 rounded-2xl" />
-        <Skeleton className="h-72 rounded-2xl" />
+      <Skeleton className="h-12 rounded-2xl" />
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+        <Skeleton className="h-72 rounded-2xl xl:col-span-8" />
+        <Skeleton className="h-72 rounded-2xl xl:col-span-4" />
       </div>
-      <Skeleton className="h-64 rounded-2xl" />
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <Skeleton className="h-64 rounded-2xl" />
+        <Skeleton className="h-64 rounded-2xl" />
+        <Skeleton className="h-64 rounded-2xl" />
+      </div>
     </div>
   );
 }
@@ -208,7 +152,7 @@ function DashboardSkeleton() {
 function QuickActions({ showSales = true }: { showSales?: boolean }) {
   const actions = showSales
     ? quickActions
-    : quickActions.filter((a) => a.href !== appRoutes.sales.history);
+    : quickActions.filter((a) => a.href !== appRoutes.sales.salesHub);
 
   return (
     <div
@@ -296,9 +240,9 @@ const quickActions = [
     icon: Boxes3,
   },
   {
-    href: appRoutes.sales.history,
-    label: "Ingresos",
-    hint: "Servicios y productos",
+    href: appRoutes.sales.salesHub,
+    label: "Ventas",
+    hint: "Productos",
     icon: Receipt,
   },
 ] as const;
@@ -310,145 +254,6 @@ type StatusChartEntry = {
   color: string;
 };
 
-function StatusDistributionCard({
-  periodDescription,
-  statusChartData,
-  totalStatus,
-  activeStatusKey,
-  onActiveStatusKeyChange,
-  activeStatusEntry,
-  activeStatusPct,
-}: {
-  periodDescription: string;
-  statusChartData: StatusChartEntry[];
-  totalStatus: number;
-  activeStatusKey: string | null;
-  onActiveStatusKeyChange: (key: string | null) => void;
-  activeStatusEntry: StatusChartEntry | null;
-  activeStatusPct: number;
-}) {
-  return (
-    <div
-      className="flex min-w-0 flex-col self-start rounded-2xl border border-separator bg-surface p-4 md:p-5"
-      data-onboarding="dash-status"
-    >
-      <div className="mb-4 min-w-0">
-        <h2 className="text-base font-semibold">Distribución por estado</h2>
-        <p className="text-xs text-muted">{periodDescription}</p>
-      </div>
-      {statusChartData.length > 0 ? (
-        <div className="flex flex-col items-center gap-5 xl:flex-row xl:items-center">
-          <div className="relative h-40 w-40 shrink-0 md:h-44 md:w-44">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={statusChartData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={50}
-                  outerRadius={70}
-                  paddingAngle={3}
-                  dataKey="value"
-                  stroke="none"
-                  onMouseEnter={(_, index) =>
-                    onActiveStatusKeyChange(statusChartData[index]?.key ?? null)
-                  }
-                  onMouseLeave={() => onActiveStatusKeyChange(null)}
-                >
-                  {statusChartData.map((entry) => {
-                    const dimmed =
-                      activeStatusKey != null && activeStatusKey !== entry.key;
-                    const active = activeStatusKey === entry.key;
-                    return (
-                      <Cell
-                        key={entry.key}
-                        fill={entry.color}
-                        fillOpacity={dimmed ? 0.35 : 1}
-                        stroke={active ? "var(--surface)" : "none"}
-                        strokeWidth={active ? 3 : 0}
-                        style={{
-                          outline: "none",
-                          cursor: "pointer",
-                          transition: "fill-opacity 150ms ease",
-                        }}
-                      />
-                    );
-                  })}
-                </Pie>
-              </PieChart>
-            </ResponsiveContainer>
-            <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center px-3 text-center">
-              {activeStatusEntry ? (
-                <>
-                  <span className="text-3xl font-bold tabular-nums leading-none">
-                    {activeStatusPct}%
-                  </span>
-                  <span className="mt-1 max-w-[5.5rem] truncate text-[10px] font-medium text-muted">
-                    {activeStatusEntry.name}
-                  </span>
-                  <span className="text-[10px] tabular-nums text-muted">
-                    {activeStatusEntry.value} turnos
-                  </span>
-                </>
-              ) : (
-                <>
-                  <span className="text-3xl font-bold tabular-nums leading-none">
-                    {totalStatus}
-                  </span>
-                  <span className="mt-1 text-[10px] font-medium uppercase tracking-wide text-muted">
-                    turnos
-                  </span>
-                </>
-              )}
-            </div>
-          </div>
-          <div className="grid w-full min-w-0 grid-cols-1 gap-2 sm:grid-cols-2 lg:grid-cols-1">
-            {statusChartData.map((entry) => {
-              const pct =
-                totalStatus > 0
-                  ? Math.round((entry.value / totalStatus) * 100)
-                  : 0;
-              const active = activeStatusKey === entry.key;
-              const dimmed = activeStatusKey != null && !active;
-              return (
-                <div
-                  key={entry.key}
-                  onMouseEnter={() => onActiveStatusKeyChange(entry.key)}
-                  onMouseLeave={() => onActiveStatusKeyChange(null)}
-                  className={`flex min-w-0 cursor-default items-center gap-2.5 rounded-xl px-3 py-2 text-xs transition-colors ${
-                    active
-                      ? "bg-surface-secondary ring-1 ring-separator"
-                      : dimmed
-                        ? "bg-surface-secondary/40 opacity-55"
-                        : "bg-surface-secondary/70 hover:bg-surface-secondary"
-                  }`}
-                >
-                  <span
-                    className="h-2.5 w-2.5 shrink-0 rounded-full"
-                    style={{ background: entry.color }}
-                  />
-                  <span className="min-w-0 flex-1 truncate font-medium">
-                    {entry.name}
-                  </span>
-                  <span className="shrink-0 tabular-nums text-muted">{pct}%</span>
-                  <span className="shrink-0 font-bold tabular-nums">
-                    {entry.value}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-10 text-center">
-          <Gear width={28} height={28} className="mb-2 text-muted opacity-40" />
-          <p className="text-xs text-muted">Sin datos de turnos aún</p>
-        </div>
-      )}
-    </div>
-  );
-}
-
 export default function DashboardPage() {
   const { user } = useAuth();
   const { branches } = useBranches();
@@ -458,7 +263,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
   const [activeStatusKey, setActiveStatusKey] = useState<string | null>(null);
-  const marginDetailModal = useOverlayState();
 
   const showRevenue = canViewRevenue(user?.role);
   const isOwner = isOwnerRole(user?.role);
@@ -579,12 +383,6 @@ export default function DashboardPage() {
 
   const periodDescription = getDashboardPeriodDescription(period);
   const comparisonLabel = getDashboardComparisonLabel(period);
-  const chartTotal =
-    data?.appointmentsByDay?.reduce((sum, d) => sum + d.count, 0) ?? 0;
-  const revenueChartTotal =
-    data?.revenueByDay?.reduce((sum, d) => sum + d.amount, 0) ?? 0;
-  const activityBarCount = data?.appointmentsByDay?.length ?? 0;
-  const activityBarSizing = getActivityBarSizing(activityBarCount, period);
   const activeStatusEntry = activeStatusKey
     ? statusChartData.find((e) => e.key === activeStatusKey) ?? null
     : null;
@@ -658,627 +456,114 @@ export default function DashboardPage() {
         <DashboardSkeleton />
       ) : (
         <>
-          <div
-            className={`grid grid-cols-2 gap-3 ${
-              showRevenue ? "xl:grid-cols-3 2xl:grid-cols-5" : "xl:grid-cols-3"
-            }`}
-            data-onboarding="dash-kpis"
-          >
-            {showRevenue ? (
+          {showRevenue && data?.financeHero ? (
+            <FinanceHeroCards summary={data.financeHero} />
+          ) : (
+            <div
+              className="grid grid-cols-2 gap-3 xl:grid-cols-3"
+              data-onboarding="dash-kpis"
+            >
               <StatCard
-                label="Ingresos"
-                value={formatCurrency(data?.revenue ?? 0)}
-                icon={<ChartColumn width={20} height={20} />}
+                label="Turnos"
+                value={data?.totalAppointments ?? 0}
+                icon={<Calendar width={20} height={20} />}
                 delta={
                   <DeltaBadge
-                    changePct={data?.comparison?.revenue?.changePct}
+                    changePct={data?.comparison?.appointments?.changePct}
                     label={comparisonLabel}
                   />
                 }
-                subtitle={
-                  (data?.pending_payment ?? 0) > 0
-                    ? `${formatCurrency(data?.pendingPaymentAmount ?? 0)} por cobrar`
-                    : "Turnos completados"
-                }
+                subtitle={`${data?.scheduled ?? 0} agendados · ${data?.pending_payment ?? 0} por pagar`}
               />
-            ) : null}
-            {showRevenue ? (
               <StatCard
-                label="Mayor margen"
-                value={data?.topMarginService?.name ?? "—"}
-                valueVariant="text"
-                icon={<CrownDiamond width={20} height={20} />}
-                headerAction={
-                  data?.topMarginService ? (
-                    <button
-                      type="button"
-                      onClick={marginDetailModal.open}
-                      className="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-muted transition-colors hover:bg-surface-secondary hover:text-foreground"
-                      aria-label="Ver detalle del servicio"
-                    >
-                      <Eye width={14} height={14} />
-                    </button>
-                  ) : null
+                label="Tasa de cierre"
+                value={`${completionRate}%`}
+                icon={<Check width={20} height={20} />}
+                variant="success"
+                delta={
+                  <DeltaBadge
+                    changePct={data?.comparison?.completionRate?.changePct}
+                    label={comparisonLabel}
+                  />
                 }
+                subtitle={`${data?.completed ?? 0} de ${totalStatus} en el período`}
+              />
+              <StatCard
+                label={isEmployee ? "Mis clientes" : "Clientes"}
+                value={data?.totalCustomers ?? 0}
+                icon={<Person width={20} height={20} />}
+                variant="success"
                 subtitle={
-                  data?.topMarginService
-                    ? `${formatCurrency(data.topMarginService.revenue)} · ${data.topMarginService.count} ${data.topMarginService.count === 1 ? "vez" : "veces"} · ${data.topMarginService.sharePct}%`
-                    : "Sin servicios completados en el período"
+                  isEmployee
+                    ? `${data?.totalServices ?? 0} servicios realizados`
+                    : `${data?.totalServices ?? 0} servicios activos`
                 }
               />
-            ) : null}
-            <StatCard
-              label="Turnos"
-              value={data?.totalAppointments ?? 0}
-              icon={<Calendar width={20} height={20} />}
-              delta={
-                <DeltaBadge
-                  changePct={data?.comparison?.appointments?.changePct}
-                  label={comparisonLabel}
-                />
-              }
-              subtitle={`${data?.scheduled ?? 0} agendados · ${data?.pending_payment ?? 0} por pagar`}
-            />
-            <StatCard
-              label="Tasa de cierre"
-              value={`${completionRate}%`}
-              icon={<Check width={20} height={20} />}
-              variant="success"
-              delta={
-                <DeltaBadge
-                  changePct={data?.comparison?.completionRate?.changePct}
-                  label={comparisonLabel}
-                />
-              }
-              subtitle={`${data?.completed ?? 0} de ${totalStatus} en el período`}
-            />
-            <StatCard
-              label={isEmployee ? "Mis clientes" : "Clientes"}
-              value={data?.totalCustomers ?? 0}
-              icon={<Person width={20} height={20} />}
-              variant="success"
-              subtitle={
-                isEmployee
-                  ? `${data?.totalServices ?? 0} servicios realizados`
-                  : `${data?.totalServices ?? 0} servicios activos`
-              }
-            />
-          </div>
+            </div>
+          )}
 
-          {isOwner && data?.ownerInsights ? (
-            <OwnerInsightsPanel
-              insights={data.ownerInsights}
-              comparisonLabel={comparisonLabel}
+          {showRevenue ? (
+            <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+              <div className="min-w-0 xl:col-span-8">
+                {data?.stockAlerts ? (
+                  <StockAlertsPanel alerts={data.stockAlerts} />
+                ) : null}
+              </div>
+              <div className="min-w-0 xl:col-span-4">
+                <AppointmentStatusSummaryPanel
+                  items={data?.appointmentStatusOverview ?? []}
+                />
+              </div>
+            </div>
+          ) : null}
+
+          {showRevenue ? (
+            <DashboardFinanceCharts
+              branchId={branchFilter === "all" ? null : branchFilter}
+              paymentBreakdown={data?.paymentBreakdown ?? []}
               periodDescription={periodDescription}
-              showBranchComparison={branchFilter === "all"}
+              statusChartData={statusChartData}
+              totalStatus={totalStatus}
+              activeStatusKey={activeStatusKey}
+              onActiveStatusKeyChange={setActiveStatusKey}
+              activeStatusEntry={activeStatusEntry}
+              activeStatusPct={activeStatusPct}
             />
           ) : null}
 
           {showRevenue ? (
-            <div className="flex flex-col gap-4">
-              <div
-                className="min-w-0 rounded-2xl border border-separator bg-surface p-4 md:p-5"
-                data-onboarding="dash-revenue"
-              >
-                <div className="mb-4 flex items-start justify-between gap-3">
-                  <div className="min-w-0">
-                    <h2 className="text-base font-semibold">
-                      Ingresos del período
-                    </h2>
-                    <p className="text-xs text-muted">
-                      Turnos completados · {periodDescription}
-                    </p>
-                  </div>
-                  <div className="shrink-0 text-right">
-                    <p className="text-xl font-bold tabular-nums text-emerald-600 dark:text-emerald-400">
-                      {formatCurrency(revenueChartTotal)}
-                    </p>
-                    <p className="text-[10px] font-medium text-muted">
-                      acumulado
-                    </p>
-                  </div>
-                </div>
-                {data ? (
-                  <div className="h-[200px] w-full min-w-0 md:h-[240px] lg:h-[260px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <LineChart
-                        data={data.revenueByDay ?? []}
-                        margin={{
-                          top: 8,
-                          right: 4,
-                          left: -8,
-                          bottom: data.period === "month" ? 8 : 0,
-                        }}
-                      >
-                        <CartesianGrid
-                          strokeDasharray="3 3"
-                          stroke="var(--separator)"
-                          vertical={false}
-                        />
-                        <XAxis
-                          dataKey="date"
-                          tick={{
-                            fill: "var(--muted)",
-                            fontSize: data.period === "month" ? 10 : 12,
-                          }}
-                          axisLine={{ stroke: "var(--separator)" }}
-                          tickLine={false}
-                          interval={
-                            data.period === "month" ? "preserveStartEnd" : 0
-                          }
-                          angle={data.period === "month" ? -30 : 0}
-                          textAnchor={
-                            data.period === "month" ? "end" : "middle"
-                          }
-                          height={data.period === "month" ? 40 : 28}
-                        />
-                        <YAxis
-                          tick={{ fill: "var(--muted)", fontSize: 11 }}
-                          axisLine={false}
-                          tickLine={false}
-                          width={44}
-                          tickFormatter={(value) =>
-                            new Intl.NumberFormat("es-CL", {
-                              notation: "compact",
-                              maximumFractionDigits: 1,
-                            }).format(Number(value))
-                          }
-                        />
-                        <Tooltip
-                          cursor={{
-                            stroke: "var(--success)",
-                            strokeWidth: 1,
-                            strokeDasharray: "4 4",
-                          }}
-                          contentStyle={{
-                            background: "var(--surface)",
-                            border: "1px solid var(--separator)",
-                            borderRadius: "12px",
-                            fontSize: 13,
-                            boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                          }}
-                          formatter={(value) => [
-                            formatCurrency(Number(value)),
-                            "Ingresos",
-                          ]}
-                        />
-                        <Line
-                          type="monotone"
-                          dataKey="amount"
-                          stroke="var(--success)"
-                          strokeWidth={2.5}
-                          dot={{
-                            fill: "var(--surface)",
-                            stroke: "var(--success)",
-                            strokeWidth: 2,
-                            r: 3,
-                          }}
-                          activeDot={{
-                            fill: "var(--success)",
-                            stroke: "var(--surface)",
-                            strokeWidth: 2,
-                            r: 5,
-                          }}
-                        />
-                      </LineChart>
-                    </ResponsiveContainer>
-                  </div>
-                ) : null}
-              </div>
-
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
-              <div className="flex min-w-0 flex-col rounded-2xl border border-separator bg-surface p-4 md:p-5" id="dash-margin-services">
-                <div className="mb-3 shrink-0">
-                  <h2 className="text-base font-semibold">
-                    Servicios por margen
-                  </h2>
-                  <p className="text-xs text-muted">
-                    Aporte por precio de catálogo en turnos completados ·{" "}
-                    {periodDescription}
-                  </p>
-                </div>
-                {(data?.topMarginServices?.length ?? 0) > 0 ? (
-                  <ul className="min-h-0 flex-1 divide-y divide-separator overflow-y-auto">
-                    {(data?.topMarginServices ?? []).map((service, index) => (
-                      <li
-                        key={service.id}
-                        className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
-                      >
-                        <span
-                          className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
-                            index === 0
-                              ? "bg-accent text-accent-foreground"
-                              : "bg-surface-secondary text-muted"
-                          }`}
-                        >
-                          {index + 1}
-                        </span>
-                        <div className="min-w-0 flex-1">
-                          <p className="truncate text-sm font-medium">
-                            {service.name}
-                          </p>
-                          <p className="text-[11px] text-muted">
-                            {service.count}{" "}
-                            {service.count === 1 ? "venta" : "ventas"} ·{" "}
-                            {service.sharePct}% del margen
-                          </p>
-                        </div>
-                        <p className="shrink-0 text-sm font-semibold tabular-nums">
-                          {formatCurrency(service.revenue)}
-                        </p>
-                      </li>
-                    ))}
-                  </ul>
-                ) : (
-                  <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
-                    <CrownDiamond
-                      width={28}
-                      height={28}
-                      className="mb-2 text-muted opacity-40"
-                    />
-                    <p className="text-xs text-muted">
-                      Sin servicios completados en el período
-                    </p>
-                  </div>
-                )}
-              </div>
-
-              <StatusDistributionCard
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <TopEmployeesCard
+                employees={data?.topEmployees ?? []}
                 periodDescription={periodDescription}
-                statusChartData={statusChartData}
-                totalStatus={totalStatus}
-                activeStatusKey={activeStatusKey}
-                onActiveStatusKeyChange={setActiveStatusKey}
-                activeStatusEntry={activeStatusEntry}
-                activeStatusPct={activeStatusPct}
               />
-              </div>
+              <RecentAppointmentsCard
+                appointments={data?.recentAppointments ?? []}
+                periodDescription={periodDescription}
+                className="max-h-[20rem]"
+              />
             </div>
           ) : null}
 
-          <div
-            className="min-w-0 rounded-2xl border border-separator bg-surface p-4 md:p-5"
-            data-onboarding="dash-activity"
-          >
-              <div className="mb-4 flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <h2 className="text-base font-semibold">
-                    Actividad del período
-                  </h2>
-                  <p className="text-xs text-muted">
-                    Turnos registrados · {periodDescription}
-                  </p>
-                </div>
-                <div className="shrink-0 text-right">
-                  <p className="text-xl font-bold tabular-nums text-accent">
-                    {chartTotal}
-                  </p>
-                  <p className="text-[10px] font-medium text-muted">turnos</p>
-                </div>
-              </div>
-              {data ? (
-                <div className="h-[200px] w-full min-w-0 md:h-[240px] lg:h-[260px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={data.appointmentsByDay ?? []}
-                      barCategoryGap={activityBarSizing.barCategoryGap}
-                      margin={{
-                        top: 8,
-                        right: 8,
-                        left: -12,
-                        bottom:
-                          data.period === "month" || data.period === "week"
-                            ? 16
-                            : 0,
-                      }}
-                    >
-                      <defs>
-                        <linearGradient
-                          id="barGradient"
-                          x1="0"
-                          y1="0"
-                          x2="0"
-                          y2="1"
-                        >
-                          <stop
-                            offset="0%"
-                            stopColor="var(--accent)"
-                            stopOpacity={1}
-                          />
-                          <stop
-                            offset="100%"
-                            stopColor="var(--accent)"
-                            stopOpacity={0.45}
-                          />
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid
-                        strokeDasharray="3 3"
-                        stroke="var(--separator)"
-                        vertical={false}
-                      />
-                      <XAxis
-                        dataKey="date"
-                        tick={{
-                          fill: "var(--muted)",
-                          fontSize:
-                            data.period === "month"
-                              ? 10
-                              : data.period === "week"
-                                ? 9
-                                : 10,
-                        }}
-                        axisLine={{ stroke: "var(--separator)" }}
-                        tickLine={false}
-                        interval={
-                          data.period === "month"
-                            ? "preserveStartEnd"
-                            : data.period === "week"
-                              ? 3
-                              : data.period === "today"
-                                ? 2
-                                : 0
-                        }
-                        angle={
-                          data.period === "month" || data.period === "week"
-                            ? -35
-                            : 0
-                        }
-                        textAnchor={
-                          data.period === "month" || data.period === "week"
-                            ? "end"
-                            : "middle"
-                        }
-                        height={
-                          data.period === "month" || data.period === "week"
-                            ? 48
-                            : 28
-                        }
-                      />
-                      <YAxis
-                        allowDecimals={false}
-                        tick={{ fill: "var(--muted)", fontSize: 12 }}
-                        axisLine={false}
-                        tickLine={false}
-                        width={28}
-                      />
-                      <Tooltip
-                        cursor={{
-                          fill: "color-mix(in srgb, var(--accent) 8%, transparent)",
-                        }}
-                        contentStyle={{
-                          background: "var(--surface)",
-                          border: "1px solid var(--separator)",
-                          borderRadius: "12px",
-                          fontSize: 13,
-                          boxShadow: "0 4px 12px rgba(0,0,0,0.08)",
-                        }}
-                        formatter={(value) => [`${value} turnos`, "Cantidad"]}
-                      />
-                      <Bar
-                        dataKey="count"
-                        fill="url(#barGradient)"
-                        radius={[
-                          activityBarSizing.radius,
-                          activityBarSizing.radius,
-                          0,
-                          0,
-                        ]}
-                        maxBarSize={activityBarSizing.maxBarSize}
-                      />
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              ) : null}
-            </div>
-
-          <div
-            className={`grid grid-cols-1 items-start gap-4 ${showRevenue ? "" : "lg:grid-cols-2"}`}
-          >
-            {!showRevenue ? (
-              <StatusDistributionCard
-                periodDescription={periodDescription}
+          {!showRevenue ? (
+            <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2">
+              <AppointmentStatusPieCard
                 statusChartData={statusChartData}
                 totalStatus={totalStatus}
                 activeStatusKey={activeStatusKey}
                 onActiveStatusKeyChange={setActiveStatusKey}
                 activeStatusEntry={activeStatusEntry}
                 activeStatusPct={activeStatusPct}
+                periodDescription={periodDescription}
               />
-            ) : null}
-
-            <div
-              className="flex max-h-[24rem] min-w-0 flex-col overflow-hidden rounded-2xl border border-separator bg-surface md:max-h-[28rem] lg:max-h-[32rem]"
-              data-onboarding="dash-recent"
-            >
-              <div className="flex shrink-0 items-center justify-between gap-3 border-b border-separator px-4 py-3.5 md:px-5">
-                <div className="min-w-0">
-                  <h2 className="text-base font-semibold">Últimos turnos</h2>
-                  <p className="text-xs text-muted">
-                    Actividad reciente · {periodDescription}
-                  </p>
-                </div>
-                <Link
-                  href={appRoutes.operation.agenda}
-                  className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-accent hover:underline"
-                >
-                  Ver agenda
-                  <ArrowRight width={12} height={12} />
-                </Link>
-              </div>
-
-              {(data?.recentAppointments?.length ?? 0) === 0 ? (
-                <div className="flex flex-col items-center justify-center px-4 py-10 text-center">
-                  <Calendar
-                    width={28}
-                    height={28}
-                    className="mb-2 text-muted opacity-40"
-                  />
-                  <p className="text-sm font-medium">Sin turnos recientes</p>
-                  <Link
-                    href={appRoutes.operation.agenda}
-                    className="mt-2 text-xs font-semibold text-accent hover:underline"
-                  >
-                    Crear turno
-                  </Link>
-                </div>
-              ) : (
-                <ul className="min-h-0 flex-1 divide-y divide-separator overflow-y-auto">
-                  {data?.recentAppointments.map((apt) => {
-                    const { date, time } = formatDateTime(apt.date);
-                    return (
-                      <li key={apt.id}>
-                        <Link
-                          href={`${appRoutes.operation.agenda}?appointmentId=${apt.id}`}
-                          className="flex min-w-0 items-center gap-2.5 px-4 py-2.5 transition-colors hover:bg-surface-secondary/50 md:gap-3 md:px-5"
-                        >
-                          <div
-                            className={`h-8 w-1 shrink-0 rounded-full ${getStatusTone(apt.status).dot}`}
-                            aria-hidden
-                          />
-                          <div className="w-14 shrink-0 text-right md:w-20">
-                            <p className="text-xs font-semibold tabular-nums">
-                              {time}
-                            </p>
-                            <p className="truncate text-[10px] text-muted">
-                              {date}
-                            </p>
-                          </div>
-                          <div className="min-w-0 flex-1">
-                            <p className="truncate text-sm font-medium">
-                              {apt.customer}
-                            </p>
-                            <p className="truncate text-xs text-muted">
-                              {apt.title}
-                            </p>
-                          </div>
-                          <span className="hidden shrink-0 sm:inline-flex">
-                            <StatusChip
-                              status={apt.status}
-                              size="sm"
-                              compact
-                              className="max-w-[7rem]"
-                            />
-                          </span>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
+              <RecentAppointmentsCard
+                appointments={data?.recentAppointments ?? []}
+                periodDescription={periodDescription}
+              />
             </div>
-          </div>
+          ) : null}
         </>
       )}
-
-      <Modal state={marginDetailModal}>
-        <Modal.Backdrop isDismissable>
-          <Modal.Container placement="center" size="md" scroll="inside">
-            <Modal.Dialog>
-              <Modal.CloseTrigger />
-              <Modal.Header>
-                <Modal.Icon>
-                  <CrownDiamond width={20} height={20} />
-                </Modal.Icon>
-                <Modal.Heading>Servicios por margen</Modal.Heading>
-              </Modal.Header>
-              <Modal.Body>
-                {data?.topMarginService ? (
-                  <div className="space-y-4">
-                    <div className="rounded-xl border border-accent/30 bg-accent/5 p-4">
-                      <p className="text-xs font-medium uppercase tracking-wide text-muted">
-                        Mayor margen · {periodDescription}
-                      </p>
-                      <p className="mt-2 text-lg font-bold leading-snug break-words">
-                        {data.topMarginService.name}
-                      </p>
-                      <dl className="mt-3 grid grid-cols-3 gap-3 text-sm">
-                        <div>
-                          <dt className="text-xs text-muted">Ingresos</dt>
-                          <dd className="mt-0.5 font-semibold tabular-nums">
-                            {formatCurrency(data.topMarginService.revenue)}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs text-muted">Ventas</dt>
-                          <dd className="mt-0.5 font-semibold tabular-nums">
-                            {data.topMarginService.count}
-                          </dd>
-                        </div>
-                        <div>
-                          <dt className="text-xs text-muted">Participación</dt>
-                          <dd className="mt-0.5 font-semibold tabular-nums">
-                            {data.topMarginService.sharePct}%
-                          </dd>
-                        </div>
-                      </dl>
-                    </div>
-
-                    {(data.topMarginServices?.length ?? 0) > 1 ? (
-                      <div>
-                        <p className="mb-2 text-xs font-medium uppercase tracking-wide text-muted">
-                          Ranking del período
-                        </p>
-                        <ul className="divide-y divide-separator rounded-xl border border-separator">
-                          {(data?.topMarginServices ?? []).map((service, index) => (
-                            <li
-                              key={service.id}
-                              className="flex items-start gap-3 px-3 py-2.5"
-                            >
-                              <span
-                                className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
-                                  index === 0
-                                    ? "bg-accent text-accent-foreground"
-                                    : "bg-surface-secondary text-muted"
-                                }`}
-                              >
-                                {index + 1}
-                              </span>
-                              <div className="min-w-0 flex-1">
-                                <p className="text-sm font-medium leading-snug break-words">
-                                  {service.name}
-                                </p>
-                                <p className="mt-0.5 text-[11px] text-muted">
-                                  {service.count}{" "}
-                                  {service.count === 1 ? "venta" : "ventas"} ·{" "}
-                                  {service.sharePct}%
-                                </p>
-                              </div>
-                              <p className="shrink-0 text-sm font-semibold tabular-nums">
-                                {formatCurrency(service.revenue)}
-                              </p>
-                            </li>
-                          ))}
-                        </ul>
-                      </div>
-                    ) : null}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted">
-                    Sin servicios completados en el período.
-                  </p>
-                )}
-              </Modal.Body>
-              <Modal.Footer>
-                <Button
-                  variant="secondary"
-                  onPress={() => {
-                    marginDetailModal.close();
-                    document
-                      .getElementById("dash-margin-services")
-                      ?.scrollIntoView({ behavior: "smooth", block: "start" });
-                  }}
-                >
-                  Ver en panel
-                </Button>
-                <Button variant="primary" onPress={marginDetailModal.close}>
-                  Cerrar
-                </Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
     </div>
   );
 }

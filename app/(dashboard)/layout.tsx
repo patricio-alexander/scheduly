@@ -1,18 +1,17 @@
 "use client";
 
 import { useAuth } from "@/src/features/auth";
-import { UnreadNotificationsFloat } from "@/src/features/notifications";
 import { OnboardingRoot } from "@/src/features/onboarding";
 import {
   SubscriptionProvider,
   SubscriptionGate,
 } from "@/src/features/subscription";
-import { Sidebar } from "@/shared/components/Sidebar";
+import { DashboardShell } from "@/shared/components/DashboardShell";
 import { LayoutSkeleton } from "@/shared/components/ui";
 import { appRoutes } from "@/shared/utils/app-routes";
 import { isEmployeeRole, isManagementRole, isOwnerRole } from "@/shared/utils/roles";
 import { usePathname, useRouter } from "next/navigation";
-import { Suspense, useEffect } from "react";
+import { useEffect } from "react";
 
 function isEmployeeBlockedPath(pathname: string) {
   if (pathname.startsWith(appRoutes.loyalty.hub)) return true;
@@ -22,6 +21,11 @@ function isEmployeeBlockedPath(pathname: string) {
   if (pathname.startsWith("/compras")) return true;
   if (pathname.startsWith("/finanzas")) return true;
   if (pathname.startsWith("/administracion/sucursales")) return true;
+  if (pathname.startsWith("/canal")) return true;
+  if (pathname.startsWith("/produccion")) return true;
+  if (pathname.startsWith("/marketing")) return true;
+  if (pathname.startsWith("/publicidad")) return true;
+  if (pathname.startsWith("/diseno-promocional")) return true;
   if (pathname.startsWith("/comprobantes-electronicos")) return true;
   if (pathname.startsWith("/administracion")) return true;
   if (pathname.startsWith("/sistema")) {
@@ -95,15 +99,9 @@ export default function DashboardLayout({
     <AuthGuard>
       <SubscriptionProvider>
         <OnboardingRoot>
-          <div className="flex h-screen overflow-hidden">
-            <Suspense fallback={null}>
-              <Sidebar />
-            </Suspense>
-            <main className="flex-1 min-h-0 overflow-y-auto bg-background p-4 sm:p-5 md:p-6 lg:p-8">
-              <SubscriptionGate>{children}</SubscriptionGate>
-            </main>
-            <UnreadNotificationsFloat />
-          </div>
+          <DashboardShell>
+            <SubscriptionGate>{children}</SubscriptionGate>
+          </DashboardShell>
         </OnboardingRoot>
       </SubscriptionProvider>
     </AuthGuard>

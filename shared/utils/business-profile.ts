@@ -17,26 +17,30 @@ export type BusinessProfile = {
 export const DEFAULT_BUSINESS_NAME = "Scheduly";
 
 export const DEFAULT_THEME_COLORS: ThemeColors = {
-  accentColor: "#7DFF7A",
-  successColor: "#5FD46A",
+  accentColor: "#D4AF37",
+  successColor: "#22C55E",
   warningColor: "#F0B429",
   dangerColor: "#F04438",
 };
 
-export const THEME_COLOR_STORAGE_KEY = "scheduly.theme-colors";
+/** v3: oro metálico (invalida cache local del verde / dorado claro) */
+export const THEME_COLOR_STORAGE_KEY = "scheduly.theme-colors.v3";
 
 export const ACCENT_PRESETS = [
-  { label: "Verde", value: "#7DFF7A" },
-  { label: "Lima", value: "#C8F542" },
+  { label: "Oro", value: "#D4AF37" },
+  { label: "Oro intenso", value: "#C5A028" },
+  { label: "Ámbar", value: "#FFB020" },
+  { label: "Champagne", value: "#E8C547" },
   { label: "Azul", value: "#5B8CFF" },
   { label: "Cian", value: "#2DD4BF" },
-  { label: "Naranja", value: "#FF8A3D" },
   { label: "Rosa", value: "#FF6B9D" },
   { label: "Violeta", value: "#A78BFA" },
-  { label: "Gris", value: "#94A3B8" },
 ] as const;
 
 const HEX_RE = /^#([0-9a-fA-F]{6})$/;
+
+/** Acentos legacy (verde o dorado claro) → oro metálico */
+const LEGACY_ACCENTS = new Set(["#7DFF7A", "#C8F542", "#F5C518"]);
 
 export function normalizeHex(value: unknown, fallback: string): string {
   const raw = String(value ?? "").trim();
@@ -48,15 +52,25 @@ export function normalizeHex(value: unknown, fallback: string): string {
 export function normalizeThemeColors(
   input?: Partial<ThemeColors> | null,
 ): ThemeColors {
+  let accentColor = normalizeHex(
+    input?.accentColor,
+    DEFAULT_THEME_COLORS.accentColor,
+  );
+  if (LEGACY_ACCENTS.has(accentColor)) {
+    accentColor = DEFAULT_THEME_COLORS.accentColor;
+  }
+
+  let successColor = normalizeHex(
+    input?.successColor,
+    DEFAULT_THEME_COLORS.successColor,
+  );
+  if (successColor === "#5FD46A") {
+    successColor = DEFAULT_THEME_COLORS.successColor;
+  }
+
   return {
-    accentColor: normalizeHex(
-      input?.accentColor,
-      DEFAULT_THEME_COLORS.accentColor,
-    ),
-    successColor: normalizeHex(
-      input?.successColor,
-      DEFAULT_THEME_COLORS.successColor,
-    ),
+    accentColor,
+    successColor,
     warningColor: normalizeHex(
       input?.warningColor,
       DEFAULT_THEME_COLORS.warningColor,
@@ -81,7 +95,7 @@ function hexToRgb(hex: string) {
 export function contrastForeground(hex: string) {
   const { r, g, b } = hexToRgb(hex);
   const luminance = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  return luminance > 0.55 ? "#142014" : "#FFFFFF";
+  return luminance > 0.55 ? "#1A1408" : "#FFFFFF";
 }
 
 export function applyThemeColors(colors: ThemeColors) {

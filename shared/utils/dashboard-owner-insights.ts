@@ -2,30 +2,22 @@ import { prisma } from "@/shared/utils/prisma";
 import { toAmount } from "@/shared/utils/money";
 import { percentChange } from "@/shared/utils/dashboard-period";
 import {
-  paymentMethodLabel,
-  type PaymentMethodValue,
-} from "@/shared/utils/payment-methods";
-
-function appointmentRevenue(apt: {
-  payment: { amount: number } | null;
-  services: Array<{ service: { price: number } }>;
-  products: Array<{ quantity: number; product: { price: number } }>;
-}) {
-  if (apt.payment) return toAmount(apt.payment.amount);
-  const servicesTotal = apt.services.reduce(
-    (s, as) => s + toAmount(as.service.price),
-    0,
-  );
-  const productsTotal = apt.products.reduce(
-    (p, ap) => p + toAmount(ap.product.price) * ap.quantity,
-    0,
-  );
-  return servicesTotal + productsTotal;
-}
+  appointmentRevenue,
+  buildPaymentBreakdown,
+  buildTopEmployees,
+} from "@/shared/utils/dashboard-widgets";
 
 const completedInclude = {
   payment: true,
-  user: { select: { id: true, name: true } },
+  staff: {
+    select: {
+      id: true,
+      firstName: true,
+      secondName: true,
+      firstLastName: true,
+      secondLastName: true,
+    },
+  },
   branch: { select: { id: true, name: true } },
   services: {
     include: { service: { select: { id: true, name: true, price: true } } },
@@ -36,6 +28,43 @@ const completedInclude = {
     },
   },
 } as const;
+
+function personName(person: {
+  firstName: string | null;
+  secondName: string | null;
+  firstLastName: string | null;
+  secondLastName: string | null;
+} | null | undefined) {
+  if (!person) return "—";
+  return (
+    [
+      person.firstName,
+      person.secondName,
+      person.firstLastName,
+      person.secondLastName,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .trim() || "—"
+  );
+}
+
+function withStaffAsUser<
+  T extends {
+    userId: number;
+    staff?: {
+      firstName: string | null;
+      secondName: string | null;
+      firstLastName: string | null;
+      secondLastName: string | null;
+    } | null;
+  },
+>(apt: T) {
+  return {
+    ...apt,
+    user: { id: apt.userId, name: personName(apt.staff) },
+  };
+}
 
 export async function fetchOwnerInsights(options: {
   start: Date;
@@ -95,29 +124,20 @@ export async function fetchOwnerInsights(options: {
       include: completedInclude,
     }),
     prisma.expense.findMany({
-      where: {
-        expenseDate: dateFilter,
-        ...(branchId ? { branchId } : {}),
-      },
-      include: { category: { select: { id: true, name: true } } },
+      where: { date: dateFilter },
+      select: { amount: true, category: true },
     }),
     prisma.expense.findMany({
-      where: {
-        expenseDate: prevFilter,
-        ...(branchId ? { branchId } : {}),
-      },
+      where: { date: prevFilter },
+      select: { amount: true },
     }),
-    prisma.purchase.findMany({
-      where: {
-        purchasedAt: dateFilter,
-        ...(branchId ? { branchId } : {}),
-      },
+    prisma.purchaseOrder.findMany({
+      where: { date: dateFilter },
+      include: { lines: { select: { quantity: true, unitPrice: true } } },
     }),
-    prisma.purchase.findMany({
-      where: {
-        purchasedAt: prevFilter,
-        ...(branchId ? { branchId } : {}),
-      },
+    prisma.purchaseOrder.findMany({
+      where: { date: prevFilter },
+      include: { lines: { select: { quantity: true, unitPrice: true } } },
     }),
     prisma.commissionRecord.findMany({
       where: {
@@ -133,8 +153,8 @@ export async function fetchOwnerInsights(options: {
     }),
     prisma.branch.findMany({
       where: { isActive: true },
-      orderBy: { sortOrder: "asc" },
-      select: { id: true, name: true, code: true },
+      orderBy: { position: "asc" },
+      select: { id: true, name: true },
     }),
     prisma.appointment.findMany({
       where: { appointmentDate: dateFilter, ...branchWhere },
@@ -142,12 +162,12 @@ export async function fetchOwnerInsights(options: {
       distinct: ["customerId"],
     }),
     prisma.branchStock.findMany({
-      where: branchId ? { branchId } : {},
+      where: branchId ? { storeId: branchId } : {},
       include: {
-        product: { select: { id: true, name: true } },
+        product: { select: { id: true, name: true, minStock: true } },
         branch: { select: { id: true, name: true } },
       },
-      orderBy: [{ stock: "asc" }],
+      orderBy: [{ quantity: "asc" }],
     }),
     branchId
       ? Promise.resolve([])
@@ -160,7 +180,12 @@ export async function fetchOwnerInsights(options: {
 
   const expenseTotal = expenses.reduce((sum, e) => sum + toAmount(e.amount), 0);
   const purchaseTotal = purchases.reduce(
-    (sum, p) => sum + toAmount(p.totalAmount),
+    (sum, p) =>
+      sum +
+      p.lines.reduce(
+        (ls, line) => ls + toAmount(line.quantity) * toAmount(line.unitPrice),
+        0,
+      ),
     0,
   );
   const commissionTotal = commissions.reduce(
@@ -174,7 +199,12 @@ export async function fetchOwnerInsights(options: {
     0,
   );
   const prevPurchaseTotal = prevPurchases.reduce(
-    (sum, p) => sum + toAmount(p.totalAmount),
+    (sum, p) =>
+      sum +
+      p.lines.reduce(
+        (ls, line) => ls + toAmount(line.quantity) * toAmount(line.unitPrice),
+        0,
+      ),
     0,
   );
   const prevCommissionTotal = prevCommissions.reduce(
@@ -192,48 +222,9 @@ export async function fetchOwnerInsights(options: {
       ? Math.round((cancelled / totalAppointments) * 100)
       : 0;
 
-  const paymentMethods = completedApts.reduce(
-    (acc, apt) => {
-      const method = apt.payment?.method ?? "cash";
-      const key = method as PaymentMethodValue;
-      acc[key] = (acc[key] ?? 0) + appointmentRevenue(apt);
-      return acc;
-    },
-    {} as Record<string, number>,
-  );
-
-  const paymentBreakdown = Object.entries(paymentMethods)
-    .map(([method, amount]) => ({
-      method,
-      label:
-        paymentMethodLabel[method as PaymentMethodValue] ?? method,
-      amount,
-      sharePct:
-        revenue > 0 ? Math.round((amount / revenue) * 100) : 0,
-    }))
-    .sort((a, b) => b.amount - a.amount);
-
-  const employeeMap = new Map<
-    number,
-    { id: number; name: string; revenue: number; appointments: number }
-  >();
-  for (const apt of completedApts) {
-    const current = employeeMap.get(apt.userId) ?? {
-      id: apt.userId,
-      name: apt.user.name,
-      revenue: 0,
-      appointments: 0,
-    };
-    current.revenue += appointmentRevenue(apt);
-    current.appointments += 1;
-    employeeMap.set(apt.userId, current);
-  }
-  const topEmployees = [...employeeMap.values()]
-    .sort((a, b) => {
-      if (b.revenue !== a.revenue) return b.revenue - a.revenue;
-      return b.appointments - a.appointments;
-    })
-    .slice(0, 6);
+  const revenueApts = completedApts.map(withStaffAsUser);
+  const paymentBreakdown = buildPaymentBreakdown(revenueApts, revenue);
+  const topEmployees = buildTopEmployees(revenueApts);
 
   const productMap = new Map<
     number,
@@ -258,20 +249,20 @@ export async function fetchOwnerInsights(options: {
     .slice(0, 5);
 
   const categoryMap = new Map<
-    number,
+    string,
     { categoryId: number; name: string; amount: number; count: number }
   >();
   for (const expense of expenses) {
-    const catId = expense.categoryId;
-    const current = categoryMap.get(catId) ?? {
-      categoryId: catId,
-      name: expense.category.name,
+    const name = expense.category?.trim() || "Sin categoría";
+    const current = categoryMap.get(name) ?? {
+      categoryId: categoryMap.size + 1,
+      name,
       amount: 0,
       count: 0,
     };
     current.amount += toAmount(expense.amount);
     current.count += 1;
-    categoryMap.set(catId, current);
+    categoryMap.set(name, current);
   }
   const topExpenseCategories = [...categoryMap.values()]
     .sort((a, b) => b.amount - a.amount)
@@ -403,15 +394,15 @@ export async function fetchOwnerInsights(options: {
     paymentBreakdown,
     topExpenseCategories,
     lowStockAlerts: lowStockRows
-      .filter((row) => row.stock <= row.minStock)
+      .filter((row) => row.quantity <= (row.product.minStock ?? 0))
       .slice(0, 12)
       .map((row) => ({
-        branchId: row.branchId,
+        branchId: row.storeId,
         branchName: row.branch.name,
         productId: row.productId,
         productName: row.product.name,
-        stock: row.stock,
-        minStock: row.minStock,
+        stock: row.quantity,
+        minStock: row.product.minStock ?? 0,
       })),
   };
 }

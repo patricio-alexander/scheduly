@@ -1,14 +1,22 @@
+import "dotenv/config";
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
-const CLIENT_VERSION = "20260813190000-single-tenant-v1";
+const CLIENT_VERSION = "20260820150000-eddeli-aligned-v1";
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
   prismaVersion?: string;
 };
 
-const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
+const databaseUrl = process.env.DATABASE_URL?.trim();
+if (!databaseUrl) {
+  throw new Error(
+    "Falta DATABASE_URL. Creá AppsWeb/scheduly/.env (mirá .env.example).",
+  );
+}
+
+const adapter = new PrismaMariaDb(databaseUrl);
 
 function createPrismaClient() {
   return new PrismaClient({ adapter });
@@ -18,15 +26,14 @@ function isClientUpToDate(client?: PrismaClient): boolean {
   if (!client) return false;
   if (globalForPrisma.prismaVersion !== CLIENT_VERSION) return false;
   return (
+    typeof client.account?.findFirst === "function" &&
+    typeof client.person?.findMany === "function" &&
     typeof client.product?.findMany === "function" &&
-    typeof client.payment?.create === "function" &&
-    typeof client.category?.findMany === "function" &&
-    typeof client.entitlement?.findMany === "function" &&
-    typeof client.task?.findMany === "function" &&
-    typeof client.businessSettings?.findUnique === "function" &&
+    typeof client.sale?.findMany === "function" &&
+    typeof client.purchaseOrder?.findMany === "function" &&
+    typeof client.appSettings?.findUnique === "function" &&
     typeof client.branch?.findMany === "function" &&
-    typeof client.purchase?.findMany === "function" &&
-    typeof client.productSale?.findMany === "function"
+    typeof client.financePayment?.findMany === "function"
   );
 }
 

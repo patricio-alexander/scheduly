@@ -16,6 +16,8 @@ type SelectFieldProps = {
   options: SelectFieldOption[];
   className?: string;
   isDisabled?: boolean;
+  /** Por defecto true: el select llena su contenedor sin aplastarse. */
+  fullWidth?: boolean;
 };
 
 export function SelectField({
@@ -24,36 +26,42 @@ export function SelectField({
   selectedKey,
   onSelectionChange,
   options,
-  className = "w-full",
+  className = "",
   isDisabled = false,
+  fullWidth = true,
 }: SelectFieldProps) {
   return (
-    <Select
-      className={className}
-      placeholder={placeholder}
-      selectedKey={selectedKey}
-      onSelectionChange={(key) => onSelectionChange(key != null ? String(key) : null)}
-      isDisabled={isDisabled}
-    >
-      {label ? <Label>{label}</Label> : null}
-      <Select.Trigger>
-        <Select.Value />
-        <Select.Indicator />
-      </Select.Trigger>
-      <Select.Popover>
-        <ListBox>
-          {options.map((option) => (
-            <ListBox.Item
-              key={option.id}
-              id={option.id}
-              textValue={option.textValue ?? option.label}
-            >
-              {option.label}
-              <ListBox.ItemIndicator />
-            </ListBox.Item>
-          ))}
-        </ListBox>
-      </Select.Popover>
-    </Select>
+    <div className={`min-w-0 ${fullWidth ? "w-full" : ""} ${className}`.trim()}>
+      <Select
+        fullWidth={fullWidth}
+        className="min-w-0"
+        placeholder={placeholder}
+        selectedKey={selectedKey}
+        onSelectionChange={(key) =>
+          onSelectionChange(key != null ? String(key) : null)
+        }
+        isDisabled={isDisabled}
+      >
+        {label ? <Label>{label}</Label> : null}
+        <Select.Trigger className="min-w-0 w-full max-w-full overflow-hidden">
+          <Select.Value className="min-w-0 truncate" />
+          <Select.Indicator />
+        </Select.Trigger>
+        <Select.Popover>
+          <ListBox>
+            {options.map((option) => (
+              <ListBox.Item
+                key={option.id}
+                id={option.id}
+                textValue={option.textValue ?? option.label}
+              >
+                {option.label}
+                <ListBox.ItemIndicator />
+              </ListBox.Item>
+            ))}
+          </ListBox>
+        </Select.Popover>
+      </Select>
+    </div>
   );
 }

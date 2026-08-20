@@ -15,6 +15,7 @@ export interface PurchaseRecord {
   notes: string;
   supplier: { id: number; name: string } | null;
   staff: { id: number; name: string };
+  branch: { id: number; name: string } | null;
   products: PurchaseLineProduct[];
   itemsSummary: string;
 }

@@ -5,11 +5,7 @@ import {
   parseDashboardPeriod,
 } from "@/shared/utils/dashboard-period";
 import { parseBranchId, resolveDashboardScope } from "@/shared/utils/branches";
-import {
-  appointmentPaidAmount,
-  sharePct,
-  splitAppointmentPaidRevenue,
-} from "@/shared/utils/finance-revenue";
+import { sharePct } from "@/shared/utils/finance-revenue";
 import { toAmount } from "@/shared/utils/money";
 import {
   paymentMethodLabel,
@@ -17,6 +13,13 @@ import {
 } from "@/shared/utils/payment-methods";
 import { checkAuth } from "@/shared/utils/check-auth";
 import { isManagementRole } from "@/shared/utils/roles";
+import {
+  fetchExpensesInRange,
+  fetchIncomesInRange,
+  fetchPurchaseOrdersInRange,
+  purchaseLinesTotal,
+  saleLinesTotal,
+} from "@/shared/utils/finance-eddeli";
 
 export async function GET(request: Request) {
   const auth = await checkAuth();
@@ -39,106 +42,85 @@ export async function GET(request: Request) {
     );
     const branchId = scope.branchId;
 
-    const branchWhere = branchId ? { branchId } : {};
-    const expenseWhere = {
-      expenseDate: { gte: start, lte: end },
-      ...(branchId ? { branchId } : {}),
-    };
+    const [incomes, expenses, purchases, sales, branches] = await Promise.all([
+      fetchIncomesInRange(start, end),
+      fetchExpensesInRange(start, end),
+      fetchPurchaseOrdersInRange(start, end),
+      prisma.sale.findMany({
+        where: {
+          OR: [
+            { paidAt: { gte: start, lte: end } },
+            { paidAt: null, date: { gte: start, lte: end }, status: "pagado" },
+          ],
+        },
+        select: {
+          id: true,
+          paymentMethod: true,
+          paidAt: true,
+          date: true,
+          lines: { select: { quantity: true, price: true } },
+        },
+      }),
+      prisma.branch.findMany({
+        where: {
+          isActive: true,
+          ...(branchId ? { id: branchId } : {}),
+        },
+        orderBy: { position: "asc" },
+        select: { id: true, name: true },
+      }),
+    ]);
 
-    const [completedApts, directProductSales, expenses, purchases, branches, commissions] =
-      await Promise.all([
-        prisma.appointment.findMany({
-          where: {
-            status: "completed",
-            appointmentDate: { gte: start, lte: end },
-            ...branchWhere,
-          },
-          include: {
-            payment: true,
-            services: {
-              include: { service: { select: { price: true } } },
-            },
-            products: {
-              include: { product: { select: { price: true } } },
-            },
-          },
-        }),
-        prisma.productSale.findMany({
-          where: {
-            paidAt: { gte: start, lte: end },
-            ...branchWhere,
-          },
-          select: {
-            amount: true,
-            method: true,
-            branchId: true,
-          },
-        }),
-        prisma.expense.findMany({ where: expenseWhere }),
-        prisma.purchase.findMany({
-          where: {
-            purchasedAt: { gte: start, lte: end },
-            ...(branchId ? { branchId } : {}),
-          },
-        }),
-        prisma.branch.findMany({
-          where: {
-            isActive: true,
-            ...(branchId ? { id: branchId } : {}),
-          },
-          orderBy: { sortOrder: "asc" },
-          select: { id: true, name: true, code: true },
-        }),
-        prisma.commissionRecord.findMany({
-          where: {
-            createdAt: { gte: start, lte: end },
-            ...(branchId ? { appointment: { branchId } } : {}),
-          },
-          select: {
-            amount: true,
-            userId: true,
-            appointment: { select: { branchId: true } },
-          },
-        }),
-      ]);
+    const incomeTotal = incomes.reduce((s, r) => s + toAmount(r.amount), 0);
+    const expenseTotal = expenses.reduce((s, r) => s + toAmount(r.amount), 0);
+    const purchaseTotal = purchases.reduce(
+      (s, p) => s + purchaseLinesTotal(p.lines),
+      0,
+    );
 
-    let appointmentPaymentsTotal = 0;
-    let servicesRevenue = 0;
-    let productsOnAppointmentsRevenue = 0;
-    let paidAppointmentsCount = 0;
-
+    // Ventas POS (complemento / desglose); el ingreso principal viene de Income EdDeli
+    let directProductSalesTotal = 0;
     const revenueByMethod = new Map<string, number>();
-
-    for (const apt of completedApts) {
-      const paid = appointmentPaidAmount(apt);
-      if (paid <= 0) continue;
-
-      paidAppointmentsCount += 1;
-      appointmentPaymentsTotal += paid;
-
-      const split = splitAppointmentPaidRevenue(apt);
-      servicesRevenue += split.services;
-      productsOnAppointmentsRevenue += split.products;
-
-      const method = apt.payment?.method ?? "cash";
-      revenueByMethod.set(method, (revenueByMethod.get(method) ?? 0) + paid);
+    for (const sale of sales) {
+      const amount = saleLinesTotal(sale.lines);
+      directProductSalesTotal += amount;
+      const method = sale.paymentMethod || "cash";
+      revenueByMethod.set(method, (revenueByMethod.get(method) ?? 0) + amount);
     }
 
-    let directProductSalesTotal = 0;
-    for (const sale of directProductSales) {
-      const amount = toAmount(sale.amount);
-      directProductSalesTotal += amount;
+    // Preferir Income (EdDeli) como revenue total si hay filas; si no, ventas
+    const revenue =
+      incomes.length > 0 ? incomeTotal : directProductSalesTotal;
+    const commissionTotal = 0;
+    const netIncome = revenue - expenseTotal - purchaseTotal - commissionTotal;
+
+    // Si Income cubre ventas, no sumar de nuevo las sales en breakdown
+    const salesFromIncome = incomes.filter(
+      (i) =>
+        (i.referenceType ?? "").toLowerCase() === "order" ||
+        (i.category ?? "").toLowerCase() === "sales",
+    );
+    const appointmentIncome = incomes.filter(
+      (i) =>
+        (i.referenceType ?? "").toLowerCase() !== "order" &&
+        (i.category ?? "").toLowerCase() !== "sales",
+    );
+    const salesIncomeAmount = salesFromIncome.reduce(
+      (s, r) => s + toAmount(r.amount),
+      0,
+    );
+    const otherIncomeAmount = appointmentIncome.reduce(
+      (s, r) => s + toAmount(r.amount),
+      0,
+    );
+
+    for (const row of incomes) {
+      const method = "cash";
       revenueByMethod.set(
-        sale.method,
-        (revenueByMethod.get(sale.method) ?? 0) + amount,
+        method,
+        (revenueByMethod.get(method) ?? 0) + toAmount(row.amount),
       );
     }
-
-    const revenue = appointmentPaymentsTotal + directProductSalesTotal;
-    const expenseTotal = expenses.reduce((sum, e) => sum + toAmount(e.amount), 0);
-    const purchaseTotal = purchases.reduce((sum, p) => sum + toAmount(p.totalAmount), 0);
-    const commissionTotal = commissions.reduce((sum, c) => sum + toAmount(c.amount), 0);
-    const netIncome = revenue - expenseTotal - purchaseTotal - commissionTotal;
 
     const revenueByMethodList = [...revenueByMethod.entries()]
       .map(([method, amount]) => ({
@@ -149,59 +131,38 @@ export async function GET(request: Request) {
       }))
       .sort((a, b) => b.amount - a.amount);
 
-    const byBranch = await Promise.all(
-      branches.map(async (branch) => {
-        const branchAppointmentRevenue = completedApts
-          .filter((a) => a.branchId === branch.id)
-          .reduce((sum, apt) => sum + appointmentPaidAmount(apt), 0);
-        const branchDirectSales = directProductSales
-          .filter((sale) => sale.branchId === branch.id)
-          .reduce((sum, sale) => sum + toAmount(sale.amount), 0);
-        const branchRevenue = branchAppointmentRevenue + branchDirectSales;
-        const branchExpenses = expenses
-          .filter((e) => e.branchId === branch.id)
-          .reduce((sum, e) => sum + toAmount(e.amount), 0);
-        const branchCommissions = commissions
-          .filter((c) => c.appointment.branchId === branch.id)
-          .reduce((sum, c) => sum + toAmount(c.amount), 0);
-        const branchPurchases = purchases
-          .filter((p) => p.branchId === branch.id)
-          .reduce((sum, p) => sum + toAmount(p.totalAmount), 0);
-        const branchAppointments = await prisma.appointment.count({
-          where: {
-            branchId: branch.id,
-            appointmentDate: { gte: start, lte: end },
-          },
-        });
-        return {
-          branchId: branch.id,
-          branchName: branch.name,
-          revenue: branchRevenue,
-          appointmentRevenue: branchAppointmentRevenue,
-          directProductSales: branchDirectSales,
-          expenses: branchExpenses,
-          commissions: branchCommissions,
-          purchases: branchPurchases,
-          net: branchRevenue - branchExpenses - branchCommissions - branchPurchases,
-          appointments: branchAppointments,
-        };
-      }),
-    );
+    const byBranch = branches.map((branch) => ({
+      branchId: branch.id,
+      branchName: branch.name,
+      revenue: 0,
+      appointmentRevenue: 0,
+      directProductSales: 0,
+      expenses: 0,
+      commissions: 0,
+      purchases: purchases
+        .filter((p) => p.receivedStoreId === branch.id)
+        .reduce((s, p) => s + purchaseLinesTotal(p.lines), 0),
+      net: 0,
+      appointments: 0,
+    }));
 
     const expensesByCategory = Object.values(
       expenses.reduce(
         (acc, expense) => {
-          const key = expense.categoryId;
+          const key = expense.category?.trim() || "Sin categoría";
           if (!acc[key]) {
-            acc[key] = { categoryId: key, amount: 0, count: 0 };
+            acc[key] = { categoryId: 0, name: key, amount: 0, count: 0 };
           }
           acc[key].amount += toAmount(expense.amount);
           acc[key].count += 1;
           return acc;
         },
-        {} as Record<number, { categoryId: number; amount: number; count: number }>,
+        {} as Record<
+          string,
+          { categoryId: number; name: string; amount: number; count: number }
+        >,
       ),
-    );
+    ).map((row, idx) => ({ ...row, categoryId: idx + 1 }));
 
     return NextResponse.json({
       period,
@@ -213,32 +174,44 @@ export async function GET(request: Request) {
       netIncome,
       revenueBreakdown: {
         appointmentPayments: {
-          amount: appointmentPaymentsTotal,
-          count: paidAppointmentsCount,
-          servicesAmount: servicesRevenue,
-          productsAmount: productsOnAppointmentsRevenue,
-          sharePct: sharePct(appointmentPaymentsTotal, revenue),
+          amount: otherIncomeAmount,
+          count: appointmentIncome.length,
+          servicesAmount: otherIncomeAmount,
+          productsAmount: 0,
+          sharePct: sharePct(otherIncomeAmount, revenue),
         },
         directProductSales: {
-          amount: directProductSalesTotal,
-          count: directProductSales.length,
-          sharePct: sharePct(directProductSalesTotal, revenue),
+          amount: salesIncomeAmount || directProductSalesTotal,
+          count: salesFromIncome.length || sales.length,
+          sharePct: sharePct(
+            salesIncomeAmount || directProductSalesTotal,
+            revenue,
+          ),
         },
         servicesOnAppointments: {
-          amount: servicesRevenue,
-          sharePct: sharePct(servicesRevenue, revenue),
+          amount: otherIncomeAmount,
+          sharePct: sharePct(otherIncomeAmount, revenue),
         },
         productsOnAppointments: {
-          amount: productsOnAppointmentsRevenue,
-          sharePct: sharePct(productsOnAppointmentsRevenue, revenue),
+          amount: 0,
+          sharePct: 0,
         },
       },
       revenueByMethod: revenueByMethodList,
       byBranch,
       expensesByCategory,
+      meta: {
+        incomeRows: incomes.length,
+        expenseRows: expenses.length,
+        saleRows: sales.length,
+        purchaseRows: purchases.length,
+      },
     });
   } catch (error) {
     console.error("GET /api/finance/summary", error);
-    return NextResponse.json({ message: "Error al obtener finanzas" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Error al obtener finanzas" },
+      { status: 500 },
+    );
   }
 }

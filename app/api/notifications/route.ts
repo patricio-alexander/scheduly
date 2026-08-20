@@ -2,29 +2,57 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { checkAuth } from "@/shared/utils/check-auth";
 
+function resolvePersonId(
+  authPersonId: number | null,
+  queryUserId: string | null,
+): number | null {
+  if (authPersonId != null && authPersonId > 0) return authPersonId;
+  if (queryUserId) {
+    const n = Number(queryUserId);
+    if (Number.isFinite(n) && n > 0) return n;
+  }
+  return null;
+}
+
 export async function GET(request: Request) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
 
   try {
     const url = new URL(request.url);
-    const userId = url.searchParams.get("userId");
+    const personId = resolvePersonId(
+      auth.user.personId,
+      url.searchParams.get("userId"),
+    );
 
-    if (!userId) {
-      return NextResponse.json({ message: "userId requerido" }, { status: 400 });
+    if (!personId) {
+      return NextResponse.json([]);
     }
 
     const notifications = await prisma.notification.findMany({
-      where: { userId: Number(userId) },
+      where: { userId: personId, deleted: false },
       orderBy: { createdAt: "desc" },
       take: 50,
     });
 
-    return NextResponse.json(notifications);
-  } catch {
+    // Compat cliente: `read` = `seen`
+    return NextResponse.json(
+      notifications.map((n) => ({
+        id: n.id,
+        type: n.type,
+        title: n.title,
+        message: n.message,
+        link: n.link,
+        createdAt: n.createdAt.toISOString(),
+        read: n.seen,
+        seen: n.seen,
+      })),
+    );
+  } catch (error) {
+    console.error("GET /api/notifications", error);
     return NextResponse.json(
       { message: "Error al obtener notificaciones" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

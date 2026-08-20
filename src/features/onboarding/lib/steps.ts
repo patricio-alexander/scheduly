@@ -25,7 +25,7 @@ export type ModuleTour = {
 export const moduleTours: ModuleTour[] = [
   {
     id: "dashboard",
-    label: "Panel de control",
+    label: "Panel",
     match: ["/panel"],
     steps: [
       {
@@ -123,28 +123,28 @@ export const moduleTours: ModuleTour[] = [
   },
   {
     id: "sales",
-    label: "Ingresos por turnos",
-    match: ["/ventas/historial"],
+    label: "Ventas",
+    match: ["/ventas/ventas"],
     steps: [
       {
         id: "sales-summary",
-        title: "Resumen de ingresos",
+        title: "Hub de ventas",
         description:
-          "Total cobrado en el período (servicios y productos) y desglose por efectivo, tarjeta y transferencia.",
+          "Aquí ves productos vendidos y puedes registrar una venta con el botón +.",
         target: "sales-summary",
       },
       {
         id: "sales-filters",
         title: "Filtros y búsqueda",
         description:
-          "Filtra por Hoy / Semana / Mes y por método de pago. Busca por cliente, servicio, producto o staff.",
+          "Filtra por período y busca por cliente, producto o vendedor.",
         target: "sales-filters",
       },
       {
         id: "sales-list",
-        title: "Historial",
+        title: "Tabla de ventas",
         description:
-          "Cada fila es un cobro al cerrar un turno: servicios, productos vendidos, cliente y monto.",
+          "Cada fila muestra sucursal, cliente, producto y total — como en EdDeli.",
         target: "sales-list",
       },
     ],
@@ -218,25 +218,25 @@ export const moduleTours: ModuleTour[] = [
 export const onboardingSteps: OnboardingStep[] = [
   {
     id: "nav-dashboard",
-    title: "Panel de control",
-    description: "Resumen del salón. Al entrar a cada sección podrás ver una guía de sus botones.",
+    title: "Panel",
+    description: "Resumen del negocio. Al entrar a cada sección podrás ver una guía de sus botones.",
     href: appRoutes.dashboard,
     target: "nav-dashboard",
-    expandModule: "dashboard",
+    expandModule: "operation",
   },
   {
     id: "nav-agenda",
     title: "Operación",
-    description: "Agenda de turnos y tablero de tareas del equipo.",
+    description: "Agenda de turnos, servicios y tablero de tareas del equipo.",
     href: appRoutes.operation.agenda,
     target: "nav-agenda",
     expandModule: "operation",
   },
   {
     id: "nav-sales",
-    title: "Ventas",
-    description: "Ingresos por turnos (servicios y productos) y cartera de clientes.",
-    href: appRoutes.sales.history,
+    title: "Ventas y Compras",
+    description: "Ventas, compras, clientes y proveedores.",
+    href: appRoutes.sales.salesHub,
     target: "nav-sales",
     expandModule: "sales",
   },

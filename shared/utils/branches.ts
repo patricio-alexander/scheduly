@@ -13,7 +13,7 @@ export type BranchSummary = {
   isActive: boolean;
 };
 
-type PrismaUserBranchLookup = Pick<PrismaClient, "userBranch" | "branch">;
+type PrismaUserBranchLookup = Pick<PrismaClient, "branch">;
 
 export type AgendaViewMode = "all" | "branch" | "mine";
 
@@ -52,8 +52,8 @@ export async function getMainBranchId(
   db: Pick<PrismaClient, "branch">,
 ): Promise<number | null> {
   const main = await db.branch.findFirst({
-    where: { isMain: true, isActive: true },
-    orderBy: [{ sortOrder: "asc" }, { id: "asc" }],
+    where: { isActive: true },
+    orderBy: [{ position: "asc" }, { id: "asc" }],
     select: { id: true },
   });
   return main?.id ?? null;
@@ -69,22 +69,12 @@ export async function resolveUserBranchId(
   return null;
 }
 
+/** Sin UserBranch en schema nuevo: dueño/admin usan sucursal pedida o matriz. */
 export async function getUserPrimaryBranchId(
   db: PrismaUserBranchLookup,
-  userId: number,
+  _userId: number,
 ): Promise<number | null> {
-  const primary = await db.userBranch.findFirst({
-    where: { userId, isPrimary: true },
-    select: { branchId: true },
-  });
-  if (primary) return primary.branchId;
-
-  const fallback = await db.userBranch.findFirst({
-    where: { userId },
-    orderBy: { branchId: "asc" },
-    select: { branchId: true },
-  });
-  return fallback?.branchId ?? null;
+  return getMainBranchId(db);
 }
 
 export async function resolveDashboardScope(
@@ -169,47 +159,32 @@ export async function getBranchScopeMeta(
 }
 
 export async function setUserPrimaryBranch(
-  db: PrismaUserBranchLookup,
-  userId: number,
-  branchId: number | null | undefined,
+  _db: PrismaUserBranchLookup,
+  _userId: number,
+  _branchId: number | null | undefined,
 ) {
-  await db.userBranch.deleteMany({ where: { userId } });
-  if (branchId != null && Number.isInteger(branchId) && branchId > 0) {
-    await db.userBranch.create({
-      data: { userId, branchId, isPrimary: true },
-    });
-  }
+  // UserBranch eliminado del schema; la sucursal activa se elige en sesión/UI.
 }
 
 export async function getUserBranchSummary(
   db: PrismaUserBranchLookup,
-  userId: number,
+  _userId: number,
 ) {
-  const row = await db.userBranch.findFirst({
-    where: { userId, isPrimary: true },
-    include: { branch: { select: { id: true, name: true, code: true } } },
+  const mainId = await getMainBranchId(db);
+  if (!mainId) return null;
+  return db.branch.findUnique({
+    where: { id: mainId },
+    select: { id: true, name: true },
   });
-  if (row) return row.branch;
-
-  const fallback = await db.userBranch.findFirst({
-    where: { userId },
-    orderBy: { branchId: "asc" },
-    include: { branch: { select: { id: true, name: true, code: true } } },
-  });
-  return fallback?.branch ?? null;
 }
 
 export async function userBelongsToBranch(
-  db: PrismaUserBranchLookup,
-  userId: number,
+  _db: PrismaUserBranchLookup,
+  _userId: number,
   branchId: number | null,
 ): Promise<boolean> {
-  if (!branchId) return true;
-  const row = await db.userBranch.findFirst({
-    where: { userId, branchId },
-    select: { branchId: true },
-  });
-  return Boolean(row);
+  // Sin UserBranch: cualquier usuario puede verse en cualquier sucursal (Dueño filtra).
+  return branchId == null || branchId > 0;
 }
 
 export async function resolveAgendaStaffUserId(

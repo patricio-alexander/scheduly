@@ -8,9 +8,9 @@ type Tx = Omit<
 export async function syncProductTotalStock(tx: Tx, productId: number) {
   const rows = await tx.branchStock.findMany({
     where: { productId },
-    select: { stock: true },
+    select: { quantity: true },
   });
-  const total = rows.reduce((sum, r) => sum + r.stock, 0);
+  const total = rows.reduce((sum, r) => sum + r.quantity, 0);
   await tx.product.update({
     where: { id: productId },
     data: { stock: total },
@@ -27,17 +27,21 @@ export async function deductBranchStock(
 
   for (const { productId, quantity } of items) {
     const row = await tx.branchStock.findUnique({
-      where: { branchId_productId: { branchId, productId } },
+      where: {
+        storeId_productId: { storeId: branchId, productId },
+      },
     });
-    if (!row || row.stock < quantity) {
+    if (!row || row.quantity < quantity) {
       const product = await tx.product.findUnique({ where: { id: productId } });
       throw new Error(
         `Stock insuficiente de "${product?.name ?? "producto"}" en la sucursal`,
       );
     }
     await tx.branchStock.update({
-      where: { branchId_productId: { branchId, productId } },
-      data: { stock: { decrement: quantity } },
+      where: {
+        storeId_productId: { storeId: branchId, productId },
+      },
+      data: { quantity: { decrement: quantity } },
     });
     await syncProductTotalStock(tx, productId);
   }
@@ -52,9 +56,11 @@ export async function incrementBranchStock(
 
   for (const { productId, quantity } of items) {
     await tx.branchStock.upsert({
-      where: { branchId_productId: { branchId, productId } },
-      create: { branchId, productId, stock: quantity },
-      update: { stock: { increment: quantity } },
+      where: {
+        storeId_productId: { storeId: branchId, productId },
+      },
+      create: { storeId: branchId, productId, quantity },
+      update: { quantity: { increment: quantity } },
     });
     await syncProductTotalStock(tx, productId);
   }
@@ -70,7 +76,7 @@ export async function transferBranchStock(
     lines: Array<{ productId: number; quantity: number }>;
   },
 ) {
-  const { fromBranchId, toBranchId, userId, notes = "", lines } = params;
+  const { fromBranchId, toBranchId, notes = "", lines } = params;
   if (fromBranchId === toBranchId) {
     throw new Error("La sucursal origen y destino deben ser distintas");
   }
@@ -80,24 +86,5 @@ export async function transferBranchStock(
 
   await deductBranchStock(tx, fromBranchId, lines);
   await incrementBranchStock(tx, toBranchId, lines);
-
-  return tx.stockTransfer.create({
-    data: {
-      fromBranchId,
-      toBranchId,
-      userId,
-      notes,
-      lines: {
-        create: lines.map(({ productId, quantity }) => ({
-          productId,
-          quantity,
-        })),
-      },
-    },
-    include: {
-      fromBranch: { select: { name: true } },
-      toBranch: { select: { name: true } },
-      lines: { include: { product: { select: { name: true } } } },
-    },
-  });
+  void notes;
 }

@@ -1,0 +1,81 @@
+"use client";
+
+import type { ReactNode } from "react";
+import { Switch } from "@heroui/react";
+
+/** Fila estilo EdDeli: etiqueta a la izquierda, control a la derecha. */
+export function SettingsRow({
+  label,
+  description,
+  control,
+}: {
+  label: string;
+  description?: string;
+  control: ReactNode;
+}) {
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-separator bg-surface-secondary/20 px-3.5 py-3 transition-colors hover:border-accent/35 hover:bg-accent/5 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <div className="min-w-0 flex-1">
+        <p className="text-sm font-semibold">{label}</p>
+        {description ? (
+          <p className="mt-0.5 text-xs text-muted">{description}</p>
+        ) : null}
+      </div>
+      <div className="flex shrink-0 items-center justify-end sm:min-w-[9rem]">
+        {control}
+      </div>
+    </div>
+  );
+}
+
+export function SettingsSection({
+  title,
+  hint,
+  children,
+}: {
+  title: string;
+  hint?: string;
+  children: ReactNode;
+}) {
+  return (
+    <section className="rounded-2xl border border-separator bg-surface p-4 sm:p-5">
+      <div className="mb-4">
+        <h2 className="text-sm font-semibold uppercase tracking-wide text-muted">
+          {title}
+        </h2>
+        {hint ? <p className="mt-1 text-xs text-muted">{hint}</p> : null}
+      </div>
+      <div className="flex flex-col gap-2">{children}</div>
+    </section>
+  );
+}
+
+export function SettingsSwitch({
+  checked,
+  onChange,
+  disabled,
+  lockedLabel,
+}: {
+  checked: boolean;
+  onChange: (next: boolean) => void;
+  disabled?: boolean;
+  lockedLabel?: string;
+}) {
+  return (
+    <div className="flex items-center gap-2">
+      <span className="text-xs font-medium text-muted">
+        {disabled && lockedLabel
+          ? lockedLabel
+          : checked
+            ? "Activado"
+            : "Desactivado"}
+      </span>
+      <Switch
+        isSelected={checked}
+        isDisabled={disabled}
+        onChange={onChange}
+        aria-label={checked ? "Activado" : "Desactivado"}
+      />
+    </div>
+  );
+}

@@ -114,6 +114,10 @@ export async function PUT(request: Request) {
         body.dangerColor !== undefined
           ? String(body.dangerColor)
           : current.dangerColor,
+      operationFlags:
+        body.operationFlags !== undefined
+          ? (body.operationFlags as import("@/shared/utils/operation-flags").OperationFlags)
+          : undefined,
     });
     emitThemeColorsUpdated(normalizeThemeColors(settings));
     return NextResponse.json(settings);

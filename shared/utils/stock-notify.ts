@@ -6,9 +6,8 @@ import {
 } from "@/shared/utils/stock";
 
 /**
- * Crea notificaciones de warning para admins cuando un producto
- * llega al mínimo o se queda sin stock. Evita duplicados no leídos.
- * Solo usar en API / código de servidor (no importar desde client components).
+ * Crea notificaciones de warning para dueños cuando un producto
+ * llega al mínimo o se queda sin stock. Evita duplicados no vistos.
  */
 export async function notifyAdminsLowStock(product: {
   id: number;
@@ -25,17 +24,36 @@ export async function notifyAdminsLowStock(product: {
     : `"${product.name}" tiene solo ${product.stock} unidad(es) (mínimo ${LOW_STOCK_THRESHOLD}).`;
   const link = `/inventario/productos?productId=${product.id}`;
 
-  const admins = await prisma.user.findMany({
-    where: { role: "admin" },
-    select: { id: true },
+  const ownerRole = await prisma.role.findFirst({
+    where: {
+      OR: [
+        { name: "owner" },
+        { name: "Programador" },
+        { name: "Administrador" },
+      ],
+    },
+  });
+  if (!ownerRole) return;
+
+  const links = await prisma.accountRole.findMany({
+    where: { roleId: ownerRole.id },
+    select: { account: { select: { userId: true, isActive: true } } },
   });
 
-  for (const admin of admins) {
+  const personIds = [
+    ...new Set(
+      links
+        .map((l) => l.account.userId)
+        .filter((id): id is number => typeof id === "number" && id > 0),
+    ),
+  ];
+
+  for (const userId of personIds) {
     const existing = await prisma.notification.findFirst({
       where: {
-        userId: admin.id,
+        userId,
         type: "warning",
-        read: false,
+        seen: false,
         OR: [{ title }, { link }],
       },
       select: { id: true },
@@ -44,10 +62,10 @@ export async function notifyAdminsLowStock(product: {
 
     await prisma.notification.create({
       data: {
-        userId: admin.id,
+        userId,
         title,
         message,
-        type: "warning",
+        type: "alert",
         link,
       },
     });

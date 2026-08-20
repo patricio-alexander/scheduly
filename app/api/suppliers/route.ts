@@ -9,10 +9,26 @@ export async function GET() {
 
   try {
     const suppliers = await prisma.supplier.findMany({
+      where: { isActive: true },
       orderBy: { name: "asc" },
+      select: {
+        id: true,
+        name: true,
+        tradeName: true,
+        phone: true,
+        email: true,
+        address: true,
+        identNumber: true,
+      },
     });
-    return NextResponse.json(suppliers);
-  } catch {
+    return NextResponse.json(
+      suppliers.map((s) => ({
+        ...s,
+        taxId: s.identNumber,
+      })),
+    );
+  } catch (error) {
+    console.error("GET /api/suppliers", error);
     return NextResponse.json(
       { message: "Error al obtener proveedores" },
       { status: 500 },
@@ -41,15 +57,20 @@ export async function POST(request: Request) {
     const supplier = await prisma.supplier.create({
       data: {
         name,
-        phone: String(body.phone ?? "").trim(),
-        email: String(body.email ?? "").trim(),
-        taxId: body.taxId ? String(body.taxId).trim() : null,
-        address: String(body.address ?? "").trim(),
+        phone: String(body.phone ?? "").trim() || null,
+        email: String(body.email ?? "").trim() || null,
+        identNumber:
+          String(body.taxId ?? body.identNumber ?? "").trim() || null,
+        address: String(body.address ?? "").trim() || null,
       },
     });
 
-    return NextResponse.json(supplier, { status: 201 });
-  } catch {
+    return NextResponse.json(
+      { ...supplier, taxId: supplier.identNumber },
+      { status: 201 },
+    );
+  } catch (error) {
+    console.error("POST /api/suppliers", error);
     return NextResponse.json(
       { message: "Error al crear el proveedor" },
       { status: 500 },

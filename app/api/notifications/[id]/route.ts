@@ -16,19 +16,17 @@ export async function PATCH(
       return NextResponse.json({ message: "ID inválido" }, { status: 400 });
     }
 
-    const { searchParams } = new URL(request.url);
-    const userIdRaw = searchParams.get("userId");
-    const userId =
-      userIdRaw != null && userIdRaw !== "" ? Number(userIdRaw) : null;
-
-    const where =
-      userId != null && Number.isFinite(userId)
-        ? { id, userId }
-        : { id };
+    const personId = auth.user.personId;
+    if (!personId) {
+      return NextResponse.json(
+        { message: "Notificación no encontrada" },
+        { status: 404 },
+      );
+    }
 
     const result = await prisma.notification.updateMany({
-      where,
-      data: { read: true },
+      where: { id, userId: personId, deleted: false },
+      data: { seen: true },
     });
 
     if (result.count === 0) {
@@ -38,7 +36,7 @@ export async function PATCH(
       );
     }
 
-    return NextResponse.json({ success: true });
+    return NextResponse.json({ success: true, read: true });
   } catch (error) {
     console.error("PATCH /api/notifications/[id]", error);
     return NextResponse.json(

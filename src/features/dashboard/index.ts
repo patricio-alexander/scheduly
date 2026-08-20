@@ -1,2 +1,17 @@
 export { useDashboardSocket } from "./hooks/useDashboardSocket";
 export { OwnerInsightsPanel } from "./components/OwnerInsightsPanel";
+export { TopEmployeesCard } from "./components/TopEmployeesCard";
+export { PaymentMethodsCard } from "./components/PaymentMethodsCard";
+export { RecentAppointmentsCard } from "./components/RecentAppointmentsCard";
+export { FinanceHeroCards } from "./components/FinanceHeroCards";
+export { StockAlertsPanel } from "./components/StockAlertsPanel";
+export { AppointmentStatusSummaryPanel } from "./components/AppointmentStatusSummaryPanel";
+export { StockGauge } from "./components/StockGauge";
+export { DashboardFinanceCharts } from "./components/DashboardFinanceCharts";
+export { AppointmentStatusPieCard } from "./components/AppointmentStatusPieCard";
+export { YearFinanceOverviewChart } from "./components/YearFinanceOverviewChart";
+export { MonthCalendarChart } from "./components/MonthCalendarChart";
+export { CashFlowCandlestickPanel } from "./components/CashFlowCandlestickPanel";
+export { CashFlowMirrorPanel } from "./components/CashFlowMirrorPanel";
+export { ProductSeriesPanel } from "./components/ProductSeriesPanel";
+export { CustomersSalesTable } from "./components/CustomersSalesTable";

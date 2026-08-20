@@ -73,24 +73,30 @@ export async function GET(request: Request) {
       requestedBranchId,
     );
 
-    const sales = await prisma.productSale.findMany({
+    const sales = await prisma.sale.findMany({
       where: {
-        paidAt: { gte: start, lte: end },
-        ...(scope.branchId ? { branchId: scope.branchId } : {}),
+        OR: [
+          { paidAt: { gte: start, lte: end } },
+          { paidAt: null, date: { gte: start, lte: end }, status: "pagado" },
+        ],
       },
       include: {
         customer: {
-          select: { id: true, name: true, lastnames: true },
+          select: {
+            id: true,
+            name: true,
+            firstLastName: true,
+            secondLastName: true,
+          },
         },
-        user: { select: { id: true, name: true } },
-        branch: { select: { id: true, name: true } },
+        seller: { select: { id: true, username: true } },
         lines: {
           include: {
             product: { select: { id: true, name: true, price: true } },
           },
         },
       },
-      orderBy: { paidAt: "desc" },
+      orderBy: [{ paidAt: "desc" }, { date: "desc" }],
       take: 200,
     });
 
@@ -100,28 +106,39 @@ export async function GET(request: Request) {
           id: line.product.id,
           name: line.product.name,
           quantity: line.quantity,
-          unitPrice: toAmount(line.unitPrice),
+          unitPrice: toAmount(line.price),
         }));
+        const amount = products.reduce(
+          (sum, p) => sum + toAmount(p.quantity) * p.unitPrice,
+          0,
+        );
         const itemsSummary = products
           .map((p) => (p.quantity > 1 ? `${p.name} ×${p.quantity}` : p.name))
           .join(", ");
+        const customerName = [
+          sale.customer.name,
+          sale.customer.firstLastName,
+          sale.customer.secondLastName,
+        ]
+          .filter(Boolean)
+          .join(" ");
+        const at = sale.paidAt ?? sale.date;
 
         return {
           id: sale.id,
-          amount: toAmount(sale.amount),
-          method: sale.method,
-          paidAt: sale.paidAt.toISOString(),
-          notes: sale.notes,
-          customer: sale.customer
-            ? {
-                id: sale.customer.id,
-                name: `${sale.customer.name} ${sale.customer.lastnames}`.trim(),
-              }
-            : null,
-          staff: { id: sale.user.id, name: sale.user.name },
-          branch: sale.branch
-            ? { id: sale.branch.id, name: sale.branch.name }
-            : null,
+          amount,
+          method: sale.paymentMethod || "cash",
+          paidAt: at.toISOString(),
+          notes: sale.notes ?? "",
+          customer: {
+            id: sale.customer.id,
+            name: customerName,
+          },
+          staff: {
+            id: sale.seller?.id ?? 0,
+            name: sale.seller?.username ?? "—",
+          },
+          branch: null as { id: number; name: string } | null,
           products,
           itemsSummary,
         };
@@ -129,11 +146,10 @@ export async function GET(request: Request) {
       .filter((record) => {
         if (!q) return true;
         return (
-          (record.customer?.name.toLowerCase().includes(q) ?? false) ||
+          record.customer.name.toLowerCase().includes(q) ||
           record.staff.name.toLowerCase().includes(q) ||
           record.itemsSummary.toLowerCase().includes(q) ||
-          record.notes.toLowerCase().includes(q) ||
-          (record.branch?.name.toLowerCase().includes(q) ?? false)
+          record.notes.toLowerCase().includes(q)
         );
       });
 
@@ -174,8 +190,22 @@ export async function POST(request: Request) {
     const body = (await request.json()) as Record<string, unknown>;
     const lines = parseProductSaleLines(body.lines);
     const amount = calcProductSaleTotal(lines);
+    if (amount <= 0) {
+      return NextResponse.json(
+        { message: "Agrega al menos un producto con cantidad y precio" },
+        { status: 400 },
+      );
+    }
     const method = parseMethod(body.method);
-    const notes = String(body.notes ?? "").trim();
+    const notesRaw = String(body.notes ?? "").trim();
+    const saleType =
+      String(body.saleType ?? "contado") === "credito" ? "credito" : "contado";
+    const documentType = String(body.documentType ?? "documento").trim() || "documento";
+    const isCredit = saleType === "credito";
+    const notesParts = ["[CAJA_POS]", isCredit ? "[CREDITO]" : "[CONTADO]"];
+    if (documentType) notesParts.push(`[DOC:${documentType}]`);
+    if (notesRaw) notesParts.push(notesRaw);
+    const notes = notesParts.join(" ");
 
     const branchIdRaw = body.branchId;
     const requestedBranchId =
@@ -234,28 +264,60 @@ export async function POST(request: Request) {
         lines.map(({ productId, quantity }) => ({ productId, quantity })),
       );
 
-      return tx.productSale.create({
+      const walkIn =
+        customerId ??
+        (
+          await tx.customer.findFirst({
+            where: { name: { contains: "Consumidor Final" } },
+            select: { id: true },
+          })
+        )?.id ??
+        (await tx.customer.findFirst({ select: { id: true } }))?.id;
+
+      if (!walkIn) {
+        throw new Error("No hay clientes en la BD; crea uno antes de vender");
+      }
+
+      const openShift = await tx.cashShift.findFirst({
+        where: { storeId: branchId, status: "open" },
+        orderBy: { id: "desc" },
+        select: { id: true, activeCashRegisterId: true },
+      });
+
+      return tx.sale.create({
         data: {
-          customerId,
-          userId: auth.user.id,
-          branchId,
-          amount,
-          method,
-          notes,
+          customerId: walkIn,
+          sellerAccountId: auth.user.id,
+          status: isCredit ? "pendiente" : "pagado",
+          paymentMethod: isCredit ? "credito" : method,
+          documentType,
+          notes: notes || null,
+          paidAt: isCredit ? null : new Date(),
+          date: new Date(),
+          shiftId: openShift?.id ?? null,
+          cashRegisterId: openShift?.activeCashRegisterId ?? null,
           lines: {
             create: lines.map((line) => ({
               productId: line.productId,
               quantity: line.quantity,
-              unitPrice: line.unitPrice,
+              price: line.unitPrice,
+              soldQty: line.quantity,
+              deliveredStoreId: branchId,
+              deliveredAt: new Date(),
+              paidAt: isCredit ? null : new Date(),
             })),
           },
         },
         include: {
           customer: {
-            select: { id: true, name: true, lastnames: true },
+            select: {
+              id: true,
+              name: true,
+              firstLastName: true,
+              secondLastName: true,
+            },
           },
-          user: { select: { id: true, name: true } },
-          branch: { select: { id: true, name: true } },
+          seller: { select: { id: true, username: true } },
           lines: {
             include: {
               product: { select: { id: true, name: true, price: true } },
@@ -267,26 +329,34 @@ export async function POST(request: Request) {
 
     invalidateDashboard("product-sale:created");
 
+    const amountPaid = sale.lines.reduce(
+      (sum, line) => sum + toAmount(line.quantity) * toAmount(line.price),
+      0,
+    );
+
     return NextResponse.json(
       {
         id: sale.id,
-        amount: toAmount(sale.amount),
-        method: sale.method,
-        paidAt: sale.paidAt.toISOString(),
-        notes: sale.notes,
-        customer: sale.customer
-          ? {
-              id: sale.customer.id,
-              name: `${sale.customer.name} ${sale.customer.lastnames}`.trim(),
-            }
-          : null,
-        staff: sale.user,
-        branch: sale.branch,
+        amount: amountPaid,
+        method: sale.paymentMethod || method,
+        paidAt: (sale.paidAt ?? sale.date).toISOString(),
+        notes: sale.notes ?? "",
+        customer: {
+          id: sale.customer.id,
+          name: [sale.customer.name, sale.customer.firstLastName]
+            .filter(Boolean)
+            .join(" "),
+        },
+        staff: {
+          id: sale.seller?.id ?? auth.user.id,
+          name: sale.seller?.username ?? auth.user.username,
+        },
+        branch: { id: branchId, name: "" },
         products: sale.lines.map((line) => ({
           id: line.product.id,
           name: line.product.name,
           quantity: line.quantity,
-          unitPrice: toAmount(line.unitPrice),
+          unitPrice: toAmount(line.price),
         })),
       },
       { status: 201 },

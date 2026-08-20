@@ -23,7 +23,7 @@ export default function NotificationsPage() {
 
   useEffect(() => {
     if (!user) return;
-    fetch(apiUrl(`/api/notifications?userId=${user.id}`))
+    fetch(apiUrl(`/api/notifications?userId=${user.personId ?? user.id}`))
       .then(async (r) => {
         if (!r.ok) return [];
         const data: unknown = await r.json();
@@ -36,7 +36,7 @@ export default function NotificationsPage() {
   const handleMarkRead = useCallback(async (id: number) => {
     if (!user) return;
     const res = await fetch(
-      apiUrl(`/api/notifications/${id}?userId=${user.id}`),
+      apiUrl(`/api/notifications/${id}?userId=${user.personId ?? user.id}`),
       { method: "PATCH" },
     );
     if (!res.ok) return;
@@ -51,7 +51,7 @@ export default function NotificationsPage() {
     const unread = notifications.filter((n) => !n.read);
     const results = await Promise.all(
       unread.map((n) =>
-        fetch(apiUrl(`/api/notifications/${n.id}?userId=${user.id}`), {
+        fetch(apiUrl(`/api/notifications/${n.id}?userId=${user.personId ?? user.id}`), {
           method: "PATCH",
         }),
       ),

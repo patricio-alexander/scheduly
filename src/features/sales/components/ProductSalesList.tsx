@@ -15,6 +15,7 @@ import {
   dashboardPeriodOptions,
   type DashboardPeriod,
 } from "@/shared/utils/dashboard-period";
+import { useOperationFlags } from "@/src/features/settings/hooks/useOperationFlags";
 import { mergeProductSaleLines, summarizeProductSales } from "../lib/product-sales";
 import type { ProductSaleLine } from "../types";
 
@@ -53,6 +54,9 @@ export function ProductSalesList({
   onSearchChange,
 }: Props) {
   const [page, setPage] = useState(1);
+  const flags = useOperationFlags();
+  const showBranch = flags.showBranchColumn;
+  const showCustomer = flags.salesShowCustomerColumn;
 
   const summary = useMemo(() => summarizeProductSales(productLines), [productLines]);
 
@@ -204,14 +208,14 @@ export function ProductSalesList({
             <div className="hidden md:block">
               <Table>
                 <Table.ScrollContainer>
-                  <Table.Content aria-label="Productos vendidos" className="min-w-[760px]">
+                  <Table.Content aria-label="Productos vendidos" className="min-w-[920px]">
                     <Table.Header>
                       <Table.Column isRowHeader>Fecha</Table.Column>
+                      {showBranch ? <Table.Column>Sucursal</Table.Column> : null}
+                      {showCustomer ? <Table.Column>Cliente</Table.Column> : null}
                       <Table.Column>Producto</Table.Column>
                       <Table.Column>Cant.</Table.Column>
-                      <Table.Column>Cliente</Table.Column>
-                      <Table.Column>Estilista</Table.Column>
-                      <Table.Column>Sucursal</Table.Column>
+                      <Table.Column>Vendedor</Table.Column>
                       <Table.Column>Origen</Table.Column>
                       <Table.Column>Total</Table.Column>
                     </Table.Header>
@@ -227,6 +231,20 @@ export function ProductSalesList({
                                 <p className="text-xs text-muted">{time}</p>
                               </div>
                             </Table.Cell>
+                            {showBranch ? (
+                              <Table.Cell>
+                                <span className="text-sm text-muted">
+                                  {line.branch?.name ?? "—"}
+                                </span>
+                              </Table.Cell>
+                            ) : null}
+                            {showCustomer ? (
+                              <Table.Cell>
+                                <span className="text-sm font-semibold uppercase tracking-wide">
+                                  {line.customer.name || "—"}
+                                </span>
+                              </Table.Cell>
+                            ) : null}
                             <Table.Cell>
                               <p className="font-medium">{line.productName}</p>
                               <p className="text-xs text-muted tabular-nums">
@@ -236,11 +254,7 @@ export function ProductSalesList({
                             <Table.Cell>
                               <span className="tabular-nums">{line.quantity}</span>
                             </Table.Cell>
-                            <Table.Cell>{line.customer.name}</Table.Cell>
                             <Table.Cell className="text-muted">{line.staff.name}</Table.Cell>
-                            <Table.Cell className="text-muted">
-                              {line.branch?.name ?? "—"}
-                            </Table.Cell>
                             <Table.Cell className="text-muted">
                               {line.originLabel}
                             </Table.Cell>

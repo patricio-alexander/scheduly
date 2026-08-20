@@ -8,53 +8,81 @@ import {
   type BusinessProfile,
   type ThemeColors,
 } from "@/shared/utils/business-profile";
+import {
+  normalizeOperationFlags,
+  type OperationFlags,
+} from "@/shared/utils/operation-flags";
 
 export type { BusinessProfile, ThemeColors };
 export { DEFAULT_BUSINESS_NAME, DEFAULT_THEME_COLORS };
 
-function toProfile(row: {
-  businessName: string;
-  address: string;
-  logoPath: string | null;
-  ruc?: string | null;
-  tradeName?: string | null;
-  obligationAccounting?: boolean | null;
-  accentColor?: string | null;
-  successColor?: string | null;
-  warningColor?: string | null;
-  dangerColor?: string | null;
-}): BusinessProfile {
+export type BusinessSettingsFull = BusinessProfile & {
+  operationFlags: OperationFlags;
+};
+
+async function ensureAppSettings() {
+  const existing = await prisma.appSettings.findUnique({ where: { id: 1 } });
+  if (existing) return existing;
+  return prisma.appSettings.create({
+    data: {
+      id: 1,
+      name: DEFAULT_BUSINESS_NAME,
+      alias: "scheduly",
+      ...DEFAULT_THEME_COLORS,
+    },
+  });
+}
+
+async function ensureSriSettings() {
+  const existing = await prisma.sriBillingSettings.findUnique({
+    where: { id: 1 },
+  });
+  if (existing) return existing;
+  return prisma.sriBillingSettings.create({ data: { id: 1 } });
+}
+
+function toProfile(
+  app: {
+    name: string;
+    logoPath: string | null;
+    accentColor?: string | null;
+    successColor?: string | null;
+    warningColor?: string | null;
+    dangerColor?: string | null;
+    operationFlags?: unknown;
+  },
+  sri: {
+    ruc?: string | null;
+    tradeName?: string | null;
+    matrixAddress?: string | null;
+    establishmentAddress?: string | null;
+    accountingRequired?: boolean | null;
+  },
+): BusinessSettingsFull {
   const colors = normalizeThemeColors({
-    accentColor: row.accentColor ?? undefined,
-    successColor: row.successColor ?? undefined,
-    warningColor: row.warningColor ?? undefined,
-    dangerColor: row.dangerColor ?? undefined,
+    accentColor: app.accentColor ?? undefined,
+    successColor: app.successColor ?? undefined,
+    warningColor: app.warningColor ?? undefined,
+    dangerColor: app.dangerColor ?? undefined,
   });
   return {
-    businessName: row.businessName || DEFAULT_BUSINESS_NAME,
-    address: row.address ?? "",
-    logoPath: row.logoPath,
-    ruc: row.ruc ?? "",
-    tradeName: row.tradeName ?? "",
-    obligationAccounting: row.obligationAccounting ?? true,
+    businessName: app.name || DEFAULT_BUSINESS_NAME,
+    address: sri.matrixAddress ?? sri.establishmentAddress ?? "",
+    logoPath: app.logoPath,
+    ruc: sri.ruc ?? "",
+    tradeName: sri.tradeName ?? "",
+    obligationAccounting: sri.accountingRequired ?? true,
     ...colors,
+    operationFlags: normalizeOperationFlags(app.operationFlags),
   };
 }
 
-export async function getBusinessSettings(): Promise<BusinessProfile> {
-  const row =
-    (await prisma.businessSettings.findUnique({ where: { id: 1 } })) ??
-    (await prisma.businessSettings.create({
-      data: {
-        id: 1,
-        businessName: DEFAULT_BUSINESS_NAME,
-        address: "",
-        logoPath: null,
-        ...DEFAULT_THEME_COLORS,
-      },
-    }));
-
-  return toProfile(row);
+export async function getBusinessSettings(): Promise<BusinessSettingsFull> {
+  const [app, sri] = await Promise.all([
+    ensureAppSettings(),
+    ensureSriSettings(),
+  ]);
+  return toProfile(app, sri);
 }
 
 export async function updateBusinessSettings(input: {
@@ -67,7 +95,8 @@ export async function updateBusinessSettings(input: {
   successColor?: string;
   warningColor?: string;
   dangerColor?: string;
-}): Promise<BusinessProfile> {
+  operationFlags?: OperationFlags;
+}): Promise<BusinessSettingsFull> {
   const businessName = input.businessName.trim() || DEFAULT_BUSINESS_NAME;
   const address = input.address.trim();
   const current = await getBusinessSettings();
@@ -77,32 +106,50 @@ export async function updateBusinessSettings(input: {
     warningColor: input.warningColor ?? current.warningColor,
     dangerColor: input.dangerColor ?? current.dangerColor,
   });
+  const operationFlags = input.operationFlags
+    ? normalizeOperationFlags(input.operationFlags)
+    : current.operationFlags;
 
-  const row = await prisma.businessSettings.upsert({
-    where: { id: 1 },
-    create: {
-      id: 1,
-      businessName,
-      address,
-      logoPath: null,
-      ruc: input.ruc?.trim() ?? "",
-      tradeName: input.tradeName?.trim() ?? "",
-      obligationAccounting: input.obligationAccounting ?? true,
-      ...colors,
-    },
-    update: {
-      businessName,
-      address,
-      ...(input.ruc !== undefined ? { ruc: input.ruc.trim() } : {}),
-      ...(input.tradeName !== undefined ? { tradeName: input.tradeName.trim() } : {}),
-      ...(input.obligationAccounting !== undefined
-        ? { obligationAccounting: input.obligationAccounting }
-        : {}),
-      ...colors,
-    },
-  });
+  const [app, sri] = await Promise.all([
+    prisma.appSettings.upsert({
+      where: { id: 1 },
+      create: {
+        id: 1,
+        name: businessName,
+        alias: "scheduly",
+        logoPath: null,
+        operationFlags,
+        ...colors,
+      },
+      update: {
+        name: businessName,
+        operationFlags,
+        ...colors,
+      },
+    }),
+    prisma.sriBillingSettings.upsert({
+      where: { id: 1 },
+      create: {
+        id: 1,
+        ruc: input.ruc?.trim() ?? "",
+        tradeName: input.tradeName?.trim() ?? "",
+        matrixAddress: address,
+        accountingRequired: input.obligationAccounting ?? true,
+      },
+      update: {
+        ...(input.ruc !== undefined ? { ruc: input.ruc.trim() } : {}),
+        ...(input.tradeName !== undefined
+          ? { tradeName: input.tradeName.trim() }
+          : {}),
+        matrixAddress: address,
+        ...(input.obligationAccounting !== undefined
+          ? { accountingRequired: input.obligationAccounting }
+          : {}),
+      },
+    }),
+  ]);
 
-  return toProfile(row);
+  return toProfile(app, sri);
 }
 
 const ALLOWED_LOGO_TYPES: Record<string, string> = {
@@ -114,7 +161,9 @@ const ALLOWED_LOGO_TYPES: Record<string, string> = {
 
 const MAX_LOGO_BYTES = 2 * 1024 * 1024;
 
-export async function saveBusinessLogo(file: File): Promise<BusinessProfile> {
+export async function saveBusinessLogo(
+  file: File,
+): Promise<BusinessSettingsFull> {
   const ext = ALLOWED_LOGO_TYPES[file.type];
   if (!ext) {
     throw new Error("Formato de imagen no permitido (PNG, JPG, WEBP o SVG)");
@@ -138,39 +187,27 @@ export async function saveBusinessLogo(file: File): Promise<BusinessProfile> {
   await writeFile(absolute, buffer);
 
   const logoPath = `/uploads/${filename}`;
-  const row = await prisma.businessSettings.upsert({
+  await ensureAppSettings();
+  await prisma.appSettings.update({
     where: { id: 1 },
-    create: {
-      id: 1,
-      businessName: DEFAULT_BUSINESS_NAME,
-      address: "",
-      logoPath,
-      ...DEFAULT_THEME_COLORS,
-    },
-    update: { logoPath },
+    data: { logoPath },
   });
 
-  return toProfile(row);
+  return getBusinessSettings();
 }
 
-export async function clearBusinessLogo(): Promise<BusinessProfile> {
+export async function clearBusinessLogo(): Promise<BusinessSettingsFull> {
   const current = await getBusinessSettings();
   if (current.logoPath?.startsWith("/uploads/")) {
     const prev = path.join(process.cwd(), "public", current.logoPath);
     await unlink(prev).catch(() => undefined);
   }
 
-  const row = await prisma.businessSettings.upsert({
+  await ensureAppSettings();
+  await prisma.appSettings.update({
     where: { id: 1 },
-    create: {
-      id: 1,
-      businessName: DEFAULT_BUSINESS_NAME,
-      address: "",
-      logoPath: null,
-      ...DEFAULT_THEME_COLORS,
-    },
-    update: { logoPath: null },
+    data: { logoPath: null },
   });
 
-  return toProfile(row);
+  return getBusinessSettings();
 }

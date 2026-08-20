@@ -5,7 +5,10 @@ import { io, type Socket } from "socket.io-client";
 let shared: Socket | null = null;
 
 function socketPath() {
-  const base = process.env.NEXT_PUBLIC_BASE_PATH ?? "";
+  const base = (process.env.NEXT_PUBLIC_BASE_PATH || "/scheduly").replace(
+    /\/$/,
+    "",
+  );
   return `${base}/socket.io`;
 }
 

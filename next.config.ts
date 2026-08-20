@@ -1,7 +1,18 @@
 import type { NextConfig } from "next";
 
+const basePath = (process.env.NEXT_PUBLIC_BASE_PATH || "/scheduly").replace(
+  /\/$/,
+  "",
+);
+
+const schedulyRuntime =
+  process.env.NEXT_PUBLIC_SCHEDULY_RUNTIME === "gestor" ? "gestor" : "dev";
+
 const nextConfig: NextConfig = {
-  basePath: process.env.NEXT_PUBLIC_BASE_PATH || "",
+  basePath,
+  env: {
+    NEXT_PUBLIC_SCHEDULY_RUNTIME: schedulyRuntime,
+  },
   async redirects() {
     return [
       { source: "/products", destination: "/inventario/productos", permanent: true },

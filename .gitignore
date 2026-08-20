@@ -41,6 +41,10 @@ yarn-error.log*
 /storage/sri/*
 !/storage/sri/.gitkeep
 
+# backups JSON de BD (Dueño)
+/backups/*
+!/backups/.gitkeep
+
 # vercel
 .vercel
 

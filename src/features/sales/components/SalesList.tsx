@@ -28,6 +28,7 @@ import {
   dashboardPeriodOptions,
   type DashboardPeriod,
 } from "@/shared/utils/dashboard-period";
+import { useOperationFlags } from "@/src/features/settings/hooks/useOperationFlags";
 import type { SaleRecord } from "../types";
 import { SaleDetailBody } from "./SaleDetailModal";
 
@@ -63,10 +64,14 @@ function SaleRowButton({
   sale,
   onPress,
   layout,
+  showCustomer,
+  showBranch,
 }: {
   sale: SaleRecord;
   onPress: () => void;
   layout: "mobile" | "desktop";
+  showCustomer: boolean;
+  showBranch: boolean;
 }) {
   const { date, time } = formatPaidAt(sale.paidAt);
 
@@ -79,12 +84,21 @@ function SaleRowButton({
       >
         <div className="flex items-start justify-between gap-3">
           <div className="min-w-0">
-            <p className="truncate text-sm font-semibold">{sale.customer.name}</p>
-            <p className="mt-0.5 line-clamp-2 text-xs text-muted">
+            {showCustomer ? (
+              <p className="truncate text-sm font-semibold uppercase tracking-wide">
+                {sale.customer.name || "—"}
+              </p>
+            ) : null}
+            <p
+              className={`line-clamp-2 text-xs text-muted ${showCustomer ? "mt-0.5" : ""}`}
+            >
               {sale.itemsSummary || sale.title}
             </p>
             <p className="mt-1.5 text-[11px] text-muted">
-              {date} · {time} · {sale.staff.name}
+              {date} · {time}
+              {showBranch && sale.branch?.name ? ` · ${sale.branch.name}` : ""}
+              {" · "}
+              {sale.staff.name}
             </p>
           </div>
           <div className="shrink-0 text-right">
@@ -98,17 +112,37 @@ function SaleRowButton({
     );
   }
 
+  const gridTemplateColumns = [
+    "minmax(5rem,0.9fr)",
+    showBranch ? "minmax(0,0.9fr)" : null,
+    showCustomer ? "minmax(0,1.1fr)" : null,
+    "minmax(0,1.4fr)",
+    "minmax(0,1fr)",
+    "minmax(0,0.9fr)",
+    "minmax(4.5rem,auto)",
+  ]
+    .filter(Boolean)
+    .join(" ");
+
   return (
     <button
       type="button"
       onClick={onPress}
-      className="grid w-full grid-cols-[minmax(5rem,0.9fr)_minmax(0,1.1fr)_minmax(0,1.4fr)_minmax(0,1fr)_minmax(0,0.9fr)_minmax(4.5rem,auto)] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-secondary/60"
+      className="grid w-full items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-surface-secondary/60"
+      style={{ gridTemplateColumns }}
     >
       <div>
         <p className="text-sm font-medium">{date}</p>
         <p className="text-xs text-muted">{time}</p>
       </div>
-      <p className="truncate font-medium">{sale.customer.name}</p>
+      {showBranch ? (
+        <p className="truncate text-sm text-muted">{sale.branch?.name ?? "—"}</p>
+      ) : null}
+      {showCustomer ? (
+        <p className="truncate text-sm font-semibold uppercase tracking-wide">
+          {sale.customer.name || "—"}
+        </p>
+      ) : null}
       <p className="truncate text-sm">{sale.itemsSummary || sale.title}</p>
       <p className="truncate text-sm text-muted">{sale.staff.name}</p>
       <span className="inline-flex w-fit rounded-full bg-surface-secondary px-2.5 py-0.5 text-xs font-medium">
@@ -132,6 +166,11 @@ export function SalesList({
   const [page, setPage] = useState(1);
   const [selectedSale, setSelectedSale] = useState<SaleRecord | null>(null);
   const detailModal = useOverlayState();
+  const flags = useOperationFlags();
+  const showCustomer = flags.salesShowCustomerColumn;
+  const showBranch = flags.showBranchColumn;
+  const colSpan =
+    5 + (showCustomer ? 1 : 0) + (showBranch ? 1 : 0);
 
   const openSaleDetail = (sale: SaleRecord) => {
     setSelectedSale(sale);
@@ -285,6 +324,8 @@ export function SalesList({
                     <SaleRowButton
                       sale={row.original}
                       layout="mobile"
+                      showCustomer={showCustomer}
+                      showBranch={showBranch}
                       onPress={() => openSaleDetail(row.original)}
                     />
                   </li>
@@ -297,7 +338,8 @@ export function SalesList({
                     <Table.Content aria-label="Ingresos por turnos" className="min-w-[720px]">
                       <Table.Header>
                         <Table.Column isRowHeader>Fecha</Table.Column>
-                        <Table.Column>Cliente</Table.Column>
+                        {showBranch ? <Table.Column>Sucursal</Table.Column> : null}
+                        {showCustomer ? <Table.Column>Cliente</Table.Column> : null}
                         <Table.Column>Detalle</Table.Column>
                         <Table.Column>Atendido por</Table.Column>
                         <Table.Column>Método</Table.Column>
@@ -306,10 +348,12 @@ export function SalesList({
                       <Table.Body>
                         {pageRows.map((row) => (
                           <Table.Row key={row.original.id}>
-                            <Table.Cell colSpan={6} className="p-0">
+                            <Table.Cell colSpan={colSpan} className="p-0">
                               <SaleRowButton
                                 sale={row.original}
                                 layout="desktop"
+                                showCustomer={showCustomer}
+                                showBranch={showBranch}
                                 onPress={() => openSaleDetail(row.original)}
                               />
                             </Table.Cell>
