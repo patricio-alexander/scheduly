@@ -1,0 +1,68 @@
+{
+  "tester": "employee-tour",
+  "mode": "edit-profile",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 1534,
+  "ok": true,
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "ok": true
+  },
+  "actor": {
+    "username": "colorista_camila",
+    "name": "Camila Rojas",
+    "role": "employee",
+    "branchKey": "colon"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como Camila Rojas",
+        "Rol: Empleado · local: Andrea Guerrero · Eguiguren"
+      ]
+    },
+    {
+      "id": "profile-get",
+      "title": "Lee su perfil",
+      "ok": true,
+      "lines": [
+        "Nombre: Camila Rojas",
+        "Email: colorista_camila@andreaguerrero.ec",
+        "Tel: 0987334455"
+      ]
+    },
+    {
+      "id": "profile-put",
+      "title": "Edita nombre y teléfono",
+      "ok": true,
+      "lines": [
+        "Nombre → Camila Tour",
+        "Tel → 0990000111"
+      ]
+    },
+    {
+      "id": "profile-restore",
+      "title": "Restaura perfil original",
+      "ok": true,
+      "lines": [
+        "Nombre: Camila Rojas",
+        "Perfil OK · sin cambios permanentes"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "Camila termina y sale."
+      ]
+    }
+  ],
+  "id": "2026-09-07T17-15-12-940Z_employee-tour_7pcvt",
+  "at": "2026-09-07T17:15:12.940Z"
+}

@@ -10,6 +10,16 @@ import {
 } from "@/shared/utils/operation-flags";
 import { SCHEDULY_DEPLOYMENT } from "@/shared/utils/multi-branch";
 import {
+  DEFAULT_CASH_REGISTER_MODE,
+  normalizeCashRegisterMode,
+  type CashRegisterMode,
+} from "@/shared/utils/cash-register-mode";
+import {
+  DEFAULT_BOOKING_END_HOUR,
+  DEFAULT_BOOKING_START_HOUR,
+  normalizeAgendaHours,
+} from "@/shared/utils/agenda-hours";
+import {
   SettingsRow,
   SettingsSection,
   SettingsSwitch,
@@ -19,6 +29,13 @@ type TabId = "inventario" | "comprobantes" | "publico" | "sistema";
 
 export function OperationFlagsPanel({ tab }: { tab: TabId }) {
   const [flags, setFlags] = useState<OperationFlags>(DEFAULT_OPERATION_FLAGS);
+  const [bookingStartHour, setBookingStartHour] = useState(
+    DEFAULT_BOOKING_START_HOUR,
+  );
+  const [bookingEndHour, setBookingEndHour] = useState(DEFAULT_BOOKING_END_HOUR);
+  const [cashRegisterMode, setCashRegisterMode] = useState<CashRegisterMode>(
+    DEFAULT_CASH_REGISTER_MODE,
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -29,9 +46,23 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
     fetch(apiUrl("/api/settings"), { credentials: "include" })
       .then(async (res) => {
         if (!res.ok) throw new Error("No se pudo cargar la configuración");
-        const json = (await res.json()) as { operationFlags?: unknown };
+        const json = (await res.json()) as {
+          operationFlags?: unknown;
+          bookingStartHour?: unknown;
+          bookingEndHour?: unknown;
+          cashRegisterMode?: unknown;
+        };
         if (!cancelled) {
           setFlags(normalizeOperationFlags(json.operationFlags));
+          const hours = normalizeAgendaHours({
+            bookingStartHour: json.bookingStartHour,
+            bookingEndHour: json.bookingEndHour,
+          });
+          setBookingStartHour(hours.bookingStartHour);
+          setBookingEndHour(hours.bookingEndHour);
+          setCashRegisterMode(
+            normalizeCashRegisterMode(json.cashRegisterMode),
+          );
           setDirty(false);
         }
       })
@@ -58,7 +89,12 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
         method: "PUT",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ operationFlags: flags }),
+        body: JSON.stringify({
+          operationFlags: flags,
+          bookingStartHour,
+          bookingEndHour,
+          cashRegisterMode,
+        }),
       });
       if (!res.ok) {
         const payload = (await res.json().catch(() => ({}))) as {
@@ -66,8 +102,20 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
         };
         throw new Error(payload.message || "No se pudo guardar");
       }
-      const json = (await res.json()) as { operationFlags?: unknown };
+      const json = (await res.json()) as {
+        operationFlags?: unknown;
+        bookingStartHour?: unknown;
+        bookingEndHour?: unknown;
+        cashRegisterMode?: unknown;
+      };
       setFlags(normalizeOperationFlags(json.operationFlags));
+      const hours = normalizeAgendaHours({
+        bookingStartHour: json.bookingStartHour,
+        bookingEndHour: json.bookingEndHour,
+      });
+      setBookingStartHour(hours.bookingStartHour);
+      setBookingEndHour(hours.bookingEndHour);
+      setCashRegisterMode(normalizeCashRegisterMode(json.cashRegisterMode));
       setDirty(false);
       toast.success("Configuración guardada");
     } catch (err: unknown) {
@@ -123,9 +171,14 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
                 />
               }
             />
+          </SettingsSection>
+          <SettingsSection
+            title="Caja POS"
+            hint="Botones de crear y editar productos en el punto de venta."
+          >
             <SettingsRow
               label="Crear producto desde caja"
-              description="Botón + en el buscador de productos de caja."
+              description="Muestra el botón + al lado del buscador de producto."
               control={
                 <SettingsSwitch
                   checked={flags.cajaAllowCreateProductFromSelect}
@@ -134,8 +187,8 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
               }
             />
             <SettingsRow
-              label="Editar producto desde carrito"
-              description="Permite ajustar el ítem desde el carrito de caja."
+              label="Editar producto desde el carrito"
+              description="Muestra el lápiz en cada línea del carrito de caja."
               control={
                 <SettingsSwitch
                   checked={flags.cajaAllowEditProductFromCart}
@@ -279,21 +332,134 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
       ) : null}
 
       {tab === "sistema" ? (
-        <SettingsSection
-          title="Sistema"
-          hint="Preferencias generales del panel."
-        >
-          <SettingsRow
-            label="Correcciones financieras"
-            description="Atajo: mismo flag que en Inventario."
-            control={
-              <SettingsSwitch
-                checked={flags.financeAllowAdminCorrections}
-                onChange={(v) => setFlag("financeAllowAdminCorrections", v)}
-              />
-            }
-          />
-        </SettingsSection>
+        <>
+          <SettingsSection
+            title="Agenda y caja"
+            hint="La dueña define el horario de agenda y cómo se opera la caja."
+          >
+            <SettingsRow
+              label="Horario de agenda"
+              description="Los empleados solo pueden agendar citas dentro de este rango."
+              control={
+                <div className="flex items-center gap-2">
+                  <select
+                    className="rounded-lg border border-separator bg-field-background px-2 py-1.5 text-sm"
+                    value={bookingStartHour}
+                    onChange={(e) => {
+                      setBookingStartHour(Number(e.target.value));
+                      setDirty(true);
+                    }}
+                    aria-label="Hora inicio agenda"
+                  >
+                    {Array.from({ length: 24 }, (_, h) => (
+                      <option key={`s-${h}`} value={h}>
+                        {String(h).padStart(2, "0")}:00
+                      </option>
+                    ))}
+                  </select>
+                  <span className="text-xs text-muted">a</span>
+                  <select
+                    className="rounded-lg border border-separator bg-field-background px-2 py-1.5 text-sm"
+                    value={bookingEndHour}
+                    onChange={(e) => {
+                      setBookingEndHour(Number(e.target.value));
+                      setDirty(true);
+                    }}
+                    aria-label="Hora fin agenda"
+                  >
+                    {Array.from({ length: 24 }, (_, h) => (
+                      <option key={`e-${h}`} value={h}>
+                        {String(h).padStart(2, "0")}:00
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              }
+            />
+            <SettingsRow
+              label="Modo de caja"
+              description={
+                cashRegisterMode === "employee_own"
+                  ? "Cada empleado/admin abre y cierra su propia caja."
+                  : "Solo el admin abre la caja del local; el personal cobra bajo esa caja."
+              }
+              control={
+                <select
+                  className="w-full max-w-[14rem] rounded-lg border border-separator bg-field-background px-2 py-1.5 text-sm"
+                  value={cashRegisterMode}
+                  onChange={(e) => {
+                    setCashRegisterMode(
+                      normalizeCashRegisterMode(e.target.value),
+                    );
+                    setDirty(true);
+                  }}
+                  aria-label="Modo de caja"
+                >
+                  <option value="employee_own">Caja propia por persona</option>
+                  <option value="branch_shared">
+                    Caja compartida del local
+                  </option>
+                </select>
+              }
+            />
+          </SettingsSection>
+          <SettingsSection
+            title="Caja POS"
+            hint="Activá o desactivá crear y editar productos desde caja."
+          >
+            <SettingsRow
+              label="Crear producto desde caja"
+              description="Botón + al lado del buscador de producto."
+              control={
+                <SettingsSwitch
+                  checked={flags.cajaAllowCreateProductFromSelect}
+                  onChange={(v) =>
+                    setFlag("cajaAllowCreateProductFromSelect", v)
+                  }
+                />
+              }
+            />
+            <SettingsRow
+              label="Editar producto desde el carrito"
+              description="Lápiz en cada línea del carrito."
+              control={
+                <SettingsSwitch
+                  checked={flags.cajaAllowEditProductFromCart}
+                  onChange={(v) => setFlag("cajaAllowEditProductFromCart", v)}
+                />
+              }
+            />
+            <SettingsRow
+              label="Sugerir actualizar precio al cobrar"
+              description="Si el precio del carrito difiere del catálogo."
+              control={
+                <SettingsSwitch
+                  checked={flags.cajaSuggestUpdateProductPrice}
+                  onChange={(v) =>
+                    setFlag("cajaSuggestUpdateProductPrice", v)
+                  }
+                />
+              }
+            />
+          </SettingsSection>
+          <SettingsSection
+            title="Sistema"
+            hint="Preferencias generales del panel."
+          >
+            <SettingsRow
+              label="Correcciones financieras"
+              description="Permite a dueño/encargado corregir movimientos sensibles."
+              control={
+                <SettingsSwitch
+                  checked={flags.financeAllowAdminCorrections}
+                  onChange={(v) =>
+                    setFlag("financeAllowAdminCorrections", v)
+                  }
+                />
+              }
+            />
+          </SettingsSection>
+        </>
       ) : null}
 
       <div className="sticky bottom-4 z-10 flex justify-end">

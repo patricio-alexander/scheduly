@@ -18,6 +18,12 @@ import { useCustomers } from "@/src/features/customers";
 import { useProducts } from "@/src/features/products";
 import { apiUrl } from "@/shared/utils/api";
 import { formatMoney, lineTotal } from "@/shared/utils/money";
+import {
+  CreditPlanFields,
+  buildCreditInstallmentsPayload,
+  type CreditPlanMode,
+  type InstallmentDraft,
+} from "./CreditPlanFields";
 
 type Line = {
   key: string;
@@ -45,6 +51,8 @@ export function CustomerOrderDialog({ state, defaultDate, onSuccess }: Props) {
   );
   const [invoiceGuide, setInvoiceGuide] = useState("");
   const [saleType, setSaleType] = useState<"credito" | "contado">("credito");
+  const [creditMode, setCreditMode] = useState<CreditPlanMode>("open");
+  const [installments, setInstallments] = useState<InstallmentDraft[]>([]);
   const [notes, setNotes] = useState("");
   const [cart, setCart] = useState<Line[]>([]);
   const [pending, setPending] = useState(false);
@@ -102,6 +110,9 @@ export function CustomerOrderDialog({ state, defaultDate, onSuccess }: Props) {
     setProductId("");
     setQty(1);
     setPrice(0);
+    setSaleType("credito");
+    setCreditMode("open");
+    setInstallments([]);
   };
 
   const save = async () => {
@@ -112,6 +123,16 @@ export function CustomerOrderDialog({ state, defaultDate, onSuccess }: Props) {
     if (cart.length === 0) {
       toast.danger("Agrega productos al carrito");
       return;
+    }
+    if (saleType === "credito" && creditMode === "installments") {
+      if (installments.length === 0) {
+        toast.danger("Agrega al menos una cuota o elegí sin fecha");
+        return;
+      }
+      if (installments.some((r) => !(r.amount > 0))) {
+        toast.danger("Cada cuota debe tener monto mayor a 0");
+        return;
+      }
     }
     setPending(true);
     try {
@@ -135,6 +156,15 @@ export function CustomerOrderDialog({ state, defaultDate, onSuccess }: Props) {
             quantity: l.quantity,
             unitPrice: l.unitPrice,
           })),
+          ...(saleType === "credito"
+            ? {
+                installments: buildCreditInstallmentsPayload(
+                  creditMode,
+                  installments,
+                  total,
+                ),
+              }
+            : {}),
         }),
       });
       const json = (await res.json().catch(() => null)) as {
@@ -163,9 +193,9 @@ export function CustomerOrderDialog({ state, defaultDate, onSuccess }: Props) {
             </Modal.Header>
             <Modal.Body>
               <div className="mb-3 rounded-xl border border-separator bg-surface-secondary/50 px-3 py-2 text-xs text-muted">
-                Pedido de cliente: a la izquierda armás cada línea y la guía de
-                factura; a la derecha el carrito. Las ventas de caja no se editan
-                aquí.
+                Pedido de cliente (productos que te piden). También podés anotar
+                crédito en Caja. Contado o a crédito; si es crédito, con cuotas
+                y fechas o sin fecha. Los cobros se siguen en Cobranzas.
               </div>
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="flex flex-col gap-3">
@@ -300,6 +330,16 @@ export function CustomerOrderDialog({ state, defaultDate, onSuccess }: Props) {
                       </ListBox>
                     </ComboBox.Popover>
                   </ComboBox>
+
+                  {saleType === "credito" ? (
+                    <CreditPlanFields
+                      mode={creditMode}
+                      onModeChange={setCreditMode}
+                      installments={installments}
+                      onInstallmentsChange={setInstallments}
+                      total={total}
+                    />
+                  ) : null}
 
                   <div>
                     <Label className="mb-1">Notas</Label>

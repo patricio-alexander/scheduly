@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { emitCustomerCreated } from "@/shared/utils/socket";
 import { checkAuth } from "@/shared/utils/check-auth";
-import { isManagementRole } from "@/shared/utils/roles";
+import { isManagementRole, isPureEmployeeRole } from "@/shared/utils/roles";
 
 function displayName(c: {
   name: string;
@@ -35,6 +35,7 @@ export async function GET() {
         address: true,
         identType: true,
         cedula: true,
+        isActive: true,
       },
     });
     return NextResponse.json(
@@ -47,6 +48,7 @@ export async function GET() {
         address: c.address ?? "",
         identificationType: c.identType,
         identification: c.cedula,
+        isActive: c.isActive,
         hasPortalAccess: false,
       })),
     );
@@ -63,7 +65,7 @@ export async function POST(request: Request) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
 
-  if (!isManagementRole(auth.user.role)) {
+  if (!isManagementRole(auth.user.role) && !isPureEmployeeRole(auth.user.role)) {
     return NextResponse.json({ message: "No autorizado" }, { status: 403 });
   }
 

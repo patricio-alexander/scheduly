@@ -1,0 +1,97 @@
+{
+  "tester": "owner-tour",
+  "mode": "settings",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 30365,
+  "ok": false,
+  "summary": {
+    "passed": 7,
+    "failed": 1,
+    "total": 8,
+    "ok": false
+  },
+  "actor": {
+    "username": "Administrador",
+    "name": "Andrea Guerrero",
+    "role": "owner"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como Andrea Guerrero",
+        "Usuario: Administrador · rol: Dueña"
+      ]
+    },
+    {
+      "id": "settings-get",
+      "title": "Lee configuración actual",
+      "ok": true,
+      "lines": [
+        "Nombre: Andrea Guerrero Estética y Peluquería",
+        "Accent: #D4AF37 · success: #22C55E",
+        "Flags cargados: 15"
+      ]
+    },
+    {
+      "id": "settings-put-tour",
+      "title": "Cambia nombre, colores y desactiva flags",
+      "ok": true,
+      "lines": [
+        "Nombre → «Andrea Guerrero Estética y Peluquería · Tour CFG»",
+        "Accent → #0EA5E9",
+        "showPublicCatalog=false · createProductFromSelect=false"
+      ]
+    },
+    {
+      "id": "settings-verify-tour",
+      "title": "Verifica GET tras el cambio",
+      "ok": true,
+      "lines": [
+        "GET nombre: Andrea Guerrero Estética y Peluquería · Tour CFG",
+        "GET showPublicCatalog: false"
+      ]
+    },
+    {
+      "id": "settings-flags-on",
+      "title": "Reactiva flags operativos",
+      "ok": true,
+      "lines": [
+        "showPublicCatalog=true",
+        "showPublicBranches=true",
+        "cajaAllowCreateProductFromSelect=true",
+        "receiptShowBarcode=true"
+      ]
+    },
+    {
+      "id": "settings-theme-patch",
+      "title": "Cambia solo colores (PATCH /theme)",
+      "ok": false,
+      "lines": [
+        "HTTP 400 Record has changed since last read in table 'SriBillingSettings'"
+      ]
+    },
+    {
+      "id": "settings-restore",
+      "title": "Restaura configuración original",
+      "ok": true,
+      "lines": [
+        "Nombre restaurado: «Andrea Guerrero Estética y Peluquería»",
+        "Accent: #D4AF37",
+        "Config OK · tour no dejó cambios permanentes"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "Andrea Guerrero termina y sale del sistema."
+      ]
+    }
+  ],
+  "id": "2026-09-07T16-49-09-072Z_owner-tour_uh1ii",
+  "at": "2026-09-07T16:49:09.073Z"
+}

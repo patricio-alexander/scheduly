@@ -15,6 +15,10 @@ import { calcRewardDiscountAmount } from "@/shared/utils/reward-discount";
 import { getAppointmentCalendarEvent } from "@/shared/utils/appointment-calendar";
 import { emitAppointmentUpdated } from "@/shared/utils/socket";
 import { checkAuth } from "@/shared/utils/check-auth";
+import { getCashRegisterMode } from "@/shared/utils/business-settings";
+import { getUserPrimaryBranchId } from "@/shared/utils/branches";
+import { isPureEmployeeRole } from "@/shared/utils/roles";
+import { recordLedgerIncome } from "@/shared/utils/finance-ledger";
 
 export async function POST(
   request: Request,
@@ -35,17 +39,77 @@ export async function POST(
         ? Number(body.rewardId)
         : null;
 
+    const cashMode = await getCashRegisterMode();
+    const branchId =
+      (await getUserPrimaryBranchId(prisma, auth.user.id)) ??
+      (
+        await prisma.appointment.findUnique({
+          where: { id: appointmentId },
+          select: { branchId: true },
+        })
+      )?.branchId ??
+      null;
+
+    const openShiftWhere =
+      cashMode === "employee_own"
+        ? { status: "open" as const, accountId: auth.user.id }
+        : {
+            status: "open" as const,
+            ...(branchId ? { storeId: branchId } : {}),
+          };
+
+    const openShift = await prisma.cashShift.findFirst({
+      where: openShiftWhere,
+      orderBy: { id: "desc" },
+      select: { id: true, accountId: true },
+    });
+
+    if (!openShift) {
+      return NextResponse.json(
+        {
+          message:
+            cashMode === "employee_own"
+              ? "Debes abrir tu turno de caja antes de cobrar"
+              : "No hay turno de caja abierto en la sucursal para cobrar",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (
+      cashMode === "branch_shared" &&
+      isPureEmployeeRole(auth.user.role) &&
+      openShift.accountId === auth.user.id
+    ) {
+      // ok if somehow they have shift; shared mode usually uses admin shift
+    }
+
+    const paidAtRaw = body.paidAt ? new Date(String(body.paidAt)) : new Date();
+    const paidAt = Number.isNaN(paidAtRaw.getTime()) ? new Date() : paidAtRaw;
+
     const result = await prisma.$transaction(async (tx) => {
       const appointment = await tx.appointment.findUnique({
         where: { id: appointmentId },
         include: {
           payment: true,
+          customer: { select: { name: true } },
           services: {
             include: {
               service: { select: { id: true, price: true, commissionPct: true } },
             },
           },
-          products: { include: { product: { select: { id: true, price: true } } } },
+          products: {
+            include: {
+              product: {
+                select: {
+                  id: true,
+                  price: true,
+                  commissionPct: true,
+                  category: { select: { commissionPct: true } },
+                },
+              },
+            },
+          },
         },
       });
 
@@ -108,12 +172,13 @@ export async function POST(
         paymentNotes = paymentNotes ? `${paymentNotes}\n${rewardNote}` : rewardNote;
       }
 
-      const payment = await tx.payment.create({
+      const payment = await tx.appointmentPayment.create({
         data: {
           appointmentId,
           amount,
           method,
           notes: paymentNotes,
+          paidAt,
         },
       });
 
@@ -122,7 +187,7 @@ export async function POST(
         data: { status: "completed" },
       });
 
-      await deductStockForAppointment(tx, appointmentId);
+      await deductStockForAppointment(tx, appointmentId, auth.user.id);
 
       await awardLoyaltyForPayment(tx, {
         customerId: appointment.customerId,
@@ -144,6 +209,42 @@ export async function POST(
         ratePct: commission.ratePct,
       });
 
+      // Ingreso de cita en la caja abierta (arqueo / cierre)
+      if (auth.user.personId && amount > 0) {
+        const isCash =
+          !["transfer", "transferencia", "card", "tarjeta", "credito"].includes(
+            String(method).toLowerCase(),
+          );
+        if (isCash) {
+          await tx.cashShiftMovement.create({
+            data: {
+              shiftId: openShift.id,
+              accountId: auth.user.id,
+              userId: auth.user.personId,
+              direction: "in",
+              category: "appointment",
+              amount,
+              concept: `Cobro cita #${appointmentId}`,
+              notes: paymentNotes || null,
+            },
+          });
+        }
+      }
+
+      // Ledger Finanzas (Income) — el centro solo lee esta tabla
+      if (amount > 0) {
+        await recordLedgerIncome(tx, {
+          amount,
+          date: paidAt,
+          concept: `Cobro cita #${appointmentId}`,
+          category: "Cita / servicio",
+          createdByAccountId: auth.user.id,
+          counterpartyName: appointment.customer?.name ?? null,
+          referenceType: "appointment_payment",
+          referenceId: payment.id,
+        });
+      }
+
       return { payment, rewardName };
     });
 
@@ -151,11 +252,13 @@ export async function POST(
     if (calendarEvent) emitAppointmentUpdated(calendarEvent);
 
     try {
-      const sri = await prisma.sriSettings.findUnique({ where: { id: 1 } });
+      const sri = await prisma.sriBillingSettings.findUnique({
+        where: { id: 1 },
+      });
       if (
-        sri?.autoEmitOnPayment &&
-        sri.certStoragePath &&
-        sri.certPasswordEnc
+        sri?.enabled &&
+        sri.certificateRelativePath &&
+        sri.certificatePasswordEnc
       ) {
         const { createInvoiceFromPayment } = await import(
           "@/src/features/electronic-docs/services/invoice-service"

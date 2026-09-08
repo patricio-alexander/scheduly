@@ -65,7 +65,7 @@ const PERIOD_OPTIONS: Array<{ value: PeriodMode; label: string }> = [
 const KIND_OPTIONS: Array<{ value: KindMode; label: string }> = [
   { value: "all", label: "Todos" },
   { value: "products", label: "Productos" },
-  { value: "services", label: "Servicios" },
+  { value: "services", label: "Servicios (no aplica)" },
 ];
 
 const METRIC_OPTIONS: Array<{ value: MetricMode; label: string }> = [

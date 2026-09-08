@@ -92,6 +92,8 @@ export interface CreateDirectProductSalePayload {
   /** contado → pagado; credito → pendiente */
   saleType?: "contado" | "credito";
   documentType?: string;
+  /** Cuotas de crédito (dueDate null = sin fecha) */
+  installments?: Array<{ dueDate: string | null; amount: number }>;
   lines: Array<{
     productId: number;
     quantity: number;

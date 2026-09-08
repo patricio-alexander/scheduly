@@ -4,6 +4,7 @@ import { useAuth } from "@/src/features/auth";
 import { LoginForm } from "@/src/features/auth";
 import { Skeleton } from "@/shared/components/ui";
 import { appRoutes } from "@/shared/utils/app-routes";
+import { APP_BRAND_NAME } from "@/shared/utils/business-profile";
 import { useRouter } from "next/navigation";
 import { useEffect, type ReactNode } from "react";
 import Calendar from "@gravity-ui/icons/Calendar";
@@ -65,7 +66,7 @@ function LoginShell({ children }: { children: ReactNode }) {
             <div className="rounded-xl bg-accent-foreground/10 p-2.5 backdrop-blur-sm">
               <Calendar width={24} height={24} />
             </div>
-            <span className="text-xl font-bold tracking-tight">Scheduly</span>
+            <span className="text-xl font-bold tracking-tight">{APP_BRAND_NAME}</span>
           </div>
         </div>
 
@@ -97,7 +98,7 @@ function LoginShell({ children }: { children: ReactNode }) {
         </div>
 
         <p className="relative z-10 text-sm text-accent-foreground/50">
-          © {new Date().getFullYear()} Scheduly
+          © {new Date().getFullYear()} {APP_BRAND_NAME}
         </p>
       </div>
 

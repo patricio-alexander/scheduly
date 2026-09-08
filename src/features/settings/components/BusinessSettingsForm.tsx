@@ -9,6 +9,7 @@ import TrashBin from "@gravity-ui/icons/TrashBin";
 import { apiUrl } from "@/shared/utils/api";
 import {
   ACCENT_PRESETS,
+  DEFAULT_BUSINESS_NAME,
   DEFAULT_THEME_COLORS,
   broadcastThemeColorsLocally,
   applyThemeColors,
@@ -93,7 +94,7 @@ function ColorField({
 export function BusinessSettingsForm() {
   const [loading, setLoading] = useState(true);
   const [pending, setPending] = useState(false);
-  const [businessName, setBusinessName] = useState("Scheduly");
+  const [businessName, setBusinessName] = useState(DEFAULT_BUSINESS_NAME);
   const [address, setAddress] = useState("");
   const [ruc, setRuc] = useState("");
   const [tradeName, setTradeName] = useState("");
@@ -117,7 +118,7 @@ export function BusinessSettingsForm() {
           | BusinessSettings
           | null;
         if (!cancelled && res.ok && json) {
-          setBusinessName(json.businessName || "Scheduly");
+          setBusinessName(json.businessName || DEFAULT_BUSINESS_NAME);
           setAddress(json.address || "");
           setRuc(json.ruc || "");
           setTradeName(json.tradeName || "");

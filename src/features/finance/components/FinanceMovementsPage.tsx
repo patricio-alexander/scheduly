@@ -34,6 +34,7 @@ type LedgerRow = {
   amount: number;
   concept: string;
   category: string;
+  persisted?: boolean;
 };
 
 type MovRow = LedgerRow & {
@@ -59,6 +60,7 @@ function formatDateLabel(iso: string) {
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      second: "2-digit",
     });
   } catch {
     return iso;
@@ -91,16 +93,41 @@ export function FinanceMovementsPage() {
     setLoading(true);
     try {
       const [sRes, iRes, eRes] = await Promise.all([
-        fetch(apiUrl("/api/finance/ledger-summary")),
-        fetch(apiUrl("/api/finance/incomes")),
-        fetch(apiUrl("/api/finance/expenses-ledger")),
+        fetch(apiUrl("/api/finance/ledger-summary"), {
+          credentials: "include",
+        }),
+        fetch(apiUrl("/api/finance/incomes"), { credentials: "include" }),
+        fetch(apiUrl("/api/finance/expenses-ledger"), {
+          credentials: "include",
+        }),
       ]);
-      if (!sRes.ok || !iRes.ok || !eRes.ok) {
+
+      if (sRes.ok) {
+        setSummary((await sRes.json()) as FinanceSummaryData);
+      } else {
+        setSummary(null);
+      }
+
+      if (iRes.ok) {
+        const json: unknown = await iRes.json();
+        setIncomes(Array.isArray(json) ? (json as LedgerRow[]) : []);
+      } else {
+        setIncomes([]);
+      }
+
+      if (eRes.ok) {
+        const json: unknown = await eRes.json();
+        setExpenses(Array.isArray(json) ? (json as LedgerRow[]) : []);
+      } else {
+        setExpenses([]);
+      }
+
+      if (!sRes.ok && !iRes.ok && !eRes.ok) {
         throw new Error("No se pudo cargar finanzas");
       }
-      setSummary((await sRes.json()) as FinanceSummaryData);
-      setIncomes((await iRes.json()) as LedgerRow[]);
-      setExpenses((await eRes.json()) as LedgerRow[]);
+      if (!sRes.ok || !iRes.ok || !eRes.ok) {
+        toast.danger("Algunas secciones de finanzas no cargaron");
+      }
     } catch (err) {
       toast.danger(err instanceof Error ? err.message : "Error");
     } finally {
@@ -178,6 +205,10 @@ export function FinanceMovementsPage() {
   };
 
   const openEdit = (row: MovRow) => {
+    if (row.persisted === false || row.id < 0) {
+      toast.danger("Este movimiento viene de una venta/cita; no se edita aquí");
+      return;
+    }
     setFormType(row.type);
     setEditId(row.sourceId);
     setFormAmount(Number(row.amount) || 0);
@@ -325,31 +356,41 @@ export function FinanceMovementsPage() {
         align: "center",
         sortable: false,
         getSearchValue: () => "",
-        render: (r) => (
-          <div className="flex justify-center gap-1">
-            <Button
-              isIconOnly
-              size="sm"
-              variant="ghost"
-              aria-label="Editar"
-              onPress={() => openEdit(r)}
-            >
-              <Pencil width={14} height={14} />
-            </Button>
-            <Button
-              isIconOnly
-              size="sm"
-              variant="danger"
-              aria-label="Eliminar"
-              onPress={() => {
-                setToDelete(r);
-                deleteModal.open();
-              }}
-            >
-              <TrashBin width={14} height={14} />
-            </Button>
-          </div>
-        ),
+        render: (r) => {
+          const canEdit = r.persisted !== false && r.id > 0;
+          if (!canEdit) {
+            return (
+              <span className="text-xs text-muted" title="Generado por venta/cita">
+                auto
+              </span>
+            );
+          }
+          return (
+            <div className="flex justify-center gap-1">
+              <Button
+                isIconOnly
+                size="sm"
+                variant="ghost"
+                aria-label="Editar"
+                onPress={() => openEdit(r)}
+              >
+                <Pencil width={14} height={14} />
+              </Button>
+              <Button
+                isIconOnly
+                size="sm"
+                variant="danger"
+                aria-label="Eliminar"
+                onPress={() => {
+                  setToDelete(r);
+                  deleteModal.open();
+                }}
+              >
+                <TrashBin width={14} height={14} />
+              </Button>
+            </div>
+          );
+        },
       },
     ];
 

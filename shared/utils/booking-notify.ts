@@ -11,12 +11,14 @@ export async function notifyStaffNewBooking(input: {
   customerName: string;
   appointmentDate: Date;
 }) {
-  const when = input.appointmentDate.toLocaleString("es-CL", {
+  const when = input.appointmentDate.toLocaleString("es-EC", {
     weekday: "short",
     day: "numeric",
     month: "short",
     hour: "2-digit",
     minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
   });
 
   const title = "Nueva reserva online";

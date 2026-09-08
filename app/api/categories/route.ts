@@ -17,6 +17,7 @@ export async function GET() {
         id: c.id,
         name: c.name,
         description: c.description,
+        commissionPct: c.commissionPct,
         productsCount: c._count.products,
       })),
     );
@@ -50,7 +51,11 @@ export async function POST(request: Request) {
     }
 
     const category = await prisma.category.create({
-      data: { name, description },
+      data: {
+        name,
+        description,
+        commissionPct: Number(body.commissionPct ?? 0),
+      },
     });
     return NextResponse.json(category, { status: 201 });
   } catch (error) {

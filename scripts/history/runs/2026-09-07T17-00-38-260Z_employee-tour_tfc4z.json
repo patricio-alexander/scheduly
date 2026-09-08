@@ -1,0 +1,796 @@
+{
+  "tester": "employee-tour",
+  "mode": "review-all-parallel",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 4653,
+  "ok": true,
+  "summary": {
+    "passed": 80,
+    "failed": 0,
+    "total": 80
+  },
+  "subjects": [
+    {
+      "username": "estilista_maria",
+      "name": "María García",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como María García",
+            "Local: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel de trabajo",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Servicios/productos: 0 / 47"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Productos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Mi agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "No administra cuentas globales",
+          "ok": true,
+          "lines": [
+            "Correcto: 403 en /api/users"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "María sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_juan",
+      "name": "Juan Pérez",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Juan Pérez",
+            "Local: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel de trabajo",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Servicios/productos: 0 / 47"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Productos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Mi agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "No administra cuentas globales",
+          "ok": true,
+          "lines": [
+            "Correcto: 403 en /api/users"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Juan sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "colorista_camila",
+      "name": "Camila Rojas",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Camila Rojas",
+            "Local: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel de trabajo",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Servicios/productos: 0 / 47"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Productos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Mi agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "No administra cuentas globales",
+          "ok": true,
+          "lines": [
+            "Correcto: 403 en /api/users"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Camila sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "unas_natalia",
+      "name": "Natalia Ortiz",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Natalia Ortiz",
+            "Local: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel de trabajo",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Servicios/productos: 0 / 47"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Productos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Mi agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "No administra cuentas globales",
+          "ok": true,
+          "lines": [
+            "Correcto: 403 en /api/users"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Natalia sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "makeup_andres",
+      "name": "Andrés Muñoz",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Andrés Muñoz",
+            "Local: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel de trabajo",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Servicios/productos: 0 / 47"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Productos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Mi agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "No administra cuentas globales",
+          "ok": true,
+          "lines": [
+            "Correcto: 403 en /api/users"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Andrés sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_diego",
+      "name": "Diego Salinas",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Diego Salinas",
+            "Local: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel de trabajo",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Servicios/productos: 0 / 47"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Productos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Mi agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "No administra cuentas globales",
+          "ok": true,
+          "lines": [
+            "Correcto: 403 en /api/users"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Diego sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "tratamientos_paola",
+      "name": "Paola Herrera",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Paola Herrera",
+            "Local: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel de trabajo",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Servicios/productos: 0 / 47"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Productos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Mi agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "No administra cuentas globales",
+          "ok": true,
+          "lines": [
+            "Correcto: 403 en /api/users"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Paola sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "depilacion_ricardo",
+      "name": "Ricardo Vélez",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Ricardo Vélez",
+            "Local: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel de trabajo",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Servicios/productos: 0 / 47"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Productos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Mi agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "No administra cuentas globales",
+          "ok": true,
+          "lines": [
+            "Correcto: 403 en /api/users"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Ricardo sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "recepcion_felipe",
+      "name": "Felipe López",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Felipe López",
+            "Local: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel de trabajo",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Servicios/productos: 0 / 47"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Productos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Mi agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "No administra cuentas globales",
+          "ok": true,
+          "lines": [
+            "Correcto: 403 en /api/users"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Felipe sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_marco",
+      "name": "Marco Espinosa",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Marco Espinosa",
+            "Local: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel de trabajo",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Servicios/productos: 0 / 47"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Productos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Mi agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "No administra cuentas globales",
+          "ok": true,
+          "lines": [
+            "Correcto: 403 en /api/users"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Marco sale."
+          ]
+        }
+      ]
+    }
+  ],
+  "id": "2026-09-07T17-00-38-260Z_employee-tour_tfc4z",
+  "at": "2026-09-07T17:00:38.260Z"
+}

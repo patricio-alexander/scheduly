@@ -1,4 +1,10 @@
 import { prisma } from "@/shared/utils/prisma";
+import {
+  customerAppointmentSelect,
+  customerFullName,
+  personFullName,
+  staffAppointmentSelect,
+} from "@/shared/utils/person-name";
 
 /** Forma de evento que consume FullCalendar en la agenda */
 export type AppointmentCalendarEvent = {
@@ -21,21 +27,24 @@ export async function getAppointmentCalendarEvent(
   const a = await prisma.appointment.findUnique({
     where: { id },
     include: {
-      customer: { select: { name: true, lastnames: true } },
-      user: { select: { name: true } },
+      customer: { select: customerAppointmentSelect },
+      staff: { select: staffAppointmentSelect },
     },
   });
 
   if (!a) return null;
 
+  const customerName = customerFullName(a.customer);
+  const staffName = personFullName(a.staff);
+
   return {
     id: String(a.id),
-    title: `${a.title} - ${a.customer.name} ${a.customer.lastnames}`,
+    title: `${a.title} - ${customerName}`,
     start: a.appointmentDate.toISOString(),
     extendedProps: {
       description: a.description,
-      customer: `${a.customer.name} ${a.customer.lastnames}`,
-      user: a.user.name,
+      customer: customerName,
+      user: staffName,
       status: a.status,
       branchId: a.branchId,
       userId: a.userId,

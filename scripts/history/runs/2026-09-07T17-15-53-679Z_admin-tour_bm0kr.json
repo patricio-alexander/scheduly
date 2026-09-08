@@ -1,0 +1,81 @@
+{
+  "tester": "admin-tour",
+  "mode": "toggle-accounts",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 659,
+  "ok": true,
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "ok": true
+  },
+  "actor": {
+    "username": "admin_eguiguren",
+    "name": "Paola Jiménez",
+    "role": "admin",
+    "branchKey": "eguiguren"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como Paola Jiménez",
+        "Rol: Administrador · local: Andrea Guerrero · Eguiguren"
+      ]
+    },
+    {
+      "id": "list",
+      "title": "Lista equipo del local",
+      "ok": true,
+      "lines": [
+        "Activos: 10 · total: 10"
+      ]
+    },
+    {
+      "id": "deactivate",
+      "title": "Desactiva cuenta del empleado",
+      "ok": true,
+      "lines": [
+        "@estilista_marco quedó inactiva"
+      ]
+    },
+    {
+      "id": "verify-inactive",
+      "title": "Verifica que aparece inactiva",
+      "ok": true,
+      "lines": [
+        "@estilista_marco isActive=false"
+      ]
+    },
+    {
+      "id": "reactivate",
+      "title": "Reactiva la cuenta",
+      "ok": true,
+      "lines": [
+        "@estilista_marco volvió a activa",
+        "Toggle OK"
+      ]
+    },
+    {
+      "id": "verify-active",
+      "title": "Verifica que vuelve a listarse activa",
+      "ok": true,
+      "lines": [
+        "@estilista_marco visible y activa"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "Paola termina y sale."
+      ]
+    }
+  ],
+  "id": "2026-09-07T17-15-53-679Z_admin-tour_bm0kr",
+  "at": "2026-09-07T17:15:53.679Z"
+}

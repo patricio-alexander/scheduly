@@ -17,6 +17,15 @@ import {
   resolveAgendaStaffUserId,
   resolveAppointmentBranchId,
 } from "@/shared/utils/branches";
+import {
+  customerAppointmentSelect,
+  customerFullName,
+  personFullName,
+  staffAppointmentSelect,
+} from "@/shared/utils/person-name";
+import { assertAppointmentWithinAgendaHours } from "@/shared/utils/agenda-hours";
+import { getAgendaHours } from "@/shared/utils/business-settings";
+import { isOwnerRole } from "@/shared/utils/roles";
 
 export async function GET(request: Request) {
   const auth = await checkAuth();
@@ -56,32 +65,39 @@ export async function GET(request: Request) {
           : branchFilterWhere(branchId)
         : viewMode === "branch"
           ? staffUserId
-            ? { branchId, userId: staffUserId }
+            ? { branchId: branchId ?? undefined, userId: staffUserId }
             : branchFilterWhere(branchId)
-          : { userId: auth.user.id };
+          : {
+              // Appointment.userId = Person.id (no Account.id)
+              userId: auth.user.personId ?? -1,
+            };
 
     const appointments = await prisma.appointment.findMany({
       where,
       orderBy: { appointmentDate: "asc" },
       include: {
-        customer: { select: { name: true, lastnames: true } },
-        user: { select: { name: true } },
+        customer: { select: customerAppointmentSelect },
+        staff: { select: staffAppointmentSelect },
       },
     });
 
-    const events = appointments.map((a) => ({
-      id: String(a.id),
-      title: `${a.title} - ${a.customer.name} ${a.customer.lastnames}`,
-      start: a.appointmentDate.toISOString(),
-      extendedProps: {
-        description: a.description,
-        customer: `${a.customer.name} ${a.customer.lastnames}`,
-        user: a.user.name,
-        status: a.status,
-        branchId: a.branchId,
-        userId: a.userId,
-      },
-    }));
+    const events = appointments.map((a) => {
+      const customerName = customerFullName(a.customer);
+      const staffName = personFullName(a.staff);
+      return {
+        id: String(a.id),
+        title: `${a.title} - ${customerName}`,
+        start: a.appointmentDate.toISOString(),
+        extendedProps: {
+          description: a.description,
+          customer: customerName,
+          user: staffName,
+          status: a.status,
+          branchId: a.branchId,
+          userId: a.userId,
+        },
+      };
+    });
 
     const branchScope =
       viewMode === "mine"
@@ -100,7 +116,8 @@ export async function GET(request: Request) {
               ? { filter: "branch" as const, userId: null }
               : { filter: "all" as const, userId: null },
     });
-  } catch {
+  } catch (error) {
+    console.error("GET /api/appointments", error);
     return NextResponse.json(
       { message: "Error al obtener turnos" },
       { status: 500 },
@@ -111,6 +128,13 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
+
+  if (isOwnerRole(auth.user.role)) {
+    return NextResponse.json(
+      { message: "La dueña solo consulta la agenda; no agenda turnos" },
+      { status: 403 },
+    );
+  }
 
   try {
     const body = await request.json();
@@ -134,6 +158,10 @@ export async function POST(request: Request) {
 
     branchId = await resolveAppointmentBranchId(prisma, auth.user, branchId);
 
+    const when = parseAppointmentDate(appointmentDate);
+    const hours = await getAgendaHours();
+    assertAppointmentWithinAgendaHours(when, hours);
+
     const appointment = await prisma.$transaction(async (tx) => {
       const products = parseAppointmentProducts(productsInput, productIds);
       await validateProductStock(tx, products, undefined, branchId);
@@ -145,14 +173,14 @@ export async function POST(request: Request) {
           customerId: Number(customerId),
           userId: Number(userId),
           branchId: branchId && branchId > 0 ? branchId : null,
-          appointmentDate: parseAppointmentDate(appointmentDate),
+          appointmentDate: when,
           status: parseAppointmentStatus(status),
           reminderSent: "",
         },
       });
 
       if (serviceIds?.length > 0) {
-        await tx.appointmentsServices.createMany({
+        await tx.appointmentService.createMany({
           data: serviceIds.map((serviceId: number) => ({
             appointmentId: created.id,
             serviceId: Number(serviceId),
@@ -161,7 +189,7 @@ export async function POST(request: Request) {
       }
 
       if (products.length > 0) {
-        await tx.appointmentsProducts.createMany({
+        await tx.appointmentProduct.createMany({
           data: products.map(({ productId, quantity }) => ({
             appointmentId: created.id,
             productId,
@@ -186,6 +214,13 @@ export async function POST(request: Request) {
     console.error("POST /api/appointments", error);
     const message =
       error instanceof Error ? error.message : "Error al crear el turno";
-    return NextResponse.json({ message }, { status: 500 });
+    const status =
+      message.includes("Fuera del horario") ||
+      message.includes("Producto") ||
+      message.includes("stock") ||
+      message.includes("sucursal")
+        ? 400
+        : 500;
+    return NextResponse.json({ message }, { status });
   }
 }

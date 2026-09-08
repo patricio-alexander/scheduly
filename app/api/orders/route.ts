@@ -3,6 +3,7 @@ import { prisma } from "@/shared/utils/prisma";
 import { checkAuth } from "@/shared/utils/check-auth";
 import { toAmount } from "@/shared/utils/money";
 import type { SaleStatus } from "@/generated/prisma/client";
+import { parseSaleCreditInstallments } from "@/shared/utils/sale-credit-installments";
 
 const STATUSES: SaleStatus[] = ["pendiente", "entregado", "pagado"];
 
@@ -165,6 +166,16 @@ export async function POST(request: Request) {
     const documentType =
       String(body.documentType ?? "").trim().slice(0, 30) || "documento";
 
+    const totalAmount = lines.reduce(
+      (sum, line) => sum + toAmount(line.quantity) * toAmount(line.price),
+      0,
+    );
+
+    const installments =
+      saleType === "credito"
+        ? parseSaleCreditInstallments(body.installments, totalAmount)
+        : [];
+
     const sale = await prisma.sale.create({
       data: {
         customerId,
@@ -185,11 +196,26 @@ export async function POST(request: Request) {
             soldQty: 0,
           })),
         },
+        ...(installments.length > 0
+          ? {
+              installments: {
+                create: installments.map((i) => ({
+                  sequence: i.sequence,
+                  dueDate: i.dueDate,
+                  amount: i.amount,
+                  notes: i.notes,
+                })),
+              },
+            }
+          : {}),
       },
       select: { id: true },
     });
 
-    return NextResponse.json({ id: sale.id }, { status: 201 });
+    return NextResponse.json(
+      { id: sale.id, installments: installments.length },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("POST /api/orders", error);
     return NextResponse.json(

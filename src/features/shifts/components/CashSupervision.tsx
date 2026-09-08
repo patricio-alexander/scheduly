@@ -444,6 +444,7 @@ export function CashSupervision() {
                             {new Date(m.createdAt).toLocaleTimeString("es-EC", {
                               hour: "2-digit",
                               minute: "2-digit",
+                              second: "2-digit",
                             })}
                           </td>
                           <td className="px-3 py-2">{m.operatorName}</td>
@@ -485,6 +486,7 @@ export function CashSupervision() {
                             {new Date(sale.paidAt).toLocaleTimeString("es-EC", {
                               hour: "2-digit",
                               minute: "2-digit",
+                              second: "2-digit",
                             })}
                           </span>
                           <span className="text-xs text-muted">

@@ -41,6 +41,7 @@ function formatPaidAt(iso: string) {
     time: date.toLocaleTimeString("es-CL", {
       hour: "2-digit",
       minute: "2-digit",
+      second: "2-digit",
     }),
   };
 }

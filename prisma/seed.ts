@@ -13,11 +13,18 @@ const LOCALE = "es-EC";
 
 const STAFF_PER_BRANCH = 5;
 
-/** ─── Datos demo: Estudio Norte · salón de estilistas · Quito, Ecuador ─── */
+/** ─── Datos demo: Andrea Guerrero Estética y Peluquería · Loja, Ecuador ─── */
 const DEMO = {
   business: {
-    businessName: "Estudio Norte",
-    address: "Av. Amazonas N34-451 y Av. República, Quito, Pichincha",
+    businessName: "Andrea Guerrero Estética y Peluquería",
+    address: "Cristóbal Colón y 18 de Noviembre, Loja, Ecuador",
+    phone: "0994960155",
+    whatsapp: "https://wa.me/593994960155",
+    facebook: "https://www.facebook.com/andreaguerreropeluqueriayspa1/",
+    instagram: "https://www.instagram.com/andreaguerrero_peluqueriayspa/",
+    hours: "Lunes a sábado · 8:00 AM – 8:00 PM",
+    description:
+      "Centro de belleza en Loja: peluquería, tratamientos capilares, spa de uñas, depilación y maquillaje profesional. Dos locales céntricos.",
     accentColor: "#D4AF37",
     successColor: "#22C55E",
     warningColor: "#F0B429",
@@ -25,237 +32,132 @@ const DEMO = {
   },
   admin: {
     username: "admin",
-    name: "Roberto Mendoza",
-    email: "roberto.mendoza@estudionorte.ec",
-    phone: "0991234567",
-    bio: "Dueño y owner central del negocio.",
+    name: "Andrea Guerrero",
+    email: "andrea@andreaguerrero.ec",
+    phone: "0994960155",
+    bio: "Dueña y owner · Andrea Guerrero Estética y Peluquería, Loja.",
   },
   branchAdmins: [
     {
-      username: "admin_cumbaya",
-      name: "Patricia Vásquez",
-      email: "patricia.vasquez@estudionorte.ec",
-      phone: "0988112200",
-      bio: "Encargado sucursal Cumbayá",
-      branchCode: "cumbaya",
+      username: "admin_colon",
+      name: "Karla Espinoza",
+      email: "colon@andreaguerrero.ec",
+      phone: "0994960155",
+      bio: "Encargada local Cristóbal Colón",
+      branchCode: "colon",
     },
     {
-      username: "admin_carolina",
-      name: "Miguel Sandoval",
-      email: "miguel.sandoval@estudionorte.ec",
-      phone: "0988223300",
-      bio: "Encargado sucursal La Carolina",
-      branchCode: "carolina",
-    },
-    {
-      username: "admin_centro",
-      name: "Gabriela Morales",
-      email: "gabriela.morales@estudionorte.ec",
-      phone: "0988334400",
-      bio: "Encargado sucursal Centro",
-      branchCode: "centro",
-    },
-    {
-      username: "admin_valle",
-      name: "Hernán Castillo",
-      email: "hernan.castillo@estudionorte.ec",
-      phone: "0988445500",
-      bio: "Encargado sucursal Valle",
-      branchCode: "valle",
+      username: "admin_noviembre",
+      name: "Paola Jiménez",
+      email: "noviembre@andreaguerrero.ec",
+      phone: "0994960155",
+      bio: "Encargada local 18 de Noviembre",
+      branchCode: "noviembre",
     },
   ],
   staff: [
-    // Cumbayá
     {
       username: "jperez",
       name: "Juan Pérez",
-      email: "juan.perez@estudionorte.ec",
+      email: "juan.perez@andreaguerrero.ec",
       role: "employee" as const,
       phone: "0987123456",
-      bio: "Estilista senior. Especialista en cortes clásicos y acabados.",
+      bio: "Estilista senior. Cortes y acabados.",
     },
     {
       username: "mgarcia",
       name: "María García",
-      email: "maria.garcia@estudionorte.ec",
+      email: "maria.garcia@andreaguerrero.ec",
       role: "employee" as const,
       phone: "0998765432",
-      bio: "Estilista colorista. Mechas, balayage y tratamientos.",
+      bio: "Colorista. Mechas, tintes y tratamientos.",
     },
     {
       username: "crojas",
       name: "Camila Rojas",
-      email: "camila.rojas@estudionorte.ec",
+      email: "camila.rojas@andreaguerrero.ec",
       role: "employee" as const,
       phone: "0976543210",
-      bio: "Estilista junior. Peinados, blowout y cortes femeninos.",
+      bio: "Spa de uñas · manicura y pedicura.",
     },
     {
       username: "flopez",
       name: "Felipe López",
-      email: "felipe.lopez@estudionorte.ec",
+      email: "felipe.lopez@andreaguerrero.ec",
       role: "employee" as const,
       phone: "0965432109",
-      bio: "Estilista y recepción. Atiende combos y venta de productos.",
+      bio: "Estilista y recepción. Combos y retail.",
     },
     {
       username: "amunoz",
       name: "Andrés Muñoz",
-      email: "andres.munoz@estudionorte.ec",
+      email: "andres.munoz@andreaguerrero.ec",
       role: "employee" as const,
       phone: "0988112233",
-      bio: "Estilista en Cumbayá. Especialista en degradados y diseño.",
+      bio: "Maquillaje profesional y peinados de evento.",
     },
-    // La Carolina
     {
       username: "dsalinas",
       name: "Diego Salinas",
-      email: "diego.salinas@estudionorte.ec",
+      email: "diego.salinas@andreaguerrero.ec",
       role: "employee" as const,
       phone: "0987223344",
-      bio: "Estilista en La Carolina. Cortes modernos y blowout premium.",
+      bio: "Estilista. Cortes modernos y blowout.",
     },
     {
       username: "pherrera",
       name: "Paola Herrera",
-      email: "paola.herrera@estudionorte.ec",
+      email: "paola.herrera@andreaguerrero.ec",
       role: "employee" as const,
       phone: "0987334455",
-      bio: "Estilista en La Carolina. Coloración y tratamientos.",
+      bio: "Tratamientos capilares e hidratación.",
     },
     {
       username: "rvelez",
       name: "Ricardo Vélez",
-      email: "ricardo.velez@estudionorte.ec",
+      email: "ricardo.velez@andreaguerrero.ec",
       role: "employee" as const,
       phone: "0987445566",
-      bio: "Estilista en La Carolina. Atiende walk-ins y citas online.",
+      bio: "Depilación y perfilado.",
     },
     {
       username: "nortiz",
       name: "Natalia Ortiz",
-      email: "natalia.ortiz@estudionorte.ec",
+      email: "natalia.ortiz@andreaguerrero.ec",
       role: "employee" as const,
       phone: "0987556677",
-      bio: "Estilista en La Carolina. Peinados y alisados.",
+      bio: "Manicura, pedicura y spa de uñas.",
     },
     {
       username: "mespinosa",
       name: "Marco Espinosa",
-      email: "marco.espinosa@estudionorte.ec",
+      email: "marco.espinosa@andreaguerrero.ec",
       role: "employee" as const,
       phone: "0987667788",
-      bio: "Estilista en La Carolina. Combos corte + blowout.",
-    },
-    // Centro
-    {
-      username: "lfernandez",
-      name: "Lucía Fernández",
-      email: "lucia.fernandez@estudionorte.ec",
-      role: "employee" as const,
-      phone: "0987778899",
-      bio: "Estilista en Centro. Mechas y corte femenino.",
-    },
-    {
-      username: "pcastillo",
-      name: "Pablo Castillo",
-      email: "pablo.castillo@estudionorte.ec",
-      role: "employee" as const,
-      phone: "0987889900",
-      bio: "Estilista en Centro. Cortes ejecutivos y peinado.",
-    },
-    {
-      username: "erivas",
-      name: "Elena Rivas",
-      email: "elena.rivas@estudionorte.ec",
-      role: "employee" as const,
-      phone: "0987990011",
-      bio: "Estilista en Centro. Tratamientos capilares.",
-    },
-    {
-      username: "jtamayo",
-      name: "Jorge Tamayo",
-      email: "jorge.tamayo@estudionorte.ec",
-      role: "employee" as const,
-      phone: "0988001122",
-      bio: "Estilista en Centro. Especialista en color y acabados.",
-    },
-    {
-      username: "facosta",
-      name: "Fernanda Acosta",
-      email: "fernanda.acosta@estudionorte.ec",
-      role: "employee" as const,
-      phone: "0988112234",
-      bio: "Estilista en Centro. Blowout y peinados de evento.",
-    },
-    // Valle
-    {
-      username: "snunez",
-      name: "Sebastián Núñez",
-      email: "sebastian.nunez@estudionorte.ec",
-      role: "employee" as const,
-      phone: "0988223345",
-      bio: "Estilista en Valle. Cortes clásicos y infantiles.",
-    },
-    {
-      username: "vparedes",
-      name: "Valeria Paredes",
-      email: "valeria.paredes@estudionorte.ec",
-      role: "employee" as const,
-      phone: "0988334456",
-      bio: "Estilista en Valle. Color y cuidado capilar.",
-    },
-    {
-      username: "cduarte",
-      name: "Cristian Duarte",
-      email: "cristian.duarte@estudionorte.ec",
-      role: "employee" as const,
-      phone: "0988445567",
-      bio: "Estilista en Valle. Degradados y diseño con navaja.",
-    },
-    {
-      username: "dmolina",
-      name: "Daniela Molina",
-      email: "daniela.molina@estudionorte.ec",
-      role: "employee" as const,
-      phone: "0988556678",
-      bio: "Estilista en Valle. Cortes y peinados.",
-    },
-    {
-      username: "rovega",
-      name: "Roberto Vega",
-      email: "roberto.vega@estudionorte.ec",
-      role: "employee" as const,
-      phone: "0988667789",
-      bio: "Estilista en Valle. Combos y venta de productos retail.",
+      bio: "Estilista. Combos corte + blowout.",
     },
   ],
   customers: [
     { name: "María Fernanda", lastnames: "López Mendoza", phone: "0987654321", email: "maria.lopez@gmail.com" },
-    { name: "Carlos Andrés", lastnames: "Vega Torres", phone: "0992345678", email: "carlos.vega@hotmail.com" },
+    { name: "Carla Andrea", lastnames: "Vega Torres", phone: "0992345678", email: "carla.vega@hotmail.com" },
     { name: "Pedro Javier", lastnames: "Ramírez Soto", phone: "0976543210", email: "pedro.ramirez@yahoo.com" },
     { name: "Laura Patricia", lastnames: "Torres Medina", phone: "0965432109", email: "laura.torres@gmail.com" },
-    { name: "Diego Alejandro", lastnames: "Herrera Castro", phone: "0954321098", email: "diego.herrera@outlook.com" },
     { name: "Sofía Isabel", lastnames: "Reyes Vega", phone: "0943210987", email: "sofia.reyes@gmail.com" },
-    { name: "Matías Sebastián", lastnames: "Ortiz Flores", phone: "0932109876", email: "matias.ortiz@hotmail.com" },
     { name: "Valentina", lastnames: "Morales Ruiz", phone: "0921098765", email: "valentina.morales@gmail.com" },
-    { name: "Javiera", lastnames: "Silva Paredes", phone: "0910987654", email: "javiera.silva@icloud.com" },
-    { name: "Tomás", lastnames: "Navarro Díaz", phone: "0990123456", email: "tomas.navarro@gmail.com" },
-    { name: "Isidora", lastnames: "Campos Aguirre", phone: "0989012345", email: "isidora.campos@hotmail.com" },
-    { name: "Benjamín", lastnames: "Vargas Núñez", phone: "0978901234", email: "benjamin.vargas@gmail.com" },
-    { name: "Catalina", lastnames: "Méndez Soto", phone: "0967890123", email: "catalina.mendez@outlook.com" },
-    { name: "Nicolás", lastnames: "Pizarro Leiva", phone: "0956789012", email: "nicolas.pizarro@gmail.com" },
-    { name: "Francisca", lastnames: "Araya Contreras", phone: "0945678901", email: "francisca.araya@hotmail.com" },
-    { name: "Sebastián", lastnames: "Bravo Fuentes", phone: "0934567890", email: "sebastian.bravo@gmail.com" },
-    { name: "Antonia", lastnames: "Espinoza Riquelme", phone: "0923456789", email: "antonia.espinoza@yahoo.com" },
-    { name: "Ignacio", lastnames: "Salazar Moya", phone: "0912345678", email: "ignacio.salazar@gmail.com" },
-    { name: "Emilia", lastnames: "Cortés Valdés", phone: "0998761234", email: "emilia.cortes@hotmail.com" },
-    { name: "Maximiliano", lastnames: "Henríquez Lagos", phone: "0987651234", email: "maximiliano.henriquez@gmail.com" },
-    { name: "Constanza", lastnames: "Figueroa Palma", phone: "0976541234", email: "constanza.figueroa@outlook.com" },
-    { name: "Vicente", lastnames: "Gutiérrez Arancibia", phone: "0965431234", email: "vicente.gutierrez@gmail.com" },
     { name: "Andrea", lastnames: "Cevallos Ponce", phone: "0954329876", email: "andrea.cevallos@gmail.com" },
-    { name: "Gabriel", lastnames: "Alarcón Vera", phone: "0943218765", email: "gabriel.alarcon@hotmail.com" },
     { name: "Daniela", lastnames: "Pulla Chiriboga", phone: "0932107654", email: "daniela.pulla@outlook.com" },
+    { name: "Camila", lastnames: "Ordóñez Castillo", phone: "0989012345", email: "camila.ordonez@gmail.com" },
+    { name: "Fernanda", lastnames: "Ávila Samaniego", phone: "0978901234", email: "fernanda.avila@hotmail.com" },
+    { name: "Gabriela", lastnames: "Jaramillo Peña", phone: "0967890123", email: "gabriela.jaramillo@outlook.com" },
+    { name: "Lucía", lastnames: "Maldonado Ríos", phone: "0956789012", email: "lucia.maldonado@gmail.com" },
+    { name: "Patricia", lastnames: "Burneo León", phone: "0945678901", email: "patricia.burneo@hotmail.com" },
+    { name: "Diana", lastnames: "Aguirre Celi", phone: "0934567890", email: "diana.aguirre@gmail.com" },
+    { name: "Katherine", lastnames: "Romero Valdivieso", phone: "0923456789", email: "katherine.romero@yahoo.com" },
+    { name: "Michelle", lastnames: "Salinas Quizhpe", phone: "0912345678", email: "michelle.salinas@gmail.com" },
+    { name: "Johanna", lastnames: "Piedra Armijos", phone: "0998761234", email: "johanna.piedra@hotmail.com" },
+    { name: "Carolina", lastnames: "Ochoa Vivanco", phone: "0987651234", email: "carolina.ochoa@gmail.com" },
+    { name: "Verónica", lastnames: "Cueva Palacios", phone: "0976541234", email: "veronica.cueva@outlook.com" },
+    { name: "Elizabeth", lastnames: "Guerrero Mora", phone: "0965431234", email: "elizabeth.guerrero@gmail.com" },
   ],
   services: [
     { name: "Corte de cabello", price: 12, durationMinutes: 30, commissionPct: 40 },
@@ -268,15 +170,19 @@ const DEMO = {
     { name: "Peinado para eventos", price: 30, durationMinutes: 60, commissionPct: 38 },
     { name: "Corte + Blowout (combo)", price: 18, durationMinutes: 45, commissionPct: 38 },
     { name: "Alisado permanente", price: 80, durationMinutes: 150, commissionPct: 25 },
-    { name: "Retoque de raíz", price: 28, durationMinutes: 60, commissionPct: 30 },
     { name: "Hidratación profunda", price: 22, durationMinutes: 50, commissionPct: 32 },
+    { name: "Manicura", price: 10, durationMinutes: 40, commissionPct: 45 },
+    { name: "Pedicura", price: 14, durationMinutes: 50, commissionPct: 45 },
+    { name: "Spa de uñas", price: 22, durationMinutes: 70, commissionPct: 40 },
+    { name: "Depilación facial", price: 8, durationMinutes: 25, commissionPct: 50 },
+    { name: "Depilación corporal", price: 18, durationMinutes: 40, commissionPct: 45 },
+    { name: "Maquillaje profesional", price: 35, durationMinutes: 60, commissionPct: 40 },
     { name: "Perfilado de cejas", price: 5, durationMinutes: 15, commissionPct: 50 },
-    { name: "Depilación facial", price: 6, durationMinutes: 20, commissionPct: 50 },
   ],
   categories: [
     { name: "Cuidado capilar", description: "Shampoos, acondicionadores y tratamientos" },
     { name: "Styling profesional", description: "Serums, ceras modeladoras y kits de acabado" },
-    { name: "Peinado y fijación", description: "Geles, sprays y peines" },
+    { name: "Uñas y spa", description: "Esmaltes, kits y cuidado de uñas" },
     { name: "Coloración", description: "Tintes y productos de color" },
     { name: "Accesorios", description: "Cepillos y herramientas de venta" },
   ],
@@ -284,75 +190,73 @@ const DEMO = {
     { name: "Shampoo profesional", price: 12, stock: 45, category: "Cuidado capilar" },
     { name: "Acondicionador reparador", price: 14, stock: 38, category: "Cuidado capilar" },
     { name: "Cera modeladora", price: 9.5, stock: 22, category: "Styling profesional" },
-    { name: "Gel fijador", price: 8, stock: 15, category: "Peinado y fijación" },
     { name: "Mascarilla capilar", price: 18, stock: 8, category: "Cuidado capilar" },
     { name: "Serum reparador", price: 11, stock: 30, category: "Styling profesional" },
-    { name: "Spray termoprotector", price: 13.5, stock: 3, category: "Peinado y fijación" },
+    { name: "Spray termoprotector", price: 13.5, stock: 3, category: "Styling profesional" },
     { name: "Tinte retail", price: 22, stock: 12, category: "Coloración" },
     { name: "Ampolla reparadora", price: 6.5, stock: 55, category: "Cuidado capilar" },
+    { name: "Esmalte premium", price: 7.5, stock: 40, category: "Uñas y spa" },
+    { name: "Kit manicura casa", price: 16.9, stock: 14, category: "Uñas y spa" },
     { name: "Cepillo desenredante", price: 15.9, stock: 18, category: "Accesorios" },
-    { name: "Tónico anticaída", price: 17.5, stock: 5, category: "Cuidado capilar" },
-    { name: "Kit styling (serum + peine)", price: 24.9, stock: 2, category: "Styling profesional" },
-    { name: "Cera mate texturizante", price: 9.9, stock: 0, category: "Peinado y fijación" },
     { name: "Serum puntas abiertas", price: 14.5, stock: 4, category: "Cuidado capilar" },
   ],
   suppliers: [
     {
-      name: "Distribelle Ecuador",
-      phone: "022345678",
-      email: "ventas@distribelle.ec",
-      taxId: "1790123456001",
-      address: "Av. 6 de Diciembre, Quito",
+      name: "Beauty Supply Loja",
+      phone: "072567890",
+      email: "pedidos@beautysupplyloja.ec",
+      taxId: "1100123456001",
+      address: "Av. Universitaria, Loja",
     },
     {
-      name: "Beauty Supply EC",
-      phone: "023987654",
-      email: "pedidos@beautysupply.ec",
-      taxId: "1790987654001",
-      address: "Cumbayá, Quito",
+      name: "Distribelle Sur",
+      phone: "072345678",
+      email: "ventas@distribellesur.ec",
+      taxId: "1100987654001",
+      address: "Calle Bolívar, Loja",
     },
   ],
   appointmentTemplates: [
-    { title: "Corte de cabello", description: "Degradado bajo con perfilado en nuca.", serviceNames: ["Corte de cabello"] },
-    { title: "Corte y blowout", description: "Corte clásico + brushing y acabado con plancha.", serviceNames: ["Corte + Blowout (combo)"] },
-    { title: "Tinte completo", description: "Tinte castaño oscuro con gloss final.", serviceNames: ["Tinte completo"] },
-    { title: "Mechas balayage", description: "Balayage rubio ceniza en medios y puntas.", serviceNames: ["Mechas balayage"] },
-    { title: "Tratamiento capilar", description: "Hidratación profunda con keratina.", serviceNames: ["Tratamiento capilar", "Lavado + Blowout"] },
-    { title: "Peinado matrimonio", description: "Peinado recogido con ondas suaves.", serviceNames: ["Peinado para eventos"] },
-    { title: "Corte infantil", description: "Corte para niño, degrafilado.", serviceNames: ["Corte infantil"] },
-    { title: "Lavado y secado", description: "Lavado profesional y blowout.", serviceNames: ["Lavado + Blowout"] },
+    { title: "Corte de cabello", description: "Corte y perfilado.", serviceNames: ["Corte de cabello"] },
+    { title: "Corte y blowout", description: "Corte + brushing y acabado.", serviceNames: ["Corte + Blowout (combo)"] },
+    { title: "Tinte completo", description: "Coloración completa con gloss.", serviceNames: ["Tinte completo"] },
+    { title: "Mechas balayage", description: "Balayage en medios y puntas.", serviceNames: ["Mechas balayage"] },
+    { title: "Tratamiento capilar", description: "Hidratación profunda + blowout.", serviceNames: ["Tratamiento capilar", "Lavado + Blowout"] },
+    { title: "Spa de uñas", description: "Manicura y pedicura spa.", serviceNames: ["Spa de uñas"] },
+    { title: "Manicura", description: "Manicura clásica con esmaltado.", serviceNames: ["Manicura"] },
+    { title: "Pedicura", description: "Pedicura completa.", serviceNames: ["Pedicura"] },
+    { title: "Depilación", description: "Depilación facial y perfilado.", serviceNames: ["Depilación facial", "Perfilado de cejas"] },
+    { title: "Maquillaje evento", description: "Maquillaje profesional para evento.", serviceNames: ["Maquillaje profesional"] },
+    { title: "Peinado matrimonio", description: "Peinado recogido con ondas.", serviceNames: ["Peinado para eventos"] },
     { title: "Alisado", description: "Alisado permanente con queratina.", serviceNames: ["Alisado permanente"] },
-    { title: "Retoque de color", description: "Retoque de raíz y matización.", serviceNames: ["Retoque de raíz"] },
-    { title: "Brushing y acabado", description: "Brushing express y serum hidratante.", serviceNames: ["Brushing y acabado"] },
-    { title: "Combo premium", description: "Corte, blowout e hidratación capilar.", serviceNames: ["Corte + Blowout (combo)", "Hidratación profunda"] },
-    { title: "Corte + productos", description: "Corte con venta de cera modeladora y serum.", serviceNames: ["Corte de cabello"], productNames: ["Cera modeladora"] },
-    { title: "Color + tratamiento", description: "Retoque de raíz con mascarilla reparadora.", serviceNames: ["Retoque de raíz", "Hidratación profunda"] },
+    { title: "Combo premium", description: "Corte, blowout e hidratación.", serviceNames: ["Corte + Blowout (combo)", "Hidratación profunda"] },
+    { title: "Corte + productos", description: "Corte con venta de serum.", serviceNames: ["Corte de cabello"], productNames: ["Serum reparador"] },
   ],
-  /** Turnos visibles en «Mi día» (hoy + próximos 7 días) por empleado */
   employeeMyDay: [
     { dayOffset: 0, hour: 9, minute: 0, status: "completed" as const, templateIndex: 0, customerIndex: 0 },
     { dayOffset: 0, hour: 10, minute: 30, status: "completed" as const, templateIndex: 1, customerIndex: 1 },
-    { dayOffset: 0, hour: 11, minute: 30, status: "completed" as const, templateIndex: 2, customerIndex: 2 },
+    { dayOffset: 0, hour: 11, minute: 30, status: "completed" as const, templateIndex: 5, customerIndex: 2 },
     { dayOffset: 0, hour: 14, minute: 0, status: "scheduled" as const, templateIndex: 3, customerIndex: 3 },
-    { dayOffset: 0, hour: 16, minute: 30, status: "scheduled" as const, templateIndex: 4, customerIndex: 4 },
-    { dayOffset: 1, hour: 10, minute: 0, status: "scheduled" as const, templateIndex: 5, customerIndex: 5 },
+    { dayOffset: 0, hour: 16, minute: 30, status: "scheduled" as const, templateIndex: 8, customerIndex: 4 },
+    { dayOffset: 1, hour: 10, minute: 0, status: "scheduled" as const, templateIndex: 9, customerIndex: 5 },
     { dayOffset: 2, hour: 11, minute: 30, status: "paid_pending" as const, templateIndex: 6, customerIndex: 6 },
     { dayOffset: 4, hour: 15, minute: 0, status: "scheduled" as const, templateIndex: 7, customerIndex: 7 },
   ],
   paymentNotes: {
     cash: ["Pago en efectivo", "Cliente pagó en caja", ""],
     card: ["Datafast · Visa", "Datafast · Mastercard", "Débito aprobado"],
-    transfer: ["Transferencia Banco Pichincha", "Depósito Produbanco confirmado", "Transferencia Deuna"],
+    transfer: ["Transferencia Banco de Loja", "Depósito Banco Pichincha", "Transferencia Deuna"],
   },
   tasks: [
-    { title: "Reponer shampoo y acondicionador", description: "Estación 2 y 3 — stock bajo detectado.", status: "todo" as const, priority: "high" as const, assigneeIndex: 1, dueDays: 0, sortOrder: 1 },
-    { title: "Confirmar turnos de mañana", description: "WhatsApp a clientes entre 09:00 y 12:00.", status: "todo" as const, priority: "medium" as const, assigneeIndex: 0, dueDays: 0, sortOrder: 2 },
+    { title: "Reponer shampoo y acondicionador", description: "Ambos locales — stock bajo.", status: "todo" as const, priority: "high" as const, assigneeIndex: 1, dueDays: 0, sortOrder: 1 },
+    { title: "Confirmar turnos de mañana", description: "WhatsApp a clientes 099 496 0155.", status: "todo" as const, priority: "medium" as const, assigneeIndex: 0, dueDays: 0, sortOrder: 2 },
     { title: "Limpiar esterilizadora", description: "Protocolo de higiene semanal.", status: "todo" as const, priority: "low" as const, assigneeIndex: 2, dueDays: 2, sortOrder: 3 },
-    { title: "Actualizar precios en vitrina", description: "Incluir combo corte + blowout a $18.", status: "in_progress" as const, priority: "medium" as const, assigneeIndex: 0, dueDays: 1, sortOrder: 1 },
-    { title: "Pedir guantes y toallas", description: "Proveedor Distribelle — pedido quincenal.", status: "in_progress" as const, priority: "high" as const, assigneeIndex: 1, dueDays: 0, sortOrder: 2 },
-    { title: "Publicar promo fin de semana", description: "Instagram + WhatsApp Business.", status: "done" as const, priority: "medium" as const, assigneeIndex: 3, dueDays: -1, sortOrder: 1 },
-    { title: "Capacitación técnicas de color", description: "Sesión interna con Juan Pérez.", status: "done" as const, priority: "low" as const, assigneeIndex: 0, dueDays: -3, sortOrder: 2 },
+    { title: "Actualizar precios en vitrina", description: "Incluir spa de uñas y maquillaje.", status: "in_progress" as const, priority: "medium" as const, assigneeIndex: 0, dueDays: 1, sortOrder: 1 },
+    { title: "Pedir esmaltes y guantes", description: "Proveedor Beauty Supply Loja.", status: "in_progress" as const, priority: "high" as const, assigneeIndex: 1, dueDays: 0, sortOrder: 2 },
+    { title: "Publicar promo fin de semana", description: "Facebook + Instagram Andrea Guerrero.", status: "done" as const, priority: "medium" as const, assigneeIndex: 3, dueDays: -1, sortOrder: 1 },
+    { title: "Capacitación técnicas de color", description: "Sesión interna con el equipo.", status: "done" as const, priority: "low" as const, assigneeIndex: 0, dueDays: -3, sortOrder: 2 },
   ],
+} as const;
 } as const;
 
 async function main() {
@@ -615,7 +519,7 @@ function buildSubscriptionPayload(now: Date): Prisma.InputJsonValue {
       status: "active",
       start_at: startAt,
       expires_at: expiresAt,
-      /** Feature permanente: multi_stock (Gestor / Raptor). No se puede desactivar. */
+      /** Feature permanente: multi_stock. No se puede desactivar. */
       features: [{ key: "multi_stock", status: "active", locked: true }],
       modules: [
         {
@@ -669,8 +573,32 @@ function buildSubscriptionPayload(now: Date): Prisma.InputJsonValue {
             section(3, "/operacion/caja", "Caja", "planned"),
             section(4, "/operacion/turno", "Turno", "planned"),
             section(5, "/operacion/tareas", "Tareas"),
-            section(6, "/operacion/comprobantes-pos", "Comprobantes POS"),
-            section(7, "/operacion/supervision-caja", "Supervisión caja", "planned"),
+            section(6, "/operacion/comprobantes-pos", "Comprobantes POS", "planned"),
+            section(
+              7,
+              "/operacion/comprobantes-pos/reimpresion",
+              "Reimpresión caja",
+              "planned",
+            ),
+            section(
+              8,
+              "/comprobantes-electronicos/facturas",
+              "Facturas",
+              "planned",
+            ),
+            section(
+              9,
+              "/comprobantes-electronicos/notas-venta",
+              "Notas de venta",
+              "planned",
+            ),
+            section(
+              10,
+              "/comprobantes-electronicos/emitidos",
+              "Emitidos",
+              "planned",
+            ),
+            section(11, "/operacion/supervision-caja", "Supervisión caja", "planned"),
           ],
         },
         {
@@ -705,12 +633,13 @@ function buildSubscriptionPayload(now: Date): Prisma.InputJsonValue {
           end_trial: null,
           sections: [
             section(1, "/inventario/productos", "Productos"),
-            section(2, "/inventario/movimientos", "Movimientos", "planned"),
-            section(3, "/inventario/categorias", "Categorías"),
-            section(4, "/inventario/tramos", "Tramos", "planned"),
-            section(5, "/inventario/unidades", "Unidades", "maintenance"),
-            section(6, "/inventario/lotes", "Lotes y vencimientos", "planned"),
-            section(7, "/inventario/valor", "Valor de inventario", "planned"),
+            section(2, "/administracion/sucursales", "Sucursales / locales"),
+            section(3, "/inventario/movimientos", "Movimientos", "planned"),
+            section(4, "/inventario/categorias", "Categorías"),
+            section(5, "/inventario/tramos", "Tramos", "planned"),
+            section(6, "/inventario/unidades", "Unidades"),
+            section(7, "/inventario/lotes", "Lotes y vencimientos", "planned"),
+            section(8, "/inventario/valor", "Valor de inventario", "planned"),
           ],
         },
         {
@@ -731,24 +660,6 @@ function buildSubscriptionPayload(now: Date): Prisma.InputJsonValue {
           ],
         },
         {
-          id: 10,
-          name: "Canal digital",
-          key: "channel",
-          status: "active",
-          is_maintainer: false,
-          image_url: null,
-          is_trial: false,
-          start_trial: null,
-          limit_days_trial: null,
-          end_trial: null,
-          sections: [
-            section(1, "/canal/catalogo", "Catálogo config", "planned"),
-            section(2, "/canal/locales", "Sucursales / locales"),
-            section(3, "/canal/productos-destacados", "Productos destacados", "planned"),
-            section(4, "/canal/grupos-comparativos", "Grupos comparativos", "planned"),
-          ],
-        },
-        {
           id: 11,
           name: "Marketing",
           key: "marketing",
@@ -762,12 +673,13 @@ function buildSubscriptionPayload(now: Date): Prisma.InputJsonValue {
           sections: [
             section(1, "/marketing/promociones", "Promociones"),
             section(2, "/marketing/noticias", "Noticias", "planned"),
-            section(3, "/publicidad", "Campañas", "planned"),
-            section(4, "/publicidad/dispositivos", "Dispositivos TV", "planned"),
-            section(5, "/publicidad/reproductor", "Reproductor", "planned"),
-            section(6, "/diseno-promocional/editor", "Editor de diseño", "planned"),
-            section(7, "/diseno-promocional/vista", "Vista con productos", "planned"),
-            section(8, "/diseno-promocional/plantillas", "Plantillas", "planned"),
+            section(3, "/canal/catalogo", "Catálogo config", "planned"),
+            section(4, "/publicidad", "Campañas", "planned"),
+            section(5, "/publicidad/dispositivos", "Dispositivos TV", "planned"),
+            section(6, "/publicidad/reproductor", "Reproductor", "planned"),
+            section(7, "/diseno-promocional/editor", "Editor de diseño", "planned"),
+            section(8, "/diseno-promocional/vista", "Vista con productos", "planned"),
+            section(9, "/diseno-promocional/plantillas", "Plantillas", "planned"),
           ],
         },
         {
@@ -1006,16 +918,58 @@ async function refreshOperationalData(prisma: PrismaClient) {
 }
 
 async function seedBusinessSettings(prisma: PrismaClient) {
-  await prisma.businessSettings.upsert({
+  const colors = {
+    accentColor: DEMO.business.accentColor,
+    successColor: DEMO.business.successColor,
+    warningColor: DEMO.business.warningColor,
+    dangerColor: DEMO.business.dangerColor,
+  };
+
+  await prisma.appSettings.upsert({
     where: { id: 1 },
-    create: { id: 1, ...DEMO.business, logoPath: null },
-    update: { ...DEMO.business },
+    create: {
+      id: 1,
+      name: DEMO.business.businessName,
+      alias: "andrea-guerrero",
+      description: `${DEMO.business.description} Horario: ${DEMO.business.hours}`,
+      phone: DEMO.business.phone,
+      socialWhatsapp: DEMO.business.whatsapp,
+      socialFacebook: DEMO.business.facebook,
+      socialInstagram: DEMO.business.instagram,
+      logoPath: null,
+      ...colors,
+    },
+    update: {
+      name: DEMO.business.businessName,
+      alias: "andrea-guerrero",
+      description: `${DEMO.business.description} Horario: ${DEMO.business.hours}`,
+      phone: DEMO.business.phone,
+      socialWhatsapp: DEMO.business.whatsapp,
+      socialFacebook: DEMO.business.facebook,
+      socialInstagram: DEMO.business.instagram,
+      ...colors,
+    },
   });
 
-  await prisma.sriSettings.upsert({
+  await prisma.sriBillingSettings.upsert({
     where: { id: 1 },
-    create: { id: 1, environment: "pruebas" },
-    update: { environment: "pruebas" },
+    create: {
+      id: 1,
+      environment: "pruebas",
+      tradeName: DEMO.business.businessName,
+      matrixAddress: DEMO.business.address,
+      establishmentAddress: DEMO.business.address,
+      phone: DEMO.business.phone,
+      email: DEMO.admin.email,
+    },
+    update: {
+      environment: "pruebas",
+      tradeName: DEMO.business.businessName,
+      matrixAddress: DEMO.business.address,
+      establishmentAddress: DEMO.business.address,
+      phone: DEMO.business.phone,
+      email: DEMO.admin.email,
+    },
   });
 }
 
@@ -1191,30 +1145,49 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
   }
 
   const branchSeeds = [
-    { name: "Estudio Norte · Cumbayá", code: "cumbaya", address: "Av. Interoceánica, Cumbayá", phone: "023987100", sortOrder: 1, isMain: false },
-    { name: "Estudio Norte · La Carolina", code: "carolina", address: "Av. República, La Carolina", phone: "022456789", sortOrder: 2, isMain: false },
-    { name: "Estudio Norte · Centro", code: "centro", address: "Av. Amazonas N34-451, Centro", phone: "022345678", sortOrder: 3, isMain: true },
-    { name: "Estudio Norte · Valle", code: "valle", address: "Av. Diego de Almagro, Valle de los Chillos", phone: "023876543", sortOrder: 4, isMain: false },
+    {
+      key: "colon",
+      name: "Andrea Guerrero · Cristóbal Colón",
+      address: "Cristóbal Colón y 18 de Noviembre, Loja",
+      phone: "0994960155",
+      city: "Loja",
+      province: "Loja",
+      position: 1,
+      locationKind: "propia" as const,
+    },
+    {
+      key: "noviembre",
+      name: "Andrea Guerrero · 18 de Noviembre",
+      address: "18 de Noviembre y Cristóbal Colón, Loja",
+      phone: "0994960155",
+      city: "Loja",
+      province: "Loja",
+      position: 2,
+      locationKind: "vitrina" as const,
+    },
   ];
 
-  const branches: Array<{ id: number; name: string; code: string; isMain: boolean }> = [];
+  const branches: Array<{ id: number; name: string; key: string }> = [];
   for (const b of branchSeeds) {
-    const existing = await prisma.branch.findUnique({ where: { code: b.code } });
-    if (existing) {
-      branches.push(await prisma.branch.update({ where: { id: existing.id }, data: b }));
-    } else {
-      branches.push(await prisma.branch.create({ data: b }));
-    }
+    const { key, ...data } = b;
+    const existing = await prisma.branch.findFirst({ where: { name: data.name } });
+    const row = existing
+      ? await prisma.branch.update({
+          where: { id: existing.id },
+          data: { ...data, isActive: true, isVisible: true },
+        })
+      : await prisma.branch.create({
+          data: { ...data, isActive: true, isVisible: true },
+        });
+    branches.push({ id: row.id, name: row.name, key });
   }
 
   await prisma.branch.updateMany({
-    where: { code: { not: "centro" } },
-    data: { isMain: false },
+    where: { id: { notIn: branches.map((b) => b.id) } },
+    data: { isActive: false, isVisible: false },
   });
-  const mainBranch =
-    branches.find((b) => b.code === "centro") ??
-    branches.find((b) => b.isMain) ??
-    branches[0];
+
+  const mainBranch = branches.find((b) => b.key === "colon") ?? branches[0];
 
   await prisma.userBranch.deleteMany();
   await prisma.userBranch.create({
@@ -1223,7 +1196,7 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
 
   for (const branchAdmin of branchAdminUsers) {
     const seed = DEMO.branchAdmins.find((a) => a.username === branchAdmin.username);
-    const branch = branches.find((b) => b.code === seed?.branchCode);
+    const branch = branches.find((b) => b.key === seed?.branchCode);
     if (!branch) continue;
     await prisma.userBranch.create({
       data: { userId: branchAdmin.id, branchId: branch.id, isPrimary: true },
@@ -1275,8 +1248,22 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
 
   await prisma.expense.createMany({
     data: [
-      { branchId: branches[0].id, categoryId: expenseCategories[0].id, userId: adminId, amount: 120, description: "Reposición insumos Cumbayá", method: "transfer" },
-      { branchId: branches[1].id, categoryId: expenseCategories[1].id, userId: adminId, amount: 850, description: "Alquiler La Carolina", method: "transfer" },
+      {
+        branchId: branches[0].id,
+        categoryId: expenseCategories[0].id,
+        userId: adminId,
+        amount: 120,
+        description: "Reposición insumos local Cristóbal Colón",
+        method: "transfer",
+      },
+      {
+        branchId: branches[1].id,
+        categoryId: expenseCategories[1].id,
+        userId: adminId,
+        amount: 650,
+        description: "Alquiler local 18 de Noviembre",
+        method: "transfer",
+      },
     ],
   });
 
@@ -1340,30 +1327,45 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
   await prisma.feedPost.deleteMany();
   await prisma.feedPost.createMany({
     data: [
-      { title: "Promo verano", body: "Hasta 20% en tratamientos capilares durante febrero.", type: "promotion", sortOrder: 1 },
-      { title: "Nuevo servicio", body: "Ya disponible: alisado permanente en todas las sucursales.", type: "service", sortOrder: 2 },
-      { title: "Canjea tus puntos", body: "Revisa premios disponibles en tu perfil de fidelización.", type: "reward", sortOrder: 3 },
+      {
+        title: "Promo spa de uñas",
+        body: "Manicura + pedicura con descuento los sábados. Reserva al 099 496 0155.",
+        type: "promotion",
+        sortOrder: 1,
+      },
+      {
+        title: "Tratamientos capilares",
+        body: "Hidratación y color profesional en ambos locales de Loja.",
+        type: "service",
+        sortOrder: 2,
+      },
+      {
+        title: "Síguenos",
+        body: "Mira trabajos y promociones en Facebook e Instagram Andrea Guerrero.",
+        type: "reward",
+        sortOrder: 3,
+      },
     ],
   });
 
   const subscriptionPayload = buildSubscriptionPayload(now);
-  const existingEntitlement = await prisma.entitlement.findFirst({
+  const existingEntitlement = await prisma.appEntitlement.findFirst({
     orderBy: { id: "desc" },
   });
   if (existingEntitlement) {
-    await prisma.entitlement.update({
+    await prisma.appEntitlement.update({
       where: { id: existingEntitlement.id },
       data: {
         payload: subscriptionPayload,
-        source: "seed",
+        source: "local",
         status: "gestor_pull",
       },
     });
   } else {
-    await prisma.entitlement.create({
+    await prisma.appEntitlement.create({
       data: {
         payload: subscriptionPayload,
-        source: "seed",
+        source: "local",
         status: "gestor_pull",
       },
     });

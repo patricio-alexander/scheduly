@@ -6,7 +6,6 @@ import type { ComponentType, SVGProps } from "react";
 import { appRoutes } from "@/shared/utils/app-routes";
 import House from "@gravity-ui/icons/House";
 import Person from "@gravity-ui/icons/Person";
-import Persons from "@gravity-ui/icons/Persons";
 import Gear from "@gravity-ui/icons/Gear";
 import Boxes3 from "@gravity-ui/icons/Boxes3";
 import Calendar from "@gravity-ui/icons/Calendar";
@@ -14,22 +13,21 @@ import Shield from "@gravity-ui/icons/Shield";
 import Cube from "@gravity-ui/icons/Cube";
 import Tag from "@gravity-ui/icons/Tag";
 import ListCheck from "@gravity-ui/icons/ListCheck";
-import Puzzle from "@gravity-ui/icons/Puzzle";
-import Rocket from "@gravity-ui/icons/Rocket";
 import ChartColumn from "@gravity-ui/icons/ChartColumn";
 import ShoppingCart from "@gravity-ui/icons/ShoppingCart";
 import ArrowDownToLine from "@gravity-ui/icons/ArrowDownToLine";
-import Receipt from "@gravity-ui/icons/Receipt";
 import Briefcase from "@gravity-ui/icons/Briefcase";
 import Layers from "@gravity-ui/icons/Layers";
 import Megaphone from "@gravity-ui/icons/Megaphone";
 import CircleDollar from "@gravity-ui/icons/CircleDollar";
 import ArrowRightFromSquare from "@gravity-ui/icons/ArrowRightFromSquare";
 import Database from "@gravity-ui/icons/Database";
+import CircleInfo from "@gravity-ui/icons/CircleInfo";
 import Gift from "@gravity-ui/icons/Gift";
 import LayoutHeaderCells from "@gravity-ui/icons/LayoutHeaderCells";
 import Car from "@gravity-ui/icons/Car";
 import HandCoins from "@gravity-ui/icons/CreditCard";
+import Receipt from "@gravity-ui/icons/Receipt";
 
 export type IconComponent = ComponentType<
   SVGProps<SVGSVGElement> & { width?: number; height?: number }
@@ -46,6 +44,8 @@ export type NavItem = {
   ownerOnly?: boolean;
   branchAdminOnly?: boolean;
   employeeExperienceOnly?: boolean;
+  /** Solo rol Programador (logs / tester) */
+  programmerOnly?: boolean;
   tourId?: string;
 };
 
@@ -57,6 +57,9 @@ export type NavModule = {
   adminOnly?: boolean;
   ownerOnly?: boolean;
   employeeExperienceOnly?: boolean;
+  programmerOnly?: boolean;
+  /** Sin encabezado acordeón: ítems al nivel raíz del sidebar */
+  flat?: boolean;
   items: NavItem[];
 };
 
@@ -127,18 +130,10 @@ export const navModules: NavModule[] = [
         adminOnly: true,
       },
       {
-        href: appRoutes.operation.stores,
-        label: "Sucursales / locales",
-        icon: House,
+        href: appRoutes.loyalty.hub,
+        label: "Fidelización",
+        icon: Gift,
         adminOnly: true,
-        tourId: "nav-stores",
-      },
-      {
-        href: appRoutes.operation.catalog,
-        label: "Catálogo",
-        icon: LayoutHeaderCells,
-        adminOnly: true,
-        tourId: "nav-catalog",
       },
     ],
   },
@@ -200,6 +195,18 @@ export const navModules: NavModule[] = [
         icon: HandCoins,
         adminOnly: true,
       },
+      {
+        href: appRoutes.finance.payroll,
+        label: "Sueldos / comisiones",
+        icon: CircleDollar,
+        adminOnly: true,
+      },
+      {
+        href: appRoutes.finance.recurringExpenses,
+        label: "Gastos recurrentes",
+        icon: Receipt,
+        adminOnly: true,
+      },
     ],
   },
   {
@@ -213,6 +220,13 @@ export const navModules: NavModule[] = [
         label: "Productos",
         icon: Boxes3,
         tourId: "nav-inventory",
+      },
+      {
+        href: appRoutes.inventory.stores,
+        label: "Sucursales / locales",
+        icon: House,
+        adminOnly: true,
+        tourId: "nav-stores",
       },
       {
         href: appRoutes.inventory.movement,
@@ -270,6 +284,13 @@ export const navModules: NavModule[] = [
         icon: Megaphone,
         adminOnly: true,
       },
+      {
+        href: appRoutes.marketing.catalog,
+        label: "Catálogo config",
+        icon: LayoutHeaderCells,
+        adminOnly: true,
+        tourId: "nav-catalog",
+      },
     ],
   },
   {
@@ -279,12 +300,6 @@ export const navModules: NavModule[] = [
     entitlementKey: "admin",
     ownerOnly: true,
     items: [
-      {
-        href: appRoutes.admin.users,
-        label: "Usuarios",
-        icon: Persons,
-        ownerOnly: true,
-      },
       {
         href: appRoutes.admin.accounts,
         label: "Cuentas",
@@ -313,21 +328,15 @@ export const navModules: NavModule[] = [
         ownerOnly: true,
       },
       {
-        href: appRoutes.system.plans,
-        label: "Planes",
-        icon: Rocket,
-        ownerOnly: true,
-      },
-      {
-        href: appRoutes.system.modules,
-        label: "Módulos",
-        icon: Puzzle,
-        ownerOnly: true,
-      },
-      {
         href: appRoutes.system.backups,
         label: "Backups JSON",
         icon: Database,
+        ownerOnly: true,
+      },
+      {
+        href: appRoutes.system.logs,
+        label: "Logs del sistema",
+        icon: ListCheck,
         ownerOnly: true,
       },
       { href: appRoutes.system.profile, label: "Perfil", icon: Person },
@@ -336,6 +345,59 @@ export const navModules: NavModule[] = [
         label: "Donaciones",
         icon: Gift,
         ownerOnly: true,
+      },
+    ],
+  },
+  {
+    id: "dev",
+    label: "Desarrollador",
+    icon: ListCheck,
+    entitlementKey: "system",
+    programmerOnly: true,
+    /** Ítems sueltos en sidebar (sin acordeón) */
+    flat: true,
+    items: [
+      {
+        href: appRoutes.system.profile,
+        label: "Perfil",
+        icon: Person,
+        programmerOnly: true,
+      },
+      {
+        href: appRoutes.system.logs,
+        label: "Logs",
+        icon: ListCheck,
+        programmerOnly: true,
+      },
+      {
+        href: appRoutes.system.settings,
+        label: "Configuración",
+        icon: Gear,
+        programmerOnly: true,
+      },
+      {
+        href: appRoutes.system.donations,
+        label: "Donaciones",
+        icon: Gift,
+        programmerOnly: true,
+      },
+      {
+        href: appRoutes.system.plans,
+        label: "Info",
+        icon: CircleInfo,
+        programmerOnly: true,
+      },
+      {
+        href: appRoutes.system.modules,
+        label: "Módulos",
+        icon: Layers,
+        programmerOnly: true,
+      },
+      {
+        href: appRoutes.system.backups,
+        label: "Backups",
+        icon: Database,
+        programmerOnly: true,
       },
     ],
   },

@@ -1,30 +1,31 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/shared/utils/prisma";
 import { checkAuth } from "@/shared/utils/check-auth";
 import { toAmount } from "@/shared/utils/money";
 import { isManagementRole } from "@/shared/utils/roles";
+import { prisma } from "@/shared/utils/prisma";
+import { listFinanceIncomes } from "@/shared/utils/finance-ledger-list";
 
 export async function GET() {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
+  if (!isManagementRole(auth.user.role)) {
+    return NextResponse.json({ message: "No autorizado" }, { status: 403 });
+  }
 
   try {
-    const incomes = await prisma.income.findMany({
-      where: { status: "paid" },
-      orderBy: { date: "desc" },
-      take: 1000,
-    });
+    const rows = await listFinanceIncomes(2000);
     return NextResponse.json(
-      incomes.map((i) => ({
+      rows.map((i) => ({
         id: i.id,
-        date: i.date.toISOString(),
+        date: i.date,
         amount: toAmount(i.amount),
-        concept: i.concept ?? "",
-        category: i.category ?? "",
+        concept: i.concept,
+        category: i.category,
         status: i.status,
         counterpartyName: i.counterpartyName,
         referenceType: i.referenceType,
         referenceId: i.referenceId,
+        persisted: i.persisted,
       })),
     );
   } catch (error) {

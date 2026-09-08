@@ -13,14 +13,21 @@ import type { CustomerFormData } from "@/src/features/customers";
 import * as customerService from "@/src/features/customers/services/customer-service";
 import * as customerAccountService from "@/src/features/customers/services/customer-account-service";
 import { PageHeader } from "@/shared/components/ui";
-import { canDeleteRecords, isManagementRole } from "@/shared/utils/roles";
+import {
+  canDeleteRecords,
+  isEmployeeRole,
+  isManagementRole,
+} from "@/shared/utils/roles";
 import Plus from "@gravity-ui/icons/Plus";
 import Person from "@gravity-ui/icons/Person";
 
 export default function CustomersPage() {
   const { user } = useAuth();
   const canDelete = canDeleteRecords(user?.role);
-  const canManage = isManagementRole(user?.role);
+  const canManagePortal = isManagementRole(user?.role);
+  /** Dueño, admin y empleados pueden agregar/editar clientes. */
+  const canEditCustomers =
+    isManagementRole(user?.role) || isEmployeeRole(user?.role);
   const { customers, loading, refetch } = useCustomers();
   const [editing, setEditing] = useState<Customer | null>(null);
   const [portalCustomer, setPortalCustomer] = useState<Customer | null>(null);
@@ -115,13 +122,9 @@ export default function CustomersPage() {
       <PageHeader
         icon={<Person width={24} height={24} />}
         title="Clientes"
-        description={
-          canManage
-            ? "Gestiona tu base de clientes y sus datos de contacto"
-            : "Consulta la base de clientes y busca contactos"
-        }
+        description="Gestiona tu base de clientes y sus datos de contacto"
         action={
-          canManage ? (
+          canEditCustomers ? (
             <div data-onboarding="customers-create">
               <Button variant="primary" onPress={openCreate}>
                 <Plus width={16} height={16} />
@@ -137,16 +140,16 @@ export default function CustomersPage() {
           customers={customers}
           onEdit={openEdit}
           onDelete={handleDelete}
-          onAdd={canManage ? openCreate : undefined}
+          onAdd={canEditCustomers ? openCreate : undefined}
           loading={loading}
           canDelete={canDelete}
-          readOnly={!canManage}
-          canManagePortal={canManage}
+          readOnly={!canEditCustomers}
+          canManagePortal={canManagePortal}
           onActivatePortal={openPortalModal}
         />
       </div>
 
-      {canManage ? (
+      {canManagePortal ? (
       <Modal state={portalModal}>
         <Modal.Backdrop>
           <Modal.Container placement="center">
@@ -194,7 +197,7 @@ export default function CustomersPage() {
       </Modal>
       ) : null}
 
-      {canManage ? (
+      {canEditCustomers ? (
       <Modal state={modal}>
         <Modal.Backdrop>
           <Modal.Container placement="center">

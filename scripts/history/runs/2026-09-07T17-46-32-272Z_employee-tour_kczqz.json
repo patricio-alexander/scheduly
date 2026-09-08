@@ -1,0 +1,872 @@
+{
+  "tester": "employee-tour",
+  "mode": "schedule-all-parallel",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 14280,
+  "ok": false,
+  "summary": {
+    "passed": 70,
+    "failed": 10,
+    "total": 80
+  },
+  "subjects": [
+    {
+      "username": "estilista_maria",
+      "name": "María García",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": false,
+      "passed": 7,
+      "failed": 1,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como María García",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": false,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "10:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 17,\n                 productId: 443\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "11:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 17,\n                 productId: 442\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "15:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 17,\n                 productId: 441\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?."
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 1",
+            "De este tour visibles en mine: 0/0",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 0"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "María termina agenda de «Andrea Guerrero · Eguiguren»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_juan",
+      "name": "Juan Pérez",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": false,
+      "passed": 7,
+      "failed": 1,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Juan Pérez",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": false,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "15:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 16,\n                 productId: 443\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "14:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 16,\n                 productId: 442\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "11:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 16,\n                 productId: 441\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?."
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 0",
+            "De este tour visibles en mine: 0/0",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 0"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Juan termina agenda de «Andrea Guerrero · Cristóbal Colón»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "colorista_camila",
+      "name": "Camila Rojas",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": false,
+      "passed": 7,
+      "failed": 1,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Camila Rojas",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": false,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "11:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 17,\n                 productId: 443\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "15:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 17,\n                 productId: 442\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "10:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 17,\n                 productId: 441\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?."
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 0",
+            "De este tour visibles en mine: 0/0",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 0"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Camila termina agenda de «Andrea Guerrero · Eguiguren»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "unas_natalia",
+      "name": "Natalia Ortiz",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": false,
+      "passed": 7,
+      "failed": 1,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Natalia Ortiz",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": false,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "12:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 16,\n                 productId: 443\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "10:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 16,\n                 productId: 442\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "13:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 16,\n                 productId: 441\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?."
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 0",
+            "De este tour visibles en mine: 0/0",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 0"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Natalia termina agenda de «Andrea Guerrero · Cristóbal Colón»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "makeup_andres",
+      "name": "Andrés Muñoz",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": false,
+      "passed": 7,
+      "failed": 1,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Andrés Muñoz",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": false,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "12:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 17,\n                 productId: 443\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "15:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 17,\n                 productId: 442\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "14:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 17,\n                 productId: 441\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?."
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 0",
+            "De este tour visibles en mine: 0/0",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 0"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Andrés termina agenda de «Andrea Guerrero · Eguiguren»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_diego",
+      "name": "Diego Salinas",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": false,
+      "passed": 7,
+      "failed": 1,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Diego Salinas",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": false,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "11:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 16,\n                 productId: 443\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "13:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 16,\n                 productId: 442\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "12:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 16,\n                 productId: 441\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?."
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 0",
+            "De este tour visibles en mine: 0/0",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 0"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Diego termina agenda de «Andrea Guerrero · Cristóbal Colón»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "tratamientos_paola",
+      "name": "Paola Herrera",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": false,
+      "passed": 7,
+      "failed": 1,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Paola Herrera",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": false,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "15:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 17,\n                 productId: 443\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "13:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 17,\n                 productId: 442\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "11:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 17,\n                 productId: 441\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?."
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 0",
+            "De este tour visibles en mine: 0/0",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 0"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Paola termina agenda de «Andrea Guerrero · Eguiguren»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "depilacion_ricardo",
+      "name": "Ricardo Vélez",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": false,
+      "passed": 7,
+      "failed": 1,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Ricardo Vélez",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": false,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "14:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 16,\n                 productId: 443\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "12:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 16,\n                 productId: 442\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "11:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 16,\n                 productId: 441\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?."
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 0",
+            "De este tour visibles en mine: 0/0",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 0"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Ricardo termina agenda de «Andrea Guerrero · Cristóbal Colón»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "recepcion_felipe",
+      "name": "Felipe López",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": false,
+      "passed": 7,
+      "failed": 1,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Felipe López",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": false,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "11:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 17,\n                 productId: 443\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "10:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 17,\n                 productId: 442\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "14:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 17,\n                 productId: 441\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?."
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 0",
+            "De este tour visibles en mine: 0/0",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 0"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Felipe termina agenda de «Andrea Guerrero · Eguiguren»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_marco",
+      "name": "Marco Espinosa",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": false,
+      "passed": 7,
+      "failed": 1,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Marco Espinosa",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": false,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "11:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 16,\n                 productId: 443\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "12:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 16,\n                 productId: 442\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?.",
+            "15:00 FAIL HTTP 500 \nInvalid `tx.branchStock.findUnique()` invocation in\n/home/edgarpc8/Escritorio/RAPTOR SOLITIONS/AppsWeb/scheduly/.next/dev/server/chunks/[root-of-the-server]__00b1iee._.js:2426:46\n\n  2423 }\n  2424 let available;\n  2425 if (branchId) {\n→ 2426     const row = await tx.branchStock.findUnique({\n             where: {\n               branchId_productId: {\n               ~~~~~~~~~~~~~~~~~~\n                 branchId: 16,\n                 productId: 441\n               },\n           ?   id?: Int,\n           ?   storeId_productId?: BranchStockStoreIdProductIdCompoundUniqueInput,\n           ?   AND?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   OR?: BranchStockWhereInput[],\n           ?   NOT?: BranchStockWhereInput | BranchStockWhereInput[],\n           ?   storeId?: IntFilter | Int,\n           ?   productId?: IntFilter | Int,\n           ?   quantity?: FloatFilter | Float,\n           ?   exhibidorId?: IntNullableFilter | Int | Null,\n           ?   createdAt?: DateTimeFilter | DateTime,\n           ?   updatedAt?: DateTimeFilter | DateTime,\n           ?   branch?: BranchScalarRelationFilter | BranchWhereInput,\n           ?   product?: ProductScalarRelationFilter | ProductWhereInput\n             }\n           })\n\nUnknown argument `branchId_productId`. Available options are marked with ?."
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 0",
+            "De este tour visibles en mine: 0/0",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 0"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Marco termina agenda de «Andrea Guerrero · Cristóbal Colón»."
+          ]
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "hours": {
+      "bookingStartHour": 10,
+      "bookingEndHour": 16
+    }
+  },
+  "id": "2026-09-07T17-46-32-272Z_employee-tour_kczqz",
+  "at": "2026-09-07T17:46:32.272Z"
+}

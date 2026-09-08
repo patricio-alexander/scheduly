@@ -2,14 +2,17 @@
 
 import { useAuth } from "@/src/features/auth";
 import { OnboardingRoot } from "@/src/features/onboarding";
-import {
-  SubscriptionProvider,
-  SubscriptionGate,
-} from "@/src/features/subscription";
+import { SubscriptionProvider } from "@/src/features/subscription";
 import { DashboardShell } from "@/shared/components/DashboardShell";
 import { LayoutSkeleton } from "@/shared/components/ui";
 import { appRoutes } from "@/shared/utils/app-routes";
-import { isEmployeeRole, isManagementRole, isOwnerRole } from "@/shared/utils/roles";
+import {
+  isEmployeeRole,
+  isManagementRole,
+  isOwnerRole,
+  isProgrammerAllowedPath,
+  isProgrammerRole,
+} from "@/shared/utils/roles";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 
@@ -45,7 +48,8 @@ function isOwnerOnlyPath(pathname: string) {
   if (pathname.startsWith("/sistema")) {
     return (
       pathname !== appRoutes.system.profile &&
-      !pathname.startsWith(`${appRoutes.system.profile}/`)
+      !pathname.startsWith(`${appRoutes.system.profile}/`) &&
+      !isProgrammerAllowedPath(pathname)
     );
   }
   return false;
@@ -64,11 +68,21 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (loading || !user) return;
+    if (isProgrammerRole(user.role)) {
+      if (!isProgrammerAllowedPath(pathname)) {
+        router.replace(appRoutes.system.logs);
+      }
+      return;
+    }
     if (isEmployeeRole(user.role) && isEmployeeBlockedPath(pathname)) {
       router.replace(appRoutes.operation.tasks);
       return;
     }
-    if (isManagementRole(user.role) && !isOwnerRole(user.role) && isOwnerOnlyPath(pathname)) {
+    if (
+      isManagementRole(user.role) &&
+      !isOwnerRole(user.role) &&
+      isOwnerOnlyPath(pathname)
+    ) {
       router.replace(appRoutes.dashboard);
     }
   }, [user, loading, pathname, router]);
@@ -79,11 +93,19 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
 
   if (!user) return null;
 
+  if (isProgrammerRole(user.role) && !isProgrammerAllowedPath(pathname)) {
+    return null;
+  }
+
   if (isEmployeeRole(user.role) && isEmployeeBlockedPath(pathname)) {
     return null;
   }
 
-  if (isManagementRole(user.role) && !isOwnerRole(user.role) && isOwnerOnlyPath(pathname)) {
+  if (
+    isManagementRole(user.role) &&
+    !isOwnerRole(user.role) &&
+    isOwnerOnlyPath(pathname)
+  ) {
     return null;
   }
 
@@ -99,9 +121,7 @@ export default function DashboardLayout({
     <AuthGuard>
       <SubscriptionProvider>
         <OnboardingRoot>
-          <DashboardShell>
-            <SubscriptionGate>{children}</SubscriptionGate>
-          </DashboardShell>
+          <DashboardShell>{children}</DashboardShell>
         </OnboardingRoot>
       </SubscriptionProvider>
     </AuthGuard>

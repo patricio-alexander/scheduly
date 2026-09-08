@@ -31,6 +31,7 @@ function formatDate(value: string) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    second: "2-digit",
   });
 }
 
@@ -200,7 +201,7 @@ export function InvoicesWorkspace() {
           description="Emite facturas al SRI desde ventas cobradas sin comprobante"
           action={
             <Link
-              href={appRoutes.electronicDocs.issued}
+              href={appRoutes.posDocs.issued}
               className="inline-flex items-center gap-1 text-sm font-semibold text-accent hover:underline"
             >
               Ver emitidos
@@ -218,7 +219,7 @@ export function InvoicesWorkspace() {
               </p>
             </div>
             <Link
-              href={appRoutes.electronicDocs.sriSettings}
+              href={appRoutes.posDocs.sriSettings}
               className="text-xs font-semibold text-accent hover:underline"
             >
               Configuración SRI
@@ -383,7 +384,7 @@ export function InvoicesWorkspace() {
                       El SRI está procesando la autorización. Se consultará
                       automáticamente; también puedes ver el estado en{" "}
                       <Link
-                        href={appRoutes.electronicDocs.issued}
+                        href={appRoutes.posDocs.issued}
                         className="font-semibold text-accent hover:underline"
                       >
                         Comprobantes emitidos
@@ -396,7 +397,7 @@ export function InvoicesWorkspace() {
                     <p className="text-xs text-muted">
                       Puedes corregir los datos y reintentar desde{" "}
                       <Link
-                        href={appRoutes.electronicDocs.issued}
+                        href={appRoutes.posDocs.issued}
                         className="font-semibold text-accent hover:underline"
                       >
                         Comprobantes emitidos
@@ -435,7 +436,7 @@ export function InvoicesWorkspace() {
               {emitResult ? (
                 <>
                   <Link
-                    href={appRoutes.electronicDocs.issued}
+                    href={appRoutes.posDocs.issued}
                     className="inline-flex h-9 items-center rounded-lg px-3 text-sm font-semibold text-accent hover:underline"
                   >
                     Ver emitidos

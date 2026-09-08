@@ -157,7 +157,7 @@ function MonthCard({
       {!compact ? (
         <>
           <div className="mt-4 flex items-center justify-between text-[11px] text-muted">
-            <span>Servicios</span>
+            <span>Pedidos</span>
             <span className="tabular-nums">{formatMoney(bucket.appointmentsAmount)}</span>
           </div>
           <div className="mt-1 flex items-center justify-between text-[11px] text-muted">

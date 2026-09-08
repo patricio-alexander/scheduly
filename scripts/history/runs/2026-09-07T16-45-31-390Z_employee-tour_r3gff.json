@@ -1,0 +1,999 @@
+{
+  "tester": "employee-tour",
+  "mode": "all-parallel",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 6123,
+  "ok": true,
+  "summary": {
+    "passed": 100,
+    "failed": 0,
+    "total": 100
+  },
+  "subjects": [
+    {
+      "username": "estilista_maria",
+      "name": "María García",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 10,
+      "failed": 0,
+      "total": 10,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como María García",
+            "Rol: Empleado · local: Andrea Guerrero · Cristóbal Colón",
+            "Ve su agenda y módulos de trabajo (no administra el negocio)."
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel · vista de María",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Sin montos financieros (esperado para Empleado)",
+            "Productos/servicios visibles: 47 / 0"
+          ]
+        },
+        {
+          "id": "branches",
+          "title": "Revisa Sucursales (su local)",
+          "ok": true,
+          "lines": [
+            "Vio 3 local(es): Andrea Guerrero · Cristóbal Colón · Andrea Guerrero · Eguiguren · Andrea Guerrero · Tour 071131",
+            "Ojo: vio más de un local"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Revisa su agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas asignadas todavía"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Revisa clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20 registro(s)"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Revisa catálogo de servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42 registro(s)"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Revisa productos / insumos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47 registro(s)"
+          ]
+        },
+        {
+          "id": "cash",
+          "title": "Caja / turno (según permiso)",
+          "ok": true,
+          "lines": [
+            "Cajas visibles: 0",
+            "Turno activo: no"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "Intenta entrar a Cuentas (solo Dueña)",
+          "ok": true,
+          "lines": [
+            "Correcto: Empleado no administra cuentas (403)"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "María termina la revisión en «Andrea Guerrero · Cristóbal Colón» y sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_juan",
+      "name": "Juan Pérez",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 10,
+      "failed": 0,
+      "total": 10,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Juan Pérez",
+            "Rol: Empleado · local: Andrea Guerrero · Eguiguren",
+            "Ve su agenda y módulos de trabajo (no administra el negocio)."
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel · vista de Juan",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Sin montos financieros (esperado para Empleado)",
+            "Productos/servicios visibles: 47 / 0"
+          ]
+        },
+        {
+          "id": "branches",
+          "title": "Revisa Sucursales (su local)",
+          "ok": true,
+          "lines": [
+            "Vio 3 local(es): Andrea Guerrero · Cristóbal Colón · Andrea Guerrero · Eguiguren · Andrea Guerrero · Tour 071131",
+            "Ojo: vio más de un local"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Revisa su agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas asignadas todavía"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Revisa clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20 registro(s)"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Revisa catálogo de servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42 registro(s)"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Revisa productos / insumos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47 registro(s)"
+          ]
+        },
+        {
+          "id": "cash",
+          "title": "Caja / turno (según permiso)",
+          "ok": true,
+          "lines": [
+            "Cajas visibles: 0",
+            "Turno activo: no"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "Intenta entrar a Cuentas (solo Dueña)",
+          "ok": true,
+          "lines": [
+            "Correcto: Empleado no administra cuentas (403)"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Juan termina la revisión en «Andrea Guerrero · Eguiguren» y sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "colorista_camila",
+      "name": "Camila Rojas",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 10,
+      "failed": 0,
+      "total": 10,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Camila Rojas",
+            "Rol: Empleado · local: Andrea Guerrero · Cristóbal Colón",
+            "Ve su agenda y módulos de trabajo (no administra el negocio)."
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel · vista de Camila",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Sin montos financieros (esperado para Empleado)",
+            "Productos/servicios visibles: 47 / 0"
+          ]
+        },
+        {
+          "id": "branches",
+          "title": "Revisa Sucursales (su local)",
+          "ok": true,
+          "lines": [
+            "Vio 3 local(es): Andrea Guerrero · Cristóbal Colón · Andrea Guerrero · Eguiguren · Andrea Guerrero · Tour 071131",
+            "Ojo: vio más de un local"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Revisa su agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas asignadas todavía"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Revisa clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20 registro(s)"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Revisa catálogo de servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42 registro(s)"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Revisa productos / insumos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47 registro(s)"
+          ]
+        },
+        {
+          "id": "cash",
+          "title": "Caja / turno (según permiso)",
+          "ok": true,
+          "lines": [
+            "Cajas visibles: 0",
+            "Turno activo: no"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "Intenta entrar a Cuentas (solo Dueña)",
+          "ok": true,
+          "lines": [
+            "Correcto: Empleado no administra cuentas (403)"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Camila termina la revisión en «Andrea Guerrero · Cristóbal Colón» y sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "unas_natalia",
+      "name": "Natalia Ortiz",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 10,
+      "failed": 0,
+      "total": 10,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Natalia Ortiz",
+            "Rol: Empleado · local: Andrea Guerrero · Eguiguren",
+            "Ve su agenda y módulos de trabajo (no administra el negocio)."
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel · vista de Natalia",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Sin montos financieros (esperado para Empleado)",
+            "Productos/servicios visibles: 47 / 0"
+          ]
+        },
+        {
+          "id": "branches",
+          "title": "Revisa Sucursales (su local)",
+          "ok": true,
+          "lines": [
+            "Vio 3 local(es): Andrea Guerrero · Cristóbal Colón · Andrea Guerrero · Eguiguren · Andrea Guerrero · Tour 071131",
+            "Ojo: vio más de un local"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Revisa su agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas asignadas todavía"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Revisa clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20 registro(s)"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Revisa catálogo de servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42 registro(s)"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Revisa productos / insumos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47 registro(s)"
+          ]
+        },
+        {
+          "id": "cash",
+          "title": "Caja / turno (según permiso)",
+          "ok": true,
+          "lines": [
+            "Cajas visibles: 0",
+            "Turno activo: no"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "Intenta entrar a Cuentas (solo Dueña)",
+          "ok": true,
+          "lines": [
+            "Correcto: Empleado no administra cuentas (403)"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Natalia termina la revisión en «Andrea Guerrero · Eguiguren» y sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "makeup_andres",
+      "name": "Andrés Muñoz",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 10,
+      "failed": 0,
+      "total": 10,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Andrés Muñoz",
+            "Rol: Empleado · local: Andrea Guerrero · Cristóbal Colón",
+            "Ve su agenda y módulos de trabajo (no administra el negocio)."
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel · vista de Andrés",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Sin montos financieros (esperado para Empleado)",
+            "Productos/servicios visibles: 47 / 0"
+          ]
+        },
+        {
+          "id": "branches",
+          "title": "Revisa Sucursales (su local)",
+          "ok": true,
+          "lines": [
+            "Vio 3 local(es): Andrea Guerrero · Cristóbal Colón · Andrea Guerrero · Eguiguren · Andrea Guerrero · Tour 071131",
+            "Ojo: vio más de un local"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Revisa su agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas asignadas todavía"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Revisa clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20 registro(s)"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Revisa catálogo de servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42 registro(s)"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Revisa productos / insumos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47 registro(s)"
+          ]
+        },
+        {
+          "id": "cash",
+          "title": "Caja / turno (según permiso)",
+          "ok": true,
+          "lines": [
+            "Cajas visibles: 0",
+            "Turno activo: no"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "Intenta entrar a Cuentas (solo Dueña)",
+          "ok": true,
+          "lines": [
+            "Correcto: Empleado no administra cuentas (403)"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Andrés termina la revisión en «Andrea Guerrero · Cristóbal Colón» y sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_diego",
+      "name": "Diego Salinas",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 10,
+      "failed": 0,
+      "total": 10,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Diego Salinas",
+            "Rol: Empleado · local: Andrea Guerrero · Eguiguren",
+            "Ve su agenda y módulos de trabajo (no administra el negocio)."
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel · vista de Diego",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Sin montos financieros (esperado para Empleado)",
+            "Productos/servicios visibles: 47 / 0"
+          ]
+        },
+        {
+          "id": "branches",
+          "title": "Revisa Sucursales (su local)",
+          "ok": true,
+          "lines": [
+            "Vio 3 local(es): Andrea Guerrero · Cristóbal Colón · Andrea Guerrero · Eguiguren · Andrea Guerrero · Tour 071131",
+            "Ojo: vio más de un local"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Revisa su agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas asignadas todavía"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Revisa clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20 registro(s)"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Revisa catálogo de servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42 registro(s)"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Revisa productos / insumos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47 registro(s)"
+          ]
+        },
+        {
+          "id": "cash",
+          "title": "Caja / turno (según permiso)",
+          "ok": true,
+          "lines": [
+            "Cajas visibles: 0",
+            "Turno activo: no"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "Intenta entrar a Cuentas (solo Dueña)",
+          "ok": true,
+          "lines": [
+            "Correcto: Empleado no administra cuentas (403)"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Diego termina la revisión en «Andrea Guerrero · Eguiguren» y sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "tratamientos_paola",
+      "name": "Paola Herrera",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 10,
+      "failed": 0,
+      "total": 10,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Paola Herrera",
+            "Rol: Empleado · local: Andrea Guerrero · Cristóbal Colón",
+            "Ve su agenda y módulos de trabajo (no administra el negocio)."
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel · vista de Paola",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Sin montos financieros (esperado para Empleado)",
+            "Productos/servicios visibles: 47 / 0"
+          ]
+        },
+        {
+          "id": "branches",
+          "title": "Revisa Sucursales (su local)",
+          "ok": true,
+          "lines": [
+            "Vio 3 local(es): Andrea Guerrero · Cristóbal Colón · Andrea Guerrero · Eguiguren · Andrea Guerrero · Tour 071131",
+            "Ojo: vio más de un local"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Revisa su agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas asignadas todavía"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Revisa clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20 registro(s)"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Revisa catálogo de servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42 registro(s)"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Revisa productos / insumos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47 registro(s)"
+          ]
+        },
+        {
+          "id": "cash",
+          "title": "Caja / turno (según permiso)",
+          "ok": true,
+          "lines": [
+            "Cajas visibles: 0",
+            "Turno activo: no"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "Intenta entrar a Cuentas (solo Dueña)",
+          "ok": true,
+          "lines": [
+            "Correcto: Empleado no administra cuentas (403)"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Paola termina la revisión en «Andrea Guerrero · Cristóbal Colón» y sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "depilacion_ricardo",
+      "name": "Ricardo Vélez",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 10,
+      "failed": 0,
+      "total": 10,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Ricardo Vélez",
+            "Rol: Empleado · local: Andrea Guerrero · Eguiguren",
+            "Ve su agenda y módulos de trabajo (no administra el negocio)."
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel · vista de Ricardo",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Sin montos financieros (esperado para Empleado)",
+            "Productos/servicios visibles: 47 / 0"
+          ]
+        },
+        {
+          "id": "branches",
+          "title": "Revisa Sucursales (su local)",
+          "ok": true,
+          "lines": [
+            "Vio 3 local(es): Andrea Guerrero · Cristóbal Colón · Andrea Guerrero · Eguiguren · Andrea Guerrero · Tour 071131",
+            "Ojo: vio más de un local"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Revisa su agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas asignadas todavía"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Revisa clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20 registro(s)"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Revisa catálogo de servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42 registro(s)"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Revisa productos / insumos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47 registro(s)"
+          ]
+        },
+        {
+          "id": "cash",
+          "title": "Caja / turno (según permiso)",
+          "ok": true,
+          "lines": [
+            "Cajas visibles: 0",
+            "Turno activo: no"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "Intenta entrar a Cuentas (solo Dueña)",
+          "ok": true,
+          "lines": [
+            "Correcto: Empleado no administra cuentas (403)"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Ricardo termina la revisión en «Andrea Guerrero · Eguiguren» y sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "recepcion_felipe",
+      "name": "Felipe López",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 10,
+      "failed": 0,
+      "total": 10,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Felipe López",
+            "Rol: Empleado · local: Andrea Guerrero · Cristóbal Colón",
+            "Ve su agenda y módulos de trabajo (no administra el negocio)."
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel · vista de Felipe",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Sin montos financieros (esperado para Empleado)",
+            "Productos/servicios visibles: 47 / 0"
+          ]
+        },
+        {
+          "id": "branches",
+          "title": "Revisa Sucursales (su local)",
+          "ok": true,
+          "lines": [
+            "Vio 3 local(es): Andrea Guerrero · Cristóbal Colón · Andrea Guerrero · Eguiguren · Andrea Guerrero · Tour 071131",
+            "Ojo: vio más de un local"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Revisa su agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas asignadas todavía"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Revisa clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20 registro(s)"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Revisa catálogo de servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42 registro(s)"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Revisa productos / insumos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47 registro(s)"
+          ]
+        },
+        {
+          "id": "cash",
+          "title": "Caja / turno (según permiso)",
+          "ok": true,
+          "lines": [
+            "Cajas visibles: 0",
+            "Turno activo: no"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "Intenta entrar a Cuentas (solo Dueña)",
+          "ok": true,
+          "lines": [
+            "Correcto: Empleado no administra cuentas (403)"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Felipe termina la revisión en «Andrea Guerrero · Cristóbal Colón» y sale."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_marco",
+      "name": "Marco Espinosa",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 10,
+      "failed": 0,
+      "total": 10,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Marco Espinosa",
+            "Rol: Empleado · local: Andrea Guerrero · Eguiguren",
+            "Ve su agenda y módulos de trabajo (no administra el negocio)."
+          ]
+        },
+        {
+          "id": "panel",
+          "title": "Panel · vista de Marco",
+          "ok": true,
+          "lines": [
+            "Actividad: 0 · completadas: 0",
+            "Sin montos financieros (esperado para Empleado)",
+            "Productos/servicios visibles: 47 / 0"
+          ]
+        },
+        {
+          "id": "branches",
+          "title": "Revisa Sucursales (su local)",
+          "ok": true,
+          "lines": [
+            "Vio 3 local(es): Andrea Guerrero · Cristóbal Colón · Andrea Guerrero · Eguiguren · Andrea Guerrero · Tour 071131",
+            "Ojo: vio más de un local"
+          ]
+        },
+        {
+          "id": "appointments",
+          "title": "Revisa su agenda",
+          "ok": true,
+          "lines": [
+            "Agenda OK · sin citas asignadas todavía"
+          ]
+        },
+        {
+          "id": "customers",
+          "title": "Revisa clientes",
+          "ok": true,
+          "lines": [
+            "Cargaron 20 registro(s)"
+          ]
+        },
+        {
+          "id": "services",
+          "title": "Revisa catálogo de servicios",
+          "ok": true,
+          "lines": [
+            "Cargaron 42 registro(s)"
+          ]
+        },
+        {
+          "id": "products",
+          "title": "Revisa productos / insumos",
+          "ok": true,
+          "lines": [
+            "Cargaron 47 registro(s)"
+          ]
+        },
+        {
+          "id": "cash",
+          "title": "Caja / turno (según permiso)",
+          "ok": true,
+          "lines": [
+            "Cajas visibles: 0",
+            "Turno activo: no"
+          ]
+        },
+        {
+          "id": "users-forbidden",
+          "title": "Intenta entrar a Cuentas (solo Dueña)",
+          "ok": true,
+          "lines": [
+            "Correcto: Empleado no administra cuentas (403)"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Marco termina la revisión en «Andrea Guerrero · Eguiguren» y sale."
+          ]
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "employeeCount": 10
+  },
+  "id": "2026-09-07T16-45-31-390Z_employee-tour_r3gff",
+  "at": "2026-09-07T16:45:31.390Z"
+}

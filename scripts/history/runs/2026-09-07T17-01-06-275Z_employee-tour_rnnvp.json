@@ -1,0 +1,67 @@
+{
+  "tester": "employee-tour",
+  "mode": "schedule",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 1483,
+  "ok": false,
+  "summary": {
+    "passed": 4,
+    "failed": 1,
+    "total": 5,
+    "ok": false
+  },
+  "actor": {
+    "username": "estilista_maria",
+    "name": "María García",
+    "role": "employee",
+    "branchKey": "colon"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como María García",
+        "Rol: Empleado · local: Andrea Guerrero · Eguiguren"
+      ]
+    },
+    {
+      "id": "load-catalog",
+      "title": "Carga clientes y servicios",
+      "ok": true,
+      "lines": [
+        "Clientes: 21",
+        "Servicios: 42",
+        "Ej. servicio: Alisado permanente ($85)"
+      ]
+    },
+    {
+      "id": "create-appointment",
+      "title": "Agenda turno con servicios",
+      "ok": false,
+      "lines": [
+        "HTTP 500 Cannot read properties of undefined (reading 'createMany')"
+      ]
+    },
+    {
+      "id": "verify-agenda",
+      "title": "Verifica en «mi agenda»",
+      "ok": true,
+      "lines": [
+        "Eventos en agenda: 0",
+        "Omitido"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "María termina y sale."
+      ]
+    }
+  ],
+  "id": "2026-09-07T17-01-06-275Z_employee-tour_rnnvp",
+  "at": "2026-09-07T17:01:06.275Z"
+}

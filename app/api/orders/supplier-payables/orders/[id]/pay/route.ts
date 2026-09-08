@@ -95,7 +95,11 @@ export async function POST(
       if (newPaid >= total - 0.01) {
         await tx.purchaseOrder.update({
           where: { id: orderId },
-          data: { paidAt: date, paymentMethod: method },
+          data: {
+            paidAt: date,
+            paymentMethod: method,
+            financeExpenseId: expense.id,
+          },
         });
       }
 

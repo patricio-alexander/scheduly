@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { checkAuth } from "@/shared/utils/check-auth";
 import { toAmount } from "@/shared/utils/money";
+import { isManagementRole } from "@/shared/utils/roles";
 import {
   buildPendingCollectionsBreakdown,
   getBillableQty,
@@ -12,6 +13,9 @@ import {
 export async function GET() {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
+  if (!isManagementRole(auth.user.role)) {
+    return NextResponse.json({ message: "No autorizado" }, { status: 403 });
+  }
 
   try {
     const [customers, sales, groups, payments, installments] =
@@ -120,6 +124,11 @@ export async function GET() {
           lineTotal: lineTotal(l),
           paidAt: l.paidAt?.toISOString() ?? null,
           deliveredAt: l.deliveredAt?.toISOString() ?? null,
+          packKey: l.packKey,
+          packName: l.packName,
+          lotCode: l.lotCode,
+          expiresAt: l.expiresAt?.toISOString().slice(0, 10) ?? null,
+          manufacturedAt: l.manufacturedAt?.toISOString().slice(0, 10) ?? null,
           groupId,
           inGroup: groupId != null,
         };
@@ -191,7 +200,9 @@ export async function GET() {
           orderId: i.sale.id,
           customerId: i.sale.customerId,
           customerName: name,
-          dueDate: i.dueDate.toISOString().slice(0, 10),
+          dueDate: i.dueDate
+            ? i.dueDate.toISOString().slice(0, 10)
+            : null,
           amount: toAmount(i.amount),
           sequence: i.sequence,
         };

@@ -24,11 +24,11 @@ const SAMPLE_INVOICE = {
     "030820240117912345670011001002000045892123456781",
   client: {
     name: "María Fernanda López Mendoza",
-    id: "1724589630",
-    address: "Av. 6 de Diciembre N41-28 y El Bosque, Quito",
+    id: "1104589630",
+    address: "Calle Lourdes y Quito, Loja",
     phone: "0987654321",
   },
-  fallbackAddress: "Av. Amazonas N34-451 y Av. República, Quito, Pichincha",
+  fallbackAddress: "Cristóbal Colón y 18 de Noviembre, Loja, Ecuador",
 } as const;
 
 const SAMPLE_LINES: PreviewLine[] = [
@@ -36,19 +36,19 @@ const SAMPLE_LINES: PreviewLine[] = [
     code: "SRV-001",
     description: "Corte de cabello",
     qty: 1,
-    unitPrice: 10,
+    unitPrice: 12,
   },
   {
-    code: "SRV-009",
-    description: "Corte + Barba (combo)",
+    code: "SRV-014",
+    description: "Spa de uñas",
     qty: 1,
-    unitPrice: 18,
+    unitPrice: 22,
   },
   {
-    code: "PRD-003",
-    description: "Cera para barba",
+    code: "PRD-009",
+    description: "Esmalte premium",
     qty: 1,
-    unitPrice: 8.5,
+    unitPrice: 7.5,
   },
 ];
 

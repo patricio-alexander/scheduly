@@ -120,7 +120,7 @@ model Role {
   accountRoles AccountRole[]
 }
 
-/** Persona física (EdDeli Users). Login vive en Account. */
+/** Persona física (EdDeli Users). Login vive en Account (1:1). */
 model Person {
   id             Int       @id @default(autoincrement())
   ci             String?   @unique
@@ -133,7 +133,8 @@ model Person {
   gender         String?
   photo          String?   @db.Text
 
-  accounts      Account[]
+  /** Una persona → una sola cuenta de acceso. */
+  account       Account?
   personData    PersonData?
   notifications Notification[]
   cashShifts    CashShift[]
@@ -143,16 +144,18 @@ model Person {
   appointments  Appointment[] @relation("AppointmentStaff")
 }
 
-/** Cuenta de acceso (EdDeli Account). */
+/** Cuenta de acceso (EdDeli Account). Puede tener varios roles. */
 model Account {
   id       Int     @id @default(autoincrement())
-  username String?
+  username String? @unique
   password String?
-  userId   Int?
+  /** FK 1:1 con Person: un usuario solo puede tener una cuenta. */
+  userId   Int?    @unique
   isActive Boolean @default(true)
 
   person Person? @relation(fields: [userId], references: [id])
   roles  AccountRole[]
+  branches AccountBranch[]
 
   stockMovementsCreated StockMovement[] @relation("MovementCreator")
   batchesCreated        Batch[]         @relation("BatchCreator")
@@ -161,6 +164,21 @@ model Account {
   incomesCreated        Income[]        @relation("IncomeCreator")
   salesSold             Sale[]          @relation("SaleSeller")
   paymentsCreated       FinancePayment[] @relation("PaymentCreator")
+}
+
+/** Vincula una cuenta a uno o más locales. isPrimary = local que administra/trabaja. */
+model AccountBranch {
+  id        Int     @id @default(autoincrement())
+  accountId Int
+  branchId  Int
+  isPrimary Boolean @default(true)
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+  branch  Branch  @relation(fields: [branchId], references: [id], onDelete: Cascade)
+
+  @@unique([accountId, branchId])
+  @@index([accountId, isPrimary])
+  @@index([branchId])
 }
 
 model AccountRole {
@@ -253,6 +271,8 @@ model Category {
   mixMatchLabel      String? @db.VarChar(120)
   mixMatchProductIds Json?
   parentId           Int?
+  /** Comisión % por defecto para productos de la categoría (si el producto no define la suya). */
+  commissionPct      Float   @default(0)
 
   parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
   children Category[] @relation("CategoryTree")
@@ -282,6 +302,8 @@ model Product {
   stock                Float       @default(0)
   minStock             Float       @default(0)
   price                Float       @default(0)
+  /** Comisión % venta producto (0 = hereda de categoría). */
+  commissionPct        Float       @default(0)
   supplierPrice        Float       @default(0)
   wholesaleRules       Json?
   packageTiers         Json?
@@ -407,6 +429,7 @@ model Branch {
   updatedAt          DateTime           @updatedAt
 
   creator        Account?         @relation("BranchCreator", fields: [createdBy], references: [id])
+  accountBranches AccountBranch[]
   cashRegisters  CashRegister[]
   shelves        BranchShelf[]
   stocks         BranchStock[]
@@ -635,16 +658,17 @@ model SaleLine {
 }
 
 model SalePaymentInstallment {
-  id                 Int      @id @default(autoincrement())
+  id                 Int       @id @default(autoincrement())
   orderId            Int
-  sequence           Int      @default(1)
-  dueDate            DateTime @db.Date
+  sequence           Int       @default(1)
+  /** null = crédito abierto sin fecha de pago */
+  dueDate            DateTime? @db.Date
   amount             Float
   notes              String?
-  reminderEnabled    Boolean  @default(false)
-  reminderDaysBefore Int?     @db.TinyInt
-  createdAt          DateTime @default(now())
-  updatedAt          DateTime @updatedAt
+  reminderEnabled    Boolean   @default(false)
+  reminderDaysBefore Int?      @db.TinyInt
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   sale Sale @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
@@ -1185,7 +1209,7 @@ model AppSettings {
 model AppEntitlement {
   id        Int               @id @default(1)
   payload   Json
-  source    String            @default("gestor_push") @db.VarChar(40)
+  source    String            @default("local") @db.VarChar(40)
   syncedAt  DateTime?         @map("synced_at")
   status    EntitlementStatus @default(gestor_push)
   createdAt DateTime          @default(now())
@@ -1369,6 +1393,8 @@ model ServicePromotion {
   isActive      Boolean   @default(true)
   serviceIds    Json
   branchIds     Json
+  /** Días de semana activos (0=dom … 6=sáb). Null/[] = todos los días del rango. */
+  weekdays      Json?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 }

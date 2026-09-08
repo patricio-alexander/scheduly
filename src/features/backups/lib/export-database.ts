@@ -21,6 +21,7 @@ export const BACKUP_TABLE_KEYS = [
   "Person",
   "Account",
   "AccountRole",
+  "AccountBranch",
   "PersonData",
   "Notification",
   "NotificationProgram",
@@ -103,6 +104,14 @@ export function backupTableDelegate(
       return db.account;
     case "AccountRole":
       return db.accountRole;
+    case "AccountBranch": {
+      const d = (db as { accountBranch?: Delegate }).accountBranch;
+      if (d) return d;
+      // Client Prisma aún sin generate: backup/wipe lo omite
+      return {
+        findMany: async () => [],
+      };
+    }
     case "PersonData":
       return db.personData;
     case "Notification":

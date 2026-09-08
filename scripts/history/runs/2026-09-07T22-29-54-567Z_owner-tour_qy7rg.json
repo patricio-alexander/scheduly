@@ -1,0 +1,202 @@
+{
+  "tester": "owner-tour",
+  "mode": "owner-mind",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 9854,
+  "ok": true,
+  "summary": {
+    "passed": 21,
+    "failed": 0,
+    "total": 21,
+    "ok": true
+  },
+  "actor": {
+    "username": "andrea",
+    "name": "Andrea Guerrero",
+    "role": "owner"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como Andrea Guerrero",
+        "Usuario: andrea · rol: Dueña"
+      ]
+    },
+    {
+      "id": "think-start",
+      "title": "Piensa · qué puede ver la dueña",
+      "ok": true,
+      "lines": [
+        "Soy andrea: veo todos los módulos de gestión.",
+        "Primero el panorama global, después filtro por cada sucursal."
+      ]
+    },
+    {
+      "id": "panel-all",
+      "title": "Panel · sin filtro de sucursal (todo el negocio)",
+      "ok": true,
+      "lines": [
+        "Ingresos: $0,00",
+        "Citas: 0 · completadas: 0",
+        "Clientes: 20 · servicios: 42 · productos: 47"
+      ]
+    },
+    {
+      "id": "branches",
+      "title": "Decide filtrar por locales",
+      "ok": true,
+      "lines": [
+        "Encontró 2 local(es)",
+        "· #20 Andrea Guerrero · Cristóbal Colón",
+        "· #21 Andrea Guerrero · Eguiguren",
+        "Ahora pide el panel/agenda de cada uno…"
+      ]
+    },
+    {
+      "id": "think-branch-20",
+      "title": "Piensa · mirar solo «Andrea Guerrero · Cristóbal Colón»",
+      "ok": true,
+      "lines": [
+        "Filtro branchId=20 en panel y agenda."
+      ]
+    },
+    {
+      "id": "panel-20",
+      "title": "Panel filtrado · Andrea Guerrero · Cristóbal Colón",
+      "ok": true,
+      "lines": [
+        "branchId=20",
+        "Ingresos: $0,00 · citas: 0 · done: 0"
+      ]
+    },
+    {
+      "id": "agenda-20",
+      "title": "Agenda filtrada · Andrea Guerrero · Cristóbal Colón",
+      "ok": true,
+      "lines": [
+        "Sin citas en Andrea Guerrero · Cristóbal Colón"
+      ]
+    },
+    {
+      "id": "think-branch-21",
+      "title": "Piensa · mirar solo «Andrea Guerrero · Eguiguren»",
+      "ok": true,
+      "lines": [
+        "Filtro branchId=21 en panel y agenda."
+      ]
+    },
+    {
+      "id": "panel-21",
+      "title": "Panel filtrado · Andrea Guerrero · Eguiguren",
+      "ok": true,
+      "lines": [
+        "branchId=21",
+        "Ingresos: $0,00 · citas: 0 · done: 0"
+      ]
+    },
+    {
+      "id": "agenda-21",
+      "title": "Agenda filtrada · Andrea Guerrero · Eguiguren",
+      "ok": true,
+      "lines": [
+        "Sin citas en Andrea Guerrero · Eguiguren"
+      ]
+    },
+    {
+      "id": "think-modules",
+      "title": "Piensa · módulos de gestión",
+      "ok": true,
+      "lines": [
+        "Cuentas, roles, clientes, catálogo, POS, finanzas, proveedores, config."
+      ]
+    },
+    {
+      "id": "accounts",
+      "title": "Cuentas (equipo global)",
+      "ok": true,
+      "lines": [
+        "Cargaron 15 registro(s) correctamente",
+        "Activas: 15 · total: 15"
+      ]
+    },
+    {
+      "id": "roles",
+      "title": "Roles",
+      "ok": true,
+      "lines": [
+        "Cargaron 4 registro(s) correctamente"
+      ]
+    },
+    {
+      "id": "customers",
+      "title": "Clientes",
+      "ok": true,
+      "lines": [
+        "Cargaron 20 registro(s) correctamente"
+      ]
+    },
+    {
+      "id": "services",
+      "title": "Servicios",
+      "ok": true,
+      "lines": [
+        "Cargaron 42 registro(s) correctamente"
+      ]
+    },
+    {
+      "id": "products",
+      "title": "Productos / inventario",
+      "ok": true,
+      "lines": [
+        "Cargaron 47 registro(s) correctamente"
+      ]
+    },
+    {
+      "id": "pos-sales",
+      "title": "Ventas POS",
+      "ok": true,
+      "lines": [
+        "Sin tickets aún"
+      ]
+    },
+    {
+      "id": "finance",
+      "title": "Finanzas (dueña)",
+      "ok": true,
+      "lines": [
+        "Ingresos: $0,00 · egresos: $0,00",
+        "Balance: $0,00"
+      ]
+    },
+    {
+      "id": "suppliers",
+      "title": "Proveedores",
+      "ok": true,
+      "lines": [
+        "Cargaron 3 registro(s) correctamente"
+      ]
+    },
+    {
+      "id": "system",
+      "title": "Configuración / SRI (lectura)",
+      "ok": true,
+      "lines": [
+        "Negocio: Andrea Guerrero Estética y Peluquería",
+        "SRI OK"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "Andrea Guerrero termina y sale del sistema."
+      ]
+    }
+  ],
+  "id": "2026-09-07T22-29-54-567Z_owner-tour_qy7rg",
+  "at": "2026-09-07T22:29:54.567Z"
+}

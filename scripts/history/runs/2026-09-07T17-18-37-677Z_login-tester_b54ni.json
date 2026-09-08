@@ -1,0 +1,28 @@
+{
+  "tester": "login-tester",
+  "mode": "owner-only",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 11608,
+  "ok": false,
+  "summary": {
+    "passed": 1,
+    "failed": 1,
+    "total": 2
+  },
+  "cases": [
+    {
+      "username": "Administrador",
+      "label": "Dueño · Administrador",
+      "ok": false,
+      "detail": "login OK pero sin cookie de sesión"
+    },
+    {
+      "username": "Administrador",
+      "label": "Credenciales inválidas",
+      "ok": true,
+      "detail": "rechazado correctamente (HTTP 401)"
+    }
+  ],
+  "id": "2026-09-07T17-18-37-677Z_login-tester_b54ni",
+  "at": "2026-09-07T17:18:37.677Z"
+}

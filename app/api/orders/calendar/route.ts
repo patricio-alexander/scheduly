@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { checkAuth } from "@/shared/utils/check-auth";
 import { toAmount } from "@/shared/utils/money";
+import { isManagementRole } from "@/shared/utils/roles";
 import {
   customerOrderSeverity,
   supplierOrderSeverity,
@@ -30,6 +31,9 @@ function dateKey(d: Date) {
 export async function GET(request: Request) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
+  if (!isManagementRole(auth.user.role)) {
+    return NextResponse.json({ message: "No autorizado" }, { status: 403 });
+  }
 
   try {
     const url = new URL(request.url);
@@ -107,9 +111,11 @@ export async function GET(request: Request) {
           0,
         );
         const pendingInstallments = sale.installments.filter(
-          (i) => !sale.paidAt && i.dueDate,
+          (i) => !sale.paidAt,
         );
-        const hasCreditDue = pendingInstallments.length > 0;
+        const hasCreditDue =
+          pendingInstallments.length > 0 ||
+          (sale.paymentMethod === "credito" && !sale.paidAt);
         const severity = customerOrderSeverity({
           status: sale.status,
           paidAt: sale.paidAt,

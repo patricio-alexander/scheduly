@@ -30,6 +30,23 @@ import {
   buildFinanceHero,
   buildStockAlertBuckets,
 } from "@/shared/utils/dashboard-finance-hero";
+import {
+  buildSalePaymentBreakdown,
+  buildSaleStatusOverview,
+  buildTopSellersFromSales,
+  isPayrollCategory,
+  isPurchaseCategory,
+  recentSalesAsAppointments,
+  sumPaidSales,
+  sumPendingSales,
+  saleTotal,
+  isPaidSale,
+  type SaleLike,
+} from "@/shared/utils/dashboard-eddeli-metrics";
+import {
+  linesForLocation,
+  saleWhereForLocation,
+} from "@/shared/utils/pos-location";
 
 const revenueInclude = {
   payment: true,
@@ -337,11 +354,11 @@ export async function GET(request: Request) {
       }),
       prisma.expense.findMany({
         where: { date: dateFilter },
-        select: { amount: true },
+        select: { amount: true, category: true },
       }),
       prisma.expense.findMany({
         where: { date: prevFilter },
-        select: { amount: true },
+        select: { amount: true, category: true },
       }),
       prisma.purchaseOrder.findMany({
         where: { date: dateFilter },
@@ -421,26 +438,129 @@ export async function GET(request: Request) {
         0,
       );
 
-    const revenue = completedRevenueApts.reduce(
+    const saleInclude = {
+      customer: {
+        select: {
+          name: true,
+          firstLastName: true,
+          secondLastName: true,
+        },
+      },
+      seller: { select: { id: true, username: true } },
+      lines: {
+        select: {
+          quantity: true,
+          price: true,
+          soldQty: true,
+          damagedQty: true,
+          giftQty: true,
+          deliveredStoreId: true,
+        },
+      },
+    } as const;
+
+    const [periodIncomes, prevIncomes, periodSales, prevSales] = await Promise.all([
+      prisma.income.findMany({
+        where: { date: dateFilter, status: "paid" },
+        select: { amount: true, date: true },
+      }),
+      prisma.income.findMany({
+        where: { date: prevFilter, status: "paid" },
+        select: { amount: true, date: true },
+      }),
+      prisma.sale.findMany({
+        where: { date: dateFilter, ...saleWhereForLocation(branchId) },
+        include: saleInclude,
+        orderBy: { date: "desc" },
+        take: period === "all" ? 8000 : 4000,
+      }),
+      prisma.sale.findMany({
+        where: { date: prevFilter, ...saleWhereForLocation(branchId) },
+        include: saleInclude,
+        take: 4000,
+      }),
+    ]);
+
+    const incomeTotal = periodIncomes.reduce(
+      (sum, row) => sum + toAmount(row.amount),
+      0,
+    );
+    const prevIncomeTotal = prevIncomes.reduce(
+      (sum, row) => sum + toAmount(row.amount),
+      0,
+    );
+    const selectedLocation = branchId
+      ? await prisma.branch.findUnique({
+          where: { id: branchId },
+          select: { locationKind: true },
+        })
+      : null;
+    const isDeliveryPoint = selectedLocation?.locationKind === "vitrina";
+
+    const salesAsLike = periodSales.map((sale) => ({
+      ...sale,
+      lines: linesForLocation(sale.lines, branchId),
+    })) as unknown as SaleLike[];
+    const prevSalesAsLike = prevSales.map((sale) => ({
+      ...sale,
+      lines: linesForLocation(sale.lines, branchId),
+    })) as unknown as SaleLike[];
+    const paidSalesTotal = sumPaidSales(salesAsLike);
+    const prevPaidSalesTotal = sumPaidSales(prevSalesAsLike);
+
+    const appointmentRevenueTotal = completedRevenueApts.reduce(
       (sum, apt) => sum + appointmentRevenue(apt),
       0,
     );
-    const previousRevenue = prevRevenueApts.reduce(
+    const prevAppointmentRevenueTotal = prevRevenueApts.reduce(
       (sum, apt) => sum + appointmentRevenue(apt),
       0,
     );
-    const pendingPaymentAmount = pendingRevenueApts.reduce(
+    const revenue =
+      !isDeliveryPoint && incomeTotal > 0
+        ? incomeTotal
+        : paidSalesTotal > 0
+          ? paidSalesTotal
+          : appointmentRevenueTotal;
+    const previousRevenue =
+      !isDeliveryPoint && prevIncomeTotal > 0
+        ? prevIncomeTotal
+        : prevPaidSalesTotal > 0
+          ? prevPaidSalesTotal
+          : prevAppointmentRevenueTotal;
+    const pendingFromAppointments = pendingRevenueApts.reduce(
       (sum, apt) => sum + appointmentRevenue(apt),
       0,
     );
+    const pendingFromSales = sumPendingSales(salesAsLike);
+    const usePosMetrics = salesAsLike.length > 0 || incomeTotal > 0;
+    const pendingPaymentAmount = usePosMetrics
+      ? pendingFromSales
+      : pendingFromAppointments;
+
+    const posPaidCount = salesAsLike.filter(isPaidSale).length;
+    const prevPosPaidCount = prevSalesAsLike.filter(isPaidSale).length;
+    const posTotalCount = salesAsLike.length;
+    const prevPosTotalCount = prevSalesAsLike.length;
+
+    const displayTotalAppointments = usePosMetrics
+      ? posTotalCount
+      : totalAppointments;
+    const displayCompleted = usePosMetrics ? posPaidCount : completed;
+    const displayPrevTotal = usePosMetrics
+      ? prevPosTotalCount
+      : prevTotalAppointments;
+    const displayPrevCompleted = usePosMetrics
+      ? prevPosPaidCount
+      : prevCompleted;
 
     const completionRate =
-      totalAppointments > 0
-        ? Math.round((completed / totalAppointments) * 100)
+      displayTotalAppointments > 0
+        ? Math.round((displayCompleted / displayTotalAppointments) * 100)
         : 0;
     const previousCompletionRate =
-      prevTotalAppointments > 0
-        ? Math.round((prevCompleted / prevTotalAppointments) * 100)
+      displayPrevTotal > 0
+        ? Math.round((displayPrevCompleted / displayPrevTotal) * 100)
         : 0;
 
     const revenueBuckets = getDashboardChartBuckets(period);
@@ -448,60 +568,119 @@ export async function GET(request: Request) {
 
     const appointmentsByDay = activityBuckets.map((bucket) => ({
       date: bucket.label,
-      count: appointmentsInPeriod.filter(
-        (apt) =>
-          apt.appointmentDate >= bucket.start &&
-          apt.appointmentDate <= bucket.end,
-      ).length,
+      count: usePosMetrics
+        ? salesAsLike.filter(
+            (sale) => sale.date >= bucket.start && sale.date <= bucket.end,
+          ).length
+        : appointmentsInPeriod.filter(
+            (apt) =>
+              apt.appointmentDate >= bucket.start &&
+              apt.appointmentDate <= bucket.end,
+          ).length,
     }));
 
-    const revenueByDay = revenueBuckets.map((bucket) => ({
-      date: bucket.label,
-      amount: completedRevenueApts
-        .filter(
-          (apt) =>
-            apt.appointmentDate >= bucket.start &&
-            apt.appointmentDate <= bucket.end,
-        )
-        .reduce((sum, apt) => sum + appointmentRevenue(apt), 0),
-    }));
+    const revenueByDay = revenueBuckets.map((bucket) => {
+      if (incomeTotal > 0) {
+        return {
+          date: bucket.label,
+          amount: periodIncomes
+            .filter((row) => row.date >= bucket.start && row.date <= bucket.end)
+            .reduce((sum, row) => sum + toAmount(row.amount), 0),
+        };
+      }
+      if (paidSalesTotal > 0) {
+        return {
+          date: bucket.label,
+          amount: salesAsLike
+            .filter((sale) => {
+              const at = sale.paidAt ?? sale.date;
+              return isPaidSale(sale) && at >= bucket.start && at <= bucket.end;
+            })
+            .reduce((sum, sale) => sum + saleTotal(sale), 0),
+        };
+      }
+      return {
+        date: bucket.label,
+        amount: completedRevenueApts
+          .filter(
+            (apt) =>
+              apt.appointmentDate >= bucket.start &&
+              apt.appointmentDate <= bucket.end,
+          )
+          .reduce((sum, apt) => sum + appointmentRevenue(apt), 0),
+      };
+    });
 
     const topMarginServices = buildTopMarginServices(completedInPeriod);
     const showOpsWidgets = canViewRevenue(auth.user.role);
     const topEmployees = showOpsWidgets
-      ? buildTopEmployees(completedRevenueApts)
+      ? usePosMetrics
+        ? buildTopSellersFromSales(salesAsLike)
+        : buildTopEmployees(completedRevenueApts)
       : [];
     const paymentBreakdown = showOpsWidgets
-      ? buildPaymentBreakdown(completedRevenueApts, revenue)
+      ? usePosMetrics
+        ? buildSalePaymentBreakdown(salesAsLike, revenue)
+        : buildPaymentBreakdown(completedRevenueApts, revenue)
       : [];
 
     const expenseTotal = periodExpenses.reduce(
       (sum, e) => sum + toAmount(e.amount),
       0,
     );
-    const purchaseTotal = purchaseTotalFromOrders(periodPurchases);
-    const commissionTotal = periodCommissions.reduce(
-      (sum, c) => sum + toAmount(c.amount),
-      0,
-    );
+    const purchasesFromExpenses = periodExpenses
+      .filter((e) => isPurchaseCategory(e.category))
+      .reduce((sum, e) => sum + toAmount(e.amount), 0);
+    const purchaseTotal =
+      purchasesFromExpenses > 0
+        ? purchasesFromExpenses
+        : purchaseTotalFromOrders(periodPurchases);
+    const commissionsFromExpenses = periodExpenses
+      .filter((e) => isPayrollCategory(e.category))
+      .reduce((sum, e) => sum + toAmount(e.amount), 0);
+    const commissionTotal =
+      commissionsFromExpenses +
+      periodCommissions.reduce((sum, c) => sum + toAmount(c.amount), 0);
+    const operatingExpenseTotal = isDeliveryPoint
+      ? 0
+      : Math.max(
+          0,
+          expenseTotal - purchasesFromExpenses - commissionsFromExpenses,
+        );
+    const purchaseTotalForHero = isDeliveryPoint ? 0 : purchaseTotal;
+    const commissionTotalForHero = isDeliveryPoint ? 0 : commissionTotal;
     const prevExpenseTotal = prevPeriodExpenses.reduce(
       (sum, e) => sum + toAmount(e.amount),
       0,
     );
-    const prevPurchaseTotal = purchaseTotalFromOrders(prevPeriodPurchases);
-    const prevCommissionTotal = prevPeriodCommissions.reduce(
-      (sum, c) => sum + toAmount(c.amount),
-      0,
-    );
+    const prevPurchasesFromExpenses = prevPeriodExpenses
+      .filter((e) => isPurchaseCategory(e.category))
+      .reduce((sum, e) => sum + toAmount(e.amount), 0);
+    const prevPurchaseTotal =
+      prevPurchasesFromExpenses > 0
+        ? prevPurchasesFromExpenses
+        : purchaseTotalFromOrders(prevPeriodPurchases);
+    const prevCommissionsFromExpenses = prevPeriodExpenses
+      .filter((e) => isPayrollCategory(e.category))
+      .reduce((sum, e) => sum + toAmount(e.amount), 0);
+    const prevCommissionTotal =
+      prevCommissionsFromExpenses +
+      prevPeriodCommissions.reduce((sum, c) => sum + toAmount(c.amount), 0);
     const previousNet =
-      previousRevenue - prevExpenseTotal - prevPurchaseTotal - prevCommissionTotal;
+      previousRevenue -
+      Math.max(
+        0,
+        prevExpenseTotal - prevPurchasesFromExpenses - prevCommissionsFromExpenses,
+      ) -
+      prevPurchaseTotal -
+      prevCommissionTotal;
 
     const financeHero = showOpsWidgets
       ? buildFinanceHero({
           revenue,
-          expenses: expenseTotal,
-          purchases: purchaseTotal,
-          commissions: commissionTotal,
+          expenses: operatingExpenseTotal,
+          purchases: purchaseTotalForHero,
+          commissions: commissionTotalForHero,
           pendingReceivable: pendingPaymentAmount,
           previousRevenue,
           previousNet,
@@ -513,14 +692,16 @@ export async function GET(request: Request) {
       ? buildStockAlertBuckets(stockRows)
       : null;
 
-    const appointmentStatusOverview = buildAppointmentStatusOverview({
-      scheduled,
-      paid_pending,
-      pending_payment,
-      completed,
-      cancelled,
-      rescheduled,
-    });
+    const appointmentStatusOverview = usePosMetrics
+      ? buildSaleStatusOverview(salesAsLike)
+      : buildAppointmentStatusOverview({
+          scheduled,
+          paid_pending,
+          pending_payment,
+          completed,
+          cancelled,
+          rescheduled,
+        });
 
     await Promise.all(
       lowStockProducts.map((product) => notifyAdminsLowStock(product)),
@@ -528,7 +709,7 @@ export async function GET(request: Request) {
 
     const unread = userId
       ? await prisma.notification.count({
-          where: { userId: Number(userId), read: false },
+          where: { userId: Number(userId), seen: false },
         })
       : unreadNotifications;
 
@@ -542,26 +723,33 @@ export async function GET(request: Request) {
             branchId,
             revenue,
             previousRevenue,
-            completed,
-            prevCompleted,
-            totalAppointments,
-            cancelled,
+            completed: displayCompleted,
+            prevCompleted: displayPrevCompleted,
+            totalAppointments: displayTotalAppointments,
+            cancelled: usePosMetrics ? 0 : cancelled,
           })
         : null;
 
     return NextResponse.json({
       period,
+      metricsMode: usePosMetrics ? "pos" : "agenda",
       unreadNotifications: unread,
       totalCustomers: customers,
       totalServices: services,
       totalProducts: products,
-      totalAppointments,
-      scheduled,
-      completed,
-      cancelled,
-      rescheduled,
-      pending_payment,
-      paid_pending,
+      totalAppointments: displayTotalAppointments,
+      scheduled: usePosMetrics
+        ? salesAsLike.filter((s) => s.status === "pendiente").length
+        : scheduled,
+      completed: displayCompleted,
+      cancelled: usePosMetrics ? 0 : cancelled,
+      rescheduled: usePosMetrics ? 0 : rescheduled,
+      pending_payment: usePosMetrics
+        ? salesAsLike.filter((s) => s.status === "pendiente").length
+        : pending_payment,
+      paid_pending: usePosMetrics
+        ? salesAsLike.filter((s) => s.status === "entregado").length
+        : paid_pending,
       pendingPaymentAmount,
       revenue,
       completionRate,
@@ -574,7 +762,9 @@ export async function GET(request: Request) {
       financeHero,
       stockAlerts,
       appointmentStatusOverview,
-      recentAppointments: recentInPeriod.map((a) => ({
+      recentAppointments: usePosMetrics
+        ? recentSalesAsAppointments(salesAsLike)
+        : recentInPeriod.map((a) => ({
         id: a.id,
         title: a.title,
         customer: [a.customer.name, a.customer.firstLastName, a.customer.secondLastName]
@@ -590,8 +780,8 @@ export async function GET(request: Request) {
           changePct: percentChange(revenue, previousRevenue),
         },
         appointments: {
-          previous: prevTotalAppointments,
-          changePct: percentChange(totalAppointments, prevTotalAppointments),
+          previous: displayPrevTotal,
+          changePct: percentChange(displayTotalAppointments, displayPrevTotal),
         },
         completionRate: {
           previous: previousCompletionRate,

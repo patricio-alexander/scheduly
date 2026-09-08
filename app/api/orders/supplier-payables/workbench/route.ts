@@ -75,9 +75,17 @@ export async function GET() {
         receivedAt: po.receivedAt?.toISOString() ?? null,
         items: po.lines.map((l) => ({
           id: l.id,
+          productId: l.productId,
           name: l.product.name,
+          product: l.product.name,
           quantity: l.quantity,
           unitPrice: toAmount(l.unitPrice),
+          taxRate: l.taxRate,
+          packKey: l.packKey,
+          packName: l.packName,
+          lotCode: l.lotCode,
+          expiresAt: l.expiresAt?.toISOString().slice(0, 10) ?? null,
+          manufacturedAt: l.manufacturedAt?.toISOString().slice(0, 10) ?? null,
           lineTotal: Number(
             (toAmount(l.quantity) * toAmount(l.unitPrice)).toFixed(2),
           ),

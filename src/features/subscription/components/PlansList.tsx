@@ -120,7 +120,7 @@ export function PlansList() {
         <PageHeader
           icon={<Rocket width={24} height={24} />}
           title="Planes"
-          description="Planes disponibles según el entitlement sincronizado del gestor"
+          description="Scheduly independiente: sin planes comerciales externos"
         />
         <Button
           size="sm"
@@ -148,7 +148,7 @@ export function PlansList() {
           <Rocket width={28} height={28} className="mx-auto text-muted opacity-50" />
           <p className="mt-3 text-sm font-medium">No hay planes disponibles</p>
           <p className="mt-1 text-xs text-muted">
-            Cuando el gestor sincronice planes en el entitlement, aparecerán aquí.
+            Scheduly ya no usa planes del Gestor. Esta pantalla queda sin uso.
           </p>
         </div>
       ) : (

@@ -44,7 +44,7 @@ function formatDate(iso: string) {
 
 function formatDateTime(iso: string) {
   const date = new Date(iso);
-  return `${date.toLocaleDateString("es-CL", { day: "numeric", month: "short" })} · ${date.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit" })}`;
+  return `${date.toLocaleDateString("es-CL", { day: "numeric", month: "short" })} · ${date.toLocaleTimeString("es-CL", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}`;
 }
 
 function statusLabel(employee: PayrollEmployee) {

@@ -23,6 +23,7 @@ export async function GET(
       where: { id: Number(id) },
       include: {
         category: { select: { id: true, name: true } },
+        unit: { select: { id: true, name: true, abbreviation: true } },
       },
     });
     if (!product) {
@@ -54,16 +55,23 @@ export async function PUT(
   const { id } = await params;
   try {
     const body = await request.json();
+    const unitIdRaw = Number(body.unitId);
+    const unitId =
+      Number.isInteger(unitIdRaw) && unitIdRaw > 0 ? unitIdRaw : undefined;
+
     const product = await prisma.product.update({
       where: { id: Number(id) },
       data: {
         name: String(body.name ?? ""),
         price: Number(body.price ?? 0),
+        commissionPct: Number(body.commissionPct ?? 0),
         stock: Number(body.stock ?? 0),
         categoryId: parseCategoryId(body.categoryId),
+        ...(unitId != null ? { unitId } : {}),
       },
       include: {
         category: { select: { id: true, name: true } },
+        unit: { select: { id: true, name: true, abbreviation: true } },
       },
     });
     await notifyAdminsLowStock(product);

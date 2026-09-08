@@ -24,9 +24,11 @@ import {
   isBranchAdminRole,
   isManagementRole,
   isOwnerRole,
+  isProgrammerRole,
   roleLabel,
 } from "@/shared/utils/roles";
 import { branchDisplayLabel } from "@/shared/utils/auth-user";
+import { APP_BRAND_NAME } from "@/shared/utils/business-profile";
 import { quickAccessItems } from "@/shared/components/nav-config";
 
 const STORAGE_KEY = "scheduly-sidebar-collapsed";
@@ -69,6 +71,7 @@ export function AppHeader({ collapsed, onToggleCollapsed }: AppHeaderProps) {
 
   const isOwner = isOwnerRole(user?.role);
   const isManagement = isManagementRole(user?.role);
+  const isProgrammer = isProgrammerRole(user?.role);
   const initials = user?.name
     ?.split(" ")
     .map((n) => n[0])
@@ -79,9 +82,11 @@ export function AppHeader({ collapsed, onToggleCollapsed }: AppHeaderProps) {
   const themeLabel = resolvedTheme === "dark" ? "Modo claro" : "Modo oscuro";
   const hasMultipleRoles = (user?.roles?.length ?? 0) > 1;
 
-  const visibleQuick = quickAccessItems.filter(
-    (item) => !item.adminOnly || isManagement || isOwner,
-  );
+  const visibleQuick = isProgrammer
+    ? []
+    : quickAccessItems.filter(
+        (item) => !item.adminOnly || isManagement || isOwner,
+      );
 
   const menuItems = useMemo(() => {
     const items: Array<{
@@ -154,14 +159,18 @@ export function AppHeader({ collapsed, onToggleCollapsed }: AppHeaderProps) {
       <button
         type="button"
         className="flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 text-left hover:bg-surface-secondary"
-        onClick={() => router.push(appRoutes.dashboard)}
+        onClick={() =>
+          router.push(
+            isProgrammer ? appRoutes.system.logs : appRoutes.dashboard,
+          )
+        }
       >
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
           <Calendar width={18} height={18} />
         </span>
         <span className="hidden min-w-0 sm:block">
           <span className="block truncate text-sm font-bold leading-tight tracking-tight">
-            Scheduly
+            {APP_BRAND_NAME}
           </span>
           <span className="block truncate text-[10px] text-muted leading-tight">
             Gestión de turnos

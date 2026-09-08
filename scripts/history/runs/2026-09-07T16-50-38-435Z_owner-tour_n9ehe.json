@@ -1,0 +1,76 @@
+{
+  "tester": "owner-tour",
+  "mode": "create-branch-account",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 7411,
+  "ok": true,
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "ok": true
+  },
+  "actor": {
+    "username": "Administrador",
+    "name": "Andrea Guerrero",
+    "role": "owner"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como Andrea Guerrero",
+        "Usuario: Administrador · rol: Dueña"
+      ]
+    },
+    {
+      "id": "create-branch",
+      "title": "Crea una sucursal nueva",
+      "ok": true,
+      "lines": [
+        "Local creado: «Andrea Guerrero · Tour 071150»",
+        "id=19 · listo para vincular personal"
+      ]
+    },
+    {
+      "id": "create-account",
+      "title": "Crea cuenta Empleado y la vincula al local",
+      "ok": true,
+      "lines": [
+        "Cuenta: @emp_tour_9-071150",
+        "Rol: Empleado · local: Andrea Guerrero · Tour 071150",
+        "Vínculo AccountBranch OK",
+        "Password demo: 12345678"
+      ]
+    },
+    {
+      "id": "verify-team",
+      "title": "Verifica que la cuenta aparece en el equipo del local",
+      "ok": true,
+      "lines": [
+        "Local «Andrea Guerrero · Tour 071150» · equipo: 1",
+        "@emp_tour_9-071150 está en el equipo"
+      ]
+    },
+    {
+      "id": "deactivate-account",
+      "title": "Desactiva la cuenta de prueba",
+      "ok": true,
+      "lines": [
+        "Cuenta @emp_tour_9-071150 quedó inactiva"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "Andrea Guerrero termina y sale del sistema."
+      ]
+    }
+  ],
+  "id": "2026-09-07T16-50-38-435Z_owner-tour_n9ehe",
+  "at": "2026-09-07T16:50:38.435Z"
+}

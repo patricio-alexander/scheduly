@@ -193,7 +193,7 @@ export function FinanceHeroCards({ summary, loading }: FinanceHeroCardsProps) {
         id: "with-pending",
         title: "Con por cobrar",
         value: formatPct(summary.marginWithPendingPct),
-        subtitle: `Caja + turnos · ${formatCurrency(summary.pendingReceivable)} · ${summary.periodLabel}`,
+        subtitle: `Caja + pedidos · ${formatCurrency(summary.pendingReceivable)} · ${summary.periodLabel}`,
         icon: <Receipt width={18} height={18} />,
         tone: (summary.marginWithPendingPct >= 0 ? "success" : "danger") as Tone,
       },
@@ -232,7 +232,7 @@ export function FinanceHeroCards({ summary, loading }: FinanceHeroCardsProps) {
         <HeroCard
           title="Ingresos"
           value={formatCurrency(summary.totalIncome)}
-          subtitle="Turnos completados cobrados"
+          subtitle="Ventas e ingresos cobrados"
           icon={<ArrowUp width={18} height={18} />}
           tone="success"
         />
@@ -247,7 +247,7 @@ export function FinanceHeroCards({ summary, loading }: FinanceHeroCardsProps) {
         <RotatingHeroCard slides={pendingSlides} />
 
         <HeroCard
-          title="Por cobrar (turnos)"
+          title="Por cobrar (pedidos)"
           value={formatCurrency(summary.pendingReceivable)}
           subtitle="Pendiente de cobro"
           icon={<Clock width={18} height={18} />}

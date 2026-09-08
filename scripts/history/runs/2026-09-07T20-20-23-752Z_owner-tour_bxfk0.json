@@ -1,0 +1,187 @@
+{
+  "tester": "owner-tour",
+  "mode": "panel-widgets",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 157267,
+  "ok": true,
+  "summary": {
+    "passed": 17,
+    "failed": 0,
+    "total": 17,
+    "ok": true
+  },
+  "actor": {
+    "username": "Administrador",
+    "name": "Andrea Guerrero",
+    "role": "owner"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como Andrea Guerrero",
+        "Usuario: Administrador · rol: Dueña"
+      ]
+    },
+    {
+      "id": "dash-today",
+      "title": "Panel · dashboard (today)",
+      "ok": true,
+      "lines": [
+        "GET /api/dashboard?userId=&period=today · VACÍO",
+        "Ingresos: $0,00 · citas: 0 · completadas: 0",
+        "Hero: sí · stockAlerts: 0 · top empleados: 0",
+        "Agenda reciente: 0 · métodos pago: 0 · estados: 6",
+        "ownerInsights: presente (API; panel UI puede no montarlo)"
+      ]
+    },
+    {
+      "id": "dash-week",
+      "title": "Panel · dashboard (week)",
+      "ok": true,
+      "lines": [
+        "GET /api/dashboard?userId=&period=week · CON DATOS",
+        "Ingresos: $345,20 · citas: 36 · completadas: 36",
+        "Hero: sí · stockAlerts: 0 · top empleados: 6",
+        "Agenda reciente: 8 · métodos pago: 1 · estados: 3",
+        "ownerInsights: presente (API; panel UI puede no montarlo)"
+      ]
+    },
+    {
+      "id": "dash-month",
+      "title": "Panel · dashboard (month)",
+      "ok": true,
+      "lines": [
+        "GET /api/dashboard?userId=&period=month · CON DATOS",
+        "Ingresos: $345,20 · citas: 36 · completadas: 36",
+        "Hero: sí · stockAlerts: 0 · top empleados: 6",
+        "Agenda reciente: 8 · métodos pago: 1 · estados: 3",
+        "ownerInsights: presente (API; panel UI puede no montarlo)"
+      ]
+    },
+    {
+      "id": "dash-all",
+      "title": "Panel · dashboard (all)",
+      "ok": true,
+      "lines": [
+        "GET /api/dashboard?userId=&period=all · CON DATOS",
+        "Ingresos: $345,20 · citas: 36 · completadas: 36",
+        "Hero: sí · stockAlerts: 0 · top empleados: 6",
+        "Agenda reciente: 8 · métodos pago: 1 · estados: 3",
+        "ownerInsights: presente (API; panel UI puede no montarlo)"
+      ]
+    },
+    {
+      "id": "branches",
+      "title": "Panel · sucursales (filtro)",
+      "ok": true,
+      "lines": [
+        "GET /api/branches · CON DATOS · 4 local(es)",
+        "· #16 Andrea Guerrero · Cristóbal Colón",
+        "· #17 Andrea Guerrero · Eguiguren",
+        "· #18 Andrea Guerrero · Tour 071131",
+        "· #19 Andrea Guerrero · Tour 071150"
+      ]
+    },
+    {
+      "id": "cal-year",
+      "title": "Chart · calendar-year",
+      "ok": true,
+      "lines": [
+        "GET /api/finance/calendar-year?year=2026 · VACÍO",
+        "Meses/series: 0 · ingreso anual: $0,00"
+      ]
+    },
+    {
+      "id": "cal-month",
+      "title": "Chart · calendar-month",
+      "ok": true,
+      "lines": [
+        "GET /api/finance/calendar-month?year=2026&month=9 · VACÍO",
+        "Días: 0 · ingreso mes: $0,00"
+      ]
+    },
+    {
+      "id": "cal-day",
+      "title": "Modal · calendar-day",
+      "ok": true,
+      "lines": [
+        "GET /api/finance/calendar-day?date=2026-09-01 · VACÍO",
+        "Líneas: 0 · ingreso día: $0,00"
+      ]
+    },
+    {
+      "id": "candles",
+      "title": "Chart · cash-flow-candles",
+      "ok": true,
+      "lines": [
+        "GET /api/finance/cash-flow-candles?granularity=day&limit=18&offset=0 · VACÍO",
+        "Velas: 0"
+      ]
+    },
+    {
+      "id": "mirror",
+      "title": "Chart · cash-flow-mirror",
+      "ok": true,
+      "lines": [
+        "GET /api/finance/cash-flow-mirror?granularity=day&startDate=2026-08-31&endDate=2026-09-06",
+        "CON DATOS · buckets: 7 · 2026-08-31→2026-09-06"
+      ]
+    },
+    {
+      "id": "product-series",
+      "title": "Chart · product-series",
+      "ok": true,
+      "lines": [
+        "GET /api/finance/product-series?period=month&sortBy=amount&band=0&kind=all · CON DATOS",
+        "Productos: 10 · servicios: 0"
+      ]
+    },
+    {
+      "id": "customers-summary",
+      "title": "Tabla · customers-summary",
+      "ok": true,
+      "lines": [
+        "GET /api/finance/customers-summary · CON DATOS · filas: 1"
+      ]
+    },
+    {
+      "id": "ledger",
+      "title": "Finanzas · ledger-summary",
+      "ok": true,
+      "lines": [
+        "GET /api/finance/ledger-summary · CON DATOS",
+        "Keys: totalIncome, totalExpense, balance, futureIncome, projectedBalance, loansReceivable, debtsPayable, monthIncome"
+      ]
+    },
+    {
+      "id": "notifications",
+      "title": "Header · notificaciones",
+      "ok": true,
+      "lines": [
+        "GET /api/notifications?userId=1224 · CON DATOS · 20 aviso(s)"
+      ]
+    },
+    {
+      "id": "daily-report",
+      "title": "Supervisión · reporte diario",
+      "ok": true,
+      "lines": [
+        "GET /api/shifts/reports/daily?date=2026-09-01 · CON DATOS",
+        "Turnos/filas: 65"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "Andrea Guerrero termina y sale del sistema."
+      ]
+    }
+  ],
+  "id": "2026-09-07T20-20-23-752Z_owner-tour_bxfk0",
+  "at": "2026-09-07T20:20:23.752Z"
+}

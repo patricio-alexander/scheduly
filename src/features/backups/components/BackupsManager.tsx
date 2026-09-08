@@ -19,6 +19,10 @@ import StarFill from "@gravity-ui/icons/StarFill";
 import ArrowRotateLeft from "@gravity-ui/icons/ArrowRotateLeft";
 import { PageHeader } from "@/shared/components/ui";
 import { useBackups } from "../hooks/useBackups";
+import {
+  analyzeBackupJson,
+  type BackupPreview,
+} from "../lib/eddeli-map";
 
 function formatSize(mb: number, bytes: number) {
   if (mb >= 0.01) return `${mb} MB`;
@@ -45,22 +49,8 @@ function summaryLine(counts: Record<string, number> | undefined) {
   return `${persons} personas · ${products} productos · ${customers} clientes · ${sales} ventas · ${branches} sucursales`;
 }
 
-function previewBackupJson(raw: string) {
-  const parsed = JSON.parse(raw) as Record<string, unknown>;
-  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
-    throw new Error("El JSON debe ser un objeto con tablas");
-  }
-  const counts: Record<string, number> = {};
-  let totalRows = 0;
-  for (const [key, value] of Object.entries(parsed)) {
-    if (!Array.isArray(value)) continue;
-    counts[key] = value.length;
-    totalRows += value.length;
-  }
-  if (totalRows === 0) {
-    throw new Error("El JSON no contiene filas para importar");
-  }
-  return { counts, totalRows };
+function previewBackupJson(raw: string): BackupPreview {
+  return analyzeBackupJson(raw);
 }
 
 type BackupsManagerProps = {
@@ -87,10 +77,9 @@ export function BackupsManager({ embedded = false }: BackupsManagerProps) {
   const importState = useOverlayState();
   const reloadState = useOverlayState();
   const [pendingFile, setPendingFile] = useState<File | null>(null);
-  const [pendingPreview, setPendingPreview] = useState<{
-    counts: Record<string, number>;
-    totalRows: number;
-  } | null>(null);
+  const [pendingPreview, setPendingPreview] = useState<BackupPreview | null>(
+    null,
+  );
   const [previewError, setPreviewError] = useState("");
 
   async function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -164,14 +153,14 @@ export function BackupsManager({ embedded = false }: BackupsManagerProps) {
 
       {embedded ? (
         <p className="text-sm text-muted">
-          Exporta, guarda o restaura la BD en JSON. Acepta backup de Scheduly o
+          Exporta, guarda o restaura la BD en JSON. Acepta backup de Peluquería y Spa o
           EdDeli. Solo Dueño.
         </p>
       ) : (
         <PageHeader
           icon={<Database width={24} height={24} />}
           title="Backups JSON"
-          description="Exporta, guarda o restaura la BD. Acepta backup.json de Scheduly o de EdDeli (se remapean Inventory*→Product, Store→Branch, Order→Sale, Users→Person, etc.). Solo Dueño."
+          description="Exporta, guarda o restaura la BD. Acepta backup.json de Peluquería y Spa o de EdDeli (se remapean Inventory*→Product, Store→Branch, Order→Sale, Users→Person, etc.). Solo Dueño."
         />
       )}
 
@@ -360,7 +349,7 @@ export function BackupsManager({ embedded = false }: BackupsManagerProps) {
       <Modal state={importState}>
         <Modal.Backdrop>
           <Modal.Container>
-            <Modal.Dialog className="max-w-md">
+            <Modal.Dialog className="max-w-2xl">
               <Modal.CloseTrigger />
               <Modal.Header>
                 <Modal.Heading>Restaurar desde JSON</Modal.Heading>
@@ -374,8 +363,9 @@ export function BackupsManager({ embedded = false }: BackupsManagerProps) {
                   <>
                     <Alert status="warning">
                       <Alert.Description>
-                        Se borrarán <strong>todos los datos actuales</strong> y
-                        se reemplazarán por el archivo. No se puede deshacer.
+                        Modo: <strong>reemplazo total</strong> (no sincroniza).
+                        Se vacían las tablas de Peluquería y Spa y se cargan las filas
+                        del archivo. No se puede deshacer.
                       </Alert.Description>
                     </Alert>
                     {pendingFile ? (
@@ -383,14 +373,87 @@ export function BackupsManager({ embedded = false }: BackupsManagerProps) {
                         Archivo:{" "}
                         <span className="font-mono">{pendingFile.name}</span>
                         {" · "}
-                        {formatSize(0, pendingFile.size)}
+                        {formatSize(
+                          pendingFile.size / 1024 / 1024,
+                          pendingFile.size,
+                        )}
                       </p>
                     ) : null}
                     {pendingPreview ? (
-                      <p className="text-sm text-muted">
-                        {summaryLine(pendingPreview.counts)} ·{" "}
-                        {pendingPreview.totalRows} filas totales
-                      </p>
+                      <div className="space-y-3 text-sm">
+                        <p>
+                          Origen:{" "}
+                          <strong>
+                            {pendingPreview.sourceKind === "eddeli"
+                              ? "EdDeli"
+                              : "Peluquería y Spa"}
+                          </strong>
+                          {" · "}
+                          {pendingPreview.sourceTables} tablas en el JSON (
+                          {pendingPreview.sourceRows} filas)
+                          {" · "}
+                          se importan {pendingPreview.importTables} tablas (
+                          {pendingPreview.importRows} filas)
+                        </p>
+                        {pendingPreview.sourceKind === "eddeli" ? (
+                          <p className="text-muted">
+                            Se remapean nombres (InventoryProduct→Product,
+                            Store→Branch, Order→Sale, Users→Person). Publicidad,
+                            TV y editor se omiten.
+                          </p>
+                        ) : null}
+                        <div className="max-h-56 overflow-auto rounded-xl border border-separator">
+                          <table className="w-full text-left text-xs">
+                            <thead className="sticky top-0 bg-surface-secondary text-muted">
+                              <tr>
+                                <th className="px-3 py-2 font-medium">
+                                  Tabla origen
+                                </th>
+                                <th className="px-3 py-2 font-medium">
+                                  En Peluquería y Spa
+                                </th>
+                                <th className="px-3 py-2 text-right font-medium">
+                                  Filas
+                                </th>
+                              </tr>
+                            </thead>
+                            <tbody>
+                              {pendingPreview.mapped
+                                .filter((row) => row.rows > 0)
+                                .map((row) => (
+                                  <tr
+                                    key={`${row.from}-${row.to}`}
+                                    className="border-t border-separator"
+                                  >
+                                    <td className="px-3 py-1.5 font-mono">
+                                      {row.from}
+                                    </td>
+                                    <td className="px-3 py-1.5">{row.to}</td>
+                                    <td className="px-3 py-1.5 text-right tabular-nums">
+                                      {row.rows}
+                                    </td>
+                                  </tr>
+                                ))}
+                            </tbody>
+                          </table>
+                        </div>
+                        {pendingPreview.skipped.length > 0 ? (
+                          <p className="text-muted">
+                            Omitidas:{" "}
+                            {pendingPreview.skipped
+                              .map((row) => `${row.from} (${row.rows})`)
+                              .join(", ")}
+                          </p>
+                        ) : null}
+                        {pendingPreview.unknown.length > 0 ? (
+                          <p className="text-muted">
+                            Sin mapa:{" "}
+                            {pendingPreview.unknown
+                              .map((row) => `${row.from} (${row.rows})`)
+                              .join(", ")}
+                          </p>
+                        ) : null}
+                      </div>
                     ) : null}
                   </>
                 )}

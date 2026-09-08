@@ -19,6 +19,7 @@ function formatDate(value: string) {
     year: "numeric",
     hour: "2-digit",
     minute: "2-digit",
+    second: "2-digit",
   });
 }
 
@@ -148,7 +149,7 @@ export function IssuedDocumentsPage() {
           description="Historial de facturas y respuesta del SRI"
           action={
             <Link
-              href={appRoutes.electronicDocs.invoices}
+              href={appRoutes.posDocs.invoices}
               className="text-sm font-semibold text-accent hover:underline"
             >
               Facturar ventas
@@ -193,9 +194,15 @@ export function IssuedDocumentsPage() {
                 <thead>
                   <tr className="border-b border-separator text-left text-[11px] font-semibold uppercase tracking-wide text-muted">
                     <th className="px-4 py-3 md:px-5">Serie</th>
+                    <th className="px-2 py-3">Estab.</th>
+                    <th className="px-2 py-3">Pto.</th>
+                    <th className="px-2 py-3">Secuencial</th>
                     <th className="px-2 py-3">Cliente</th>
+                    <th className="px-2 py-3">Identificación</th>
                     <th className="px-2 py-3">Fecha</th>
+                    <th className="px-2 py-3">Ambiente</th>
                     <th className="px-2 py-3">Estado SRI</th>
+                    <th className="px-2 py-3">Clave de acceso</th>
                     <th className="px-2 py-3 text-right">Total</th>
                     <th className="px-4 py-3 text-right md:px-5">Acciones</th>
                   </tr>
@@ -206,15 +213,37 @@ export function IssuedDocumentsPage() {
                       <td className="px-4 py-3 font-mono text-xs md:px-5">
                         {doc.series}
                       </td>
+                      <td className="px-2 py-3 font-mono text-xs">
+                        {doc.series?.split("-")[0] ?? "—"}
+                      </td>
+                      <td className="px-2 py-3 font-mono text-xs">
+                        {doc.series?.split("-")[1] ?? "—"}
+                      </td>
+                      <td className="px-2 py-3 font-mono text-xs">
+                        {doc.series?.split("-")[2] ?? "—"}
+                      </td>
                       <td className="px-2 py-3">
                         <p className="font-medium">{doc.buyerName}</p>
-                        <p className="text-xs text-muted">{doc.buyerIdentification}</p>
+                      </td>
+                      <td className="px-2 py-3 font-mono text-xs">
+                        {doc.buyerIdentification || "—"}
                       </td>
                       <td className="px-2 py-3 text-muted">
                         {formatDate(doc.issueDate)}
                       </td>
+                      <td className="px-2 py-3 text-xs">
+                        {doc.environment === "produccion"
+                          ? "Producción"
+                          : "Pruebas"}
+                      </td>
                       <td className="px-2 py-3">
                         <SriStatusBadge status={doc.status} />
+                      </td>
+                      <td
+                        className="max-w-[140px] truncate px-2 py-3 font-mono text-[10px]"
+                        title={doc.accessKey}
+                      >
+                        {doc.accessKey || "—"}
                       </td>
                       <td className="px-2 py-3 text-right font-medium tabular-nums">
                         {formatMoney(doc.total)}

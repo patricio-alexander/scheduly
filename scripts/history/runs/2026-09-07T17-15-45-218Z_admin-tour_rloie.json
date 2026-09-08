@@ -1,0 +1,71 @@
+{
+  "tester": "admin-tour",
+  "mode": "edit-employee",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 2086,
+  "ok": true,
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "ok": true
+  },
+  "actor": {
+    "username": "admin_loja",
+    "name": "Verónica Cueva",
+    "role": "admin",
+    "branchKey": "colon"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como Verónica Cueva",
+        "Rol: Administrador · local: Andrea Guerrero · Cristóbal Colón"
+      ]
+    },
+    {
+      "id": "list",
+      "title": "Lista empleados del local",
+      "ok": true,
+      "lines": [
+        "Encontró 10 empleado(s) activos",
+        "· @estilista_marco · Marco Espinosa",
+        "· @recepcion_felipe · Felipe López",
+        "· @depilacion_ricardo · Ricardo Vélez",
+        "· @tratamientos_paola · Paola Herrera"
+      ]
+    },
+    {
+      "id": "edit",
+      "title": "Edita nombre y correo del empleado",
+      "ok": true,
+      "lines": [
+        "@estilista_marco",
+        "Nombre: Marco Espinosa → Marco Espinosa · Tour 071215",
+        "Email: tour.estilista_marco.071215@andreaguerrero.ec"
+      ]
+    },
+    {
+      "id": "restore",
+      "title": "Restaura datos originales",
+      "ok": true,
+      "lines": [
+        "Nombre restaurado: Marco Espinosa",
+        "Edit OK · no dejó cambios permanentes"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "Verónica termina y sale."
+      ]
+    }
+  ],
+  "id": "2026-09-07T17-15-45-218Z_admin-tour_rloie",
+  "at": "2026-09-07T17:15:45.218Z"
+}

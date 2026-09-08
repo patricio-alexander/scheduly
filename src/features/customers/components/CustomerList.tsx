@@ -1,16 +1,15 @@
 "use client";
 
-import { useMemo, useState } from "react";
-import { Button, Table, Pagination, SearchField, Label } from "@heroui/react";
+import { useMemo } from "react";
+import { Button } from "@heroui/react";
 import Person from "@gravity-ui/icons/Person";
 import Pencil from "@gravity-ui/icons/PencilToSquare";
 import TrashBin from "@gravity-ui/icons/TrashBin";
-import {
-  useReactTable,
-  getCoreRowModel,
-  getPaginationRowModel,
-} from "@tanstack/react-table";
 import { ContentCard, EmptyState, TableSkeleton } from "@/shared/components/ui";
+import {
+  TablePro,
+  type TableProColumn,
+} from "@/shared/components/TablePro";
 import type { Customer } from "../types";
 
 interface Props {
@@ -25,8 +24,6 @@ interface Props {
   onActivatePortal?: (customer: Customer) => void;
 }
 
-const PAGE_SIZE = 10;
-
 export function CustomerList({
   customers,
   onEdit,
@@ -38,50 +35,125 @@ export function CustomerList({
   canManagePortal = false,
   onActivatePortal,
 }: Props) {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+  const showActions = !readOnly || canManagePortal;
 
-  const filtered = useMemo(
-    () =>
-      customers.filter(
-        (c) =>
-          c.name.toLowerCase().includes(search.toLowerCase()) ||
-          c.lastnames.toLowerCase().includes(search.toLowerCase()) ||
-          c.phone.includes(search) ||
-          c.email.toLowerCase().includes(search.toLowerCase()),
-      ),
-    [customers, search],
-  );
-
-  const columns = useMemo(
-    () => [
-      { accessorKey: "name" as const, header: "Nombre" },
-      { accessorKey: "lastnames" as const, header: "Apellidos" },
-      { accessorKey: "phone" as const, header: "Teléfono" },
-      { accessorKey: "email" as const, header: "Correo" },
-    ],
-    [],
-  );
-
-  const table = useReactTable({
-    data: filtered,
-    columns,
-    pageCount: Math.ceil(filtered.length / PAGE_SIZE),
-    state: { pagination: { pageIndex: page - 1, pageSize: PAGE_SIZE } },
-    onPaginationChange: (updater) => {
-      const next =
-        typeof updater === "function"
-          ? updater({ pageIndex: page - 1, pageSize: PAGE_SIZE })
-          : updater;
-      setPage(next.pageIndex + 1);
-    },
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    manualPagination: false,
-  });
-
-  const totalPages = table.getPageCount();
-  const pageRows = table.getRowModel().rows;
+  const columns = useMemo<TableProColumn<Customer>[]>(() => {
+    const cols: TableProColumn<Customer>[] = [
+      {
+        id: "name",
+        label: "Nombre",
+        getSortValue: (c) => c.name.toLowerCase(),
+        getSearchValue: (c) =>
+          [
+            c.name,
+            c.lastnames,
+            c.phone,
+            c.email,
+            c.identification,
+            c.address,
+          ].join(" "),
+        render: (c) => <span className="font-medium">{c.name}</span>,
+      },
+      {
+        id: "lastnames",
+        label: "Apellidos",
+        getSortValue: (c) => c.lastnames.toLowerCase(),
+      },
+      {
+        id: "identification",
+        label: "Cédula / ID",
+        getSortValue: (c) => c.identification ?? "",
+        render: (c) => (
+          <span className="font-mono text-xs">{c.identification || "—"}</span>
+        ),
+      },
+      {
+        id: "address",
+        label: "Dirección",
+        getSortValue: (c) => c.address ?? "",
+        render: (c) => (
+          <span className="text-muted">{c.address || "—"}</span>
+        ),
+      },
+      {
+        id: "isActive",
+        label: "Estado",
+        getSortValue: (c) => (c.isActive === false ? 0 : 1),
+        render: (c) => (
+          <span
+            className={
+              c.isActive === false ? "text-danger" : "text-success"
+            }
+          >
+            {c.isActive === false ? "Inactivo" : "Activo"}
+          </span>
+        ),
+      },
+      {
+        id: "phone",
+        label: "Teléfono",
+        getSortValue: (c) => c.phone,
+        render: (c) => <span className="text-muted">{c.phone || "—"}</span>,
+      },
+      {
+        id: "email",
+        label: "Correo",
+        getSortValue: (c) => c.email.toLowerCase(),
+        render: (c) => <span className="text-muted">{c.email || "—"}</span>,
+      },
+    ];
+    if (showActions) {
+      cols.push({
+        id: "actions",
+        label: readOnly ? "Portal" : "Acciones",
+        sortable: false,
+        render: (customer) => (
+          <div className="flex flex-wrap items-center gap-1">
+            {canManagePortal ? (
+              <Button
+                size="sm"
+                variant={customer.hasPortalAccess ? "secondary" : "primary"}
+                onPress={() => onActivatePortal?.(customer)}
+              >
+                {customer.hasPortalAccess ? "Portal activo" : "Activar portal"}
+              </Button>
+            ) : null}
+            {!readOnly ? (
+              <>
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="ghost"
+                  onPress={() => onEdit(customer)}
+                >
+                  <Pencil width={16} height={16} />
+                </Button>
+                {canDelete ? (
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="danger"
+                    onPress={() => onDelete(customer.id)}
+                  >
+                    <TrashBin width={16} height={16} />
+                  </Button>
+                ) : null}
+              </>
+            ) : null}
+          </div>
+        ),
+      });
+    }
+    return cols;
+  }, [
+    canDelete,
+    canManagePortal,
+    onActivatePortal,
+    onDelete,
+    onEdit,
+    readOnly,
+    showActions,
+  ]);
 
   if (loading) {
     return (
@@ -110,131 +182,13 @@ export function CustomerList({
   }
 
   return (
-    <ContentCard>
-      <div className="flex flex-col gap-4 p-6">
-        <SearchField value={search} onChange={setSearch}>
-          <Label>Buscar cliente</Label>
-          <SearchField.Group>
-            <SearchField.SearchIcon />
-            <SearchField.Input className="w-full sm:w-[320px]" placeholder="Nombre, teléfono o correo..." />
-            <SearchField.ClearButton />
-          </SearchField.Group>
-        </SearchField>
-
-        <Table>
-          <Table.ScrollContainer>
-            <Table.Content aria-label="Clientes" className="min-w-[600px]">
-              <Table.Header>
-                <Table.Column isRowHeader>Nombre</Table.Column>
-                <Table.Column>Apellidos</Table.Column>
-                <Table.Column>Teléfono</Table.Column>
-                <Table.Column>Correo</Table.Column>
-                {!readOnly || canManagePortal ? (
-                  <Table.Column>{readOnly ? "Portal" : "Acciones"}</Table.Column>
-                ) : null}
-              </Table.Header>
-              <Table.Body>
-                {pageRows.length === 0 ? (
-                  <Table.Row>
-                    <Table.Cell colSpan={!readOnly || canManagePortal ? 5 : 4}>
-                      <div className="py-8 text-center text-sm text-muted">
-                        No se encontraron clientes con &quot;{search}&quot;
-                      </div>
-                    </Table.Cell>
-                  </Table.Row>
-                ) : (
-                  pageRows.map((row) => {
-                    const customer = row.original;
-                    return (
-                      <Table.Row key={customer.id}>
-                        <Table.Cell>
-                          <span className="font-medium">{customer.name}</span>
-                        </Table.Cell>
-                        <Table.Cell>{customer.lastnames}</Table.Cell>
-                        <Table.Cell className="text-muted">{customer.phone}</Table.Cell>
-                        <Table.Cell className="text-muted">{customer.email}</Table.Cell>
-                        {!readOnly ? (
-                          <Table.Cell>
-                            <div className="flex flex-wrap items-center gap-1">
-                              {canManagePortal ? (
-                                <Button
-                                  size="sm"
-                                  variant={customer.hasPortalAccess ? "secondary" : "primary"}
-                                  onPress={() => onActivatePortal?.(customer)}
-                                >
-                                  {customer.hasPortalAccess ? "Portal activo" : "Activar portal"}
-                                </Button>
-                              ) : null}
-                              <Button isIconOnly size="sm" variant="ghost" onPress={() => onEdit(customer)}>
-                                <Pencil width={16} height={16} />
-                              </Button>
-                              {canDelete ? (
-                                <Button isIconOnly size="sm" variant="danger" onPress={() => onDelete(customer.id)}>
-                                  <TrashBin width={16} height={16} />
-                                </Button>
-                              ) : null}
-                            </div>
-                          </Table.Cell>
-                        ) : canManagePortal ? (
-                          <Table.Cell>
-                            <Button
-                              size="sm"
-                              variant={customer.hasPortalAccess ? "secondary" : "primary"}
-                              onPress={() => onActivatePortal?.(customer)}
-                            >
-                              {customer.hasPortalAccess ? "Portal activo" : "Activar portal"}
-                            </Button>
-                          </Table.Cell>
-                        ) : null}
-                      </Table.Row>
-                    );
-                  })
-                )}
-              </Table.Body>
-            </Table.Content>
-          </Table.ScrollContainer>
-        </Table>
-
-        {filtered.length > PAGE_SIZE && (
-          <Table.Footer>
-            <Pagination size="sm">
-              <Pagination.Summary>
-                {table.getState().pagination.pageIndex * PAGE_SIZE + 1} a{" "}
-                {Math.min(
-                  (table.getState().pagination.pageIndex + 1) * PAGE_SIZE,
-                  filtered.length,
-                )}{" "}
-                de {filtered.length} resultados
-              </Pagination.Summary>
-              <Pagination.Content>
-                <Pagination.Item>
-                  <Pagination.Previous
-                    isDisabled={!table.getCanPreviousPage()}
-                    onPress={() => table.previousPage()}
-                  >
-                    <Pagination.PreviousIcon />
-                  </Pagination.Previous>
-                </Pagination.Item>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                  <Pagination.Item key={p}>
-                    <Pagination.Link isActive={p === page} onPress={() => setPage(p)}>
-                      {p}
-                    </Pagination.Link>
-                  </Pagination.Item>
-                ))}
-                <Pagination.Item>
-                  <Pagination.Next
-                    isDisabled={!table.getCanNextPage()}
-                    onPress={() => table.nextPage()}
-                  >
-                    <Pagination.NextIcon />
-                  </Pagination.Next>
-                </Pagination.Item>
-              </Pagination.Content>
-            </Pagination>
-          </Table.Footer>
-        )}
-      </div>
-    </ContentCard>
+    <TablePro
+      columns={columns}
+      rows={customers}
+      getRowId={(c) => c.id}
+      searchPlaceholder="Nombre, cédula, teléfono o correo..."
+      emptyMessage="No se encontraron clientes"
+      defaultRowsPerPage={10}
+    />
   );
 }

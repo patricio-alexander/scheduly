@@ -27,7 +27,7 @@ export function BranchSelector({
       })
       .map((b) => ({
         id: String(b.id),
-        label: formatBranchLabel(b.name, b.isMain),
+        label: formatBranchLabel(b.name, b.isMain, b.locationKind),
       })),
   ];
 

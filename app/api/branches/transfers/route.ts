@@ -6,6 +6,7 @@ import { transferBranchStock } from "@/shared/utils/branch-stock";
 import { canTransferStock, isBranchAdminRole } from "@/shared/utils/roles";
 import { notifyStockTransfer } from "@/shared/utils/transfer-notify";
 
+/** Historial de traspasos = movimientos de kardex con reason traspaso. */
 export async function GET() {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
@@ -14,21 +15,36 @@ export async function GET() {
   }
 
   try {
-    const transfers = await prisma.stockTransfer.findMany({
-      orderBy: { createdAt: "desc" },
+    const rows = await prisma.stockMovement.findMany({
+      where: { reason: "traspaso", type: "salida" },
+      orderBy: { date: "desc" },
       take: 50,
       include: {
-        fromBranch: { select: { name: true } },
-        toBranch: { select: { name: true } },
-        user: { select: { name: true } },
-        lines: {
-          include: { product: { select: { name: true } } },
-        },
+        product: { select: { id: true, name: true } },
+        creator: { select: { id: true, username: true } },
       },
     });
-    return NextResponse.json(transfers);
-  } catch {
-    return NextResponse.json({ message: "Error al obtener transferencias" }, { status: 500 });
+
+    return NextResponse.json(
+      rows.map((r) => ({
+        id: r.id,
+        date: r.date.toISOString(),
+        quantity: r.quantity,
+        description: r.description,
+        fromBranchId: r.referenceType === "stock_transfer_out" ? r.referenceId : null,
+        product: r.product,
+        user: {
+          id: r.creator.id,
+          name: r.creator.username,
+        },
+      })),
+    );
+  } catch (error) {
+    console.error("GET /api/branches/transfers", error);
+    return NextResponse.json(
+      { message: "Error al obtener transferencias" },
+      { status: 500 },
+    );
   }
 }
 
@@ -45,6 +61,9 @@ export async function POST(request: Request) {
     const toBranchId = Number(body.toBranchId);
     const notes = String(body.notes ?? "").trim();
     const linesRaw = body.lines;
+    const movedAtRaw = body.movedAt ? new Date(String(body.movedAt)) : null;
+    const movedAt =
+      movedAtRaw && !Number.isNaN(movedAtRaw.getTime()) ? movedAtRaw : undefined;
 
     if (!Number.isInteger(fromBranchId) || fromBranchId <= 0) {
       return NextResponse.json({ message: "Sucursal origen inválida" }, { status: 400 });
@@ -75,7 +94,12 @@ export async function POST(request: Request) {
         if (!item || typeof item !== "object") continue;
         const productId = Number((item as { productId?: unknown }).productId);
         const quantity = Number((item as { quantity?: unknown }).quantity);
-        if (Number.isInteger(productId) && productId > 0 && Number.isInteger(quantity) && quantity > 0) {
+        if (
+          Number.isInteger(productId) &&
+          productId > 0 &&
+          Number.isInteger(quantity) &&
+          quantity > 0
+        ) {
           lines.push({ productId, quantity });
         }
       }
@@ -88,6 +112,7 @@ export async function POST(request: Request) {
         userId: auth.user.id,
         notes,
         lines,
+        movedAt,
       }),
     );
 
@@ -105,7 +130,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json(transfer, { status: 201 });
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Error al transferir stock";
+    const message =
+      error instanceof Error ? error.message : "Error al transferir stock";
     return NextResponse.json({ message }, { status: 400 });
   }
 }

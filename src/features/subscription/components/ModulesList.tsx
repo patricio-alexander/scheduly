@@ -103,7 +103,7 @@ export function ModulesList() {
         <PageHeader
           icon={<Puzzle width={24} height={24} />}
           title="Módulos"
-          description="Activa o desactiva módulos disponibles en Scheduly"
+          description="Catálogo local de módulos de Scheduly"
         />
         <Button
           size="sm"
@@ -135,7 +135,7 @@ export function ModulesList() {
           />
           <p className="mt-3 text-sm font-medium">No hay módulos disponibles</p>
           <p className="mt-1 text-xs text-muted">
-            Cuando el gestor publique módulos, aparecerán aquí.
+            Scheduly ya no sincroniza módulos externos. El catálogo es local.
           </p>
         </div>
       ) : (

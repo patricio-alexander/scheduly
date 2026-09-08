@@ -9,11 +9,26 @@ import { apiUrl } from "@/shared/utils/api";
 import { SelectField } from "@/shared/components/SelectField";
 
 type SriStatus = {
+  enabled: boolean;
   hasCertificate: boolean;
   certFileName: string | null;
   environment: "pruebas" | "produccion";
   autoEmitOnPayment: boolean;
+  readyForInvoicing: boolean;
   uploadedAt: string | null;
+  ruc: string;
+  legalName: string;
+  tradeName: string;
+  matrixAddress: string;
+  establishmentAddress: string;
+  establishmentCode: string;
+  emissionPointCode: string;
+  phone: string;
+  email: string;
+  accountingRequired: boolean;
+  specialTaxpayerResolution: string;
+  taxRegime: string;
+  nextInvoiceSequential: number;
 };
 
 export function SriCertificateForm({
@@ -28,6 +43,21 @@ export function SriCertificateForm({
     "pruebas",
   );
   const [autoEmitOnPayment, setAutoEmitOnPayment] = useState(false);
+  const [billing, setBilling] = useState({
+    ruc: "",
+    legalName: "",
+    tradeName: "",
+    matrixAddress: "",
+    establishmentAddress: "",
+    establishmentCode: "001",
+    emissionPointCode: "001",
+    phone: "",
+    email: "",
+    accountingRequired: true,
+    specialTaxpayerResolution: "",
+    taxRegime: "",
+    nextInvoiceSequential: 1,
+  });
   const [password, setPassword] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -49,6 +79,21 @@ export function SriCertificateForm({
         json.environment === "produccion" ? "produccion" : "pruebas";
       setEnvironment(env);
       setAutoEmitOnPayment(Boolean(json.autoEmitOnPayment));
+      setBilling({
+        ruc: String(json.ruc ?? ""),
+        legalName: String(json.legalName ?? ""),
+        tradeName: String(json.tradeName ?? ""),
+        matrixAddress: String(json.matrixAddress ?? ""),
+        establishmentAddress: String(json.establishmentAddress ?? ""),
+        establishmentCode: String(json.establishmentCode ?? "001"),
+        emissionPointCode: String(json.emissionPointCode ?? "001"),
+        phone: String(json.phone ?? ""),
+        email: String(json.email ?? ""),
+        accountingRequired: Boolean(json.accountingRequired ?? true),
+        specialTaxpayerResolution: String(json.specialTaxpayerResolution ?? ""),
+        taxRegime: String(json.taxRegime ?? ""),
+        nextInvoiceSequential: Number(json.nextInvoiceSequential ?? 1) || 1,
+      });
       onEnvironmentChange?.(env);
     } catch (e) {
       toast.danger(e instanceof Error ? e.message : "Error al cargar SRI");
@@ -129,6 +174,31 @@ export function SriCertificateForm({
     }
   };
 
+  const saveBilling = async () => {
+    setPending(true);
+    try {
+      const res = await fetch(apiUrl("/api/sri"), {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          enabled: autoEmitOnPayment,
+          environment,
+          ...billing,
+        }),
+      });
+      const json = await res.json().catch(() => null);
+      if (!res.ok) {
+        throw new Error(json?.message ?? "No se pudo guardar");
+      }
+      setStatus(json as SriStatus);
+      toast.success("Datos fiscales SRI guardados");
+    } catch (err) {
+      toast.danger(err instanceof Error ? err.message : "Error al guardar");
+    } finally {
+      setPending(false);
+    }
+  };
+
   const saveAutoEmit = async (enabled: boolean) => {
     setAutoEmitOnPayment(enabled);
     try {
@@ -163,12 +233,192 @@ export function SriCertificateForm({
   }
 
   return (
-    <form onSubmit={onSubmit} className="flex max-w-lg flex-col gap-6">
+    <form onSubmit={onSubmit} className="flex max-w-3xl flex-col gap-6">
       <div className="rounded-xl border border-separator bg-surface-secondary/60 px-4 py-3 text-sm text-muted">
-        Sube el certificado <span className="font-medium text-foreground">.p12</span>{" "}
-        (o .pfx) emitido para firma electrónica de comprobantes SRI en Ecuador.
-        La contraseña se guarda cifrada y el archivo fuera de la carpeta pública.
+        Completa los mismos datos fiscales que en EdDeli (RUC, razón social,
+        establecimiento y punto de emisión) y sube el certificado{" "}
+        <span className="font-medium text-foreground">.p12</span> para firmar
+        comprobantes SRI.
       </div>
+
+      {status?.readyForInvoicing ? (
+        <p className="rounded-xl border border-success/40 bg-success/10 px-4 py-2 text-sm text-success">
+          Listo para facturar electrónicamente
+        </p>
+      ) : (
+        <p className="rounded-xl border border-warning/40 bg-warning/10 px-4 py-2 text-sm text-warning">
+          Faltan datos fiscales o el certificado .p12 para emitir al SRI
+        </p>
+      )}
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <Label htmlFor="sri-ruc">RUC</Label>
+          <input
+            id="sri-ruc"
+            value={billing.ruc}
+            onChange={(e) => setBilling((b) => ({ ...b, ruc: e.target.value }))}
+            className="w-full rounded-xl border border-separator bg-field-background px-3.5 py-2.5 text-sm"
+            placeholder="13 dígitos"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <Label htmlFor="sri-legal">Razón social</Label>
+          <input
+            id="sri-legal"
+            value={billing.legalName}
+            onChange={(e) =>
+              setBilling((b) => ({ ...b, legalName: e.target.value }))
+            }
+            className="w-full rounded-xl border border-separator bg-field-background px-3.5 py-2.5 text-sm"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <Label htmlFor="sri-trade">Nombre comercial</Label>
+          <input
+            id="sri-trade"
+            value={billing.tradeName}
+            onChange={(e) =>
+              setBilling((b) => ({ ...b, tradeName: e.target.value }))
+            }
+            className="w-full rounded-xl border border-separator bg-field-background px-3.5 py-2.5 text-sm"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <Label htmlFor="sri-matrix">Dirección matriz</Label>
+          <input
+            id="sri-matrix"
+            value={billing.matrixAddress}
+            onChange={(e) =>
+              setBilling((b) => ({ ...b, matrixAddress: e.target.value }))
+            }
+            className="w-full rounded-xl border border-separator bg-field-background px-3.5 py-2.5 text-sm"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <Label htmlFor="sri-estab-addr">Dirección establecimiento</Label>
+          <input
+            id="sri-estab-addr"
+            value={billing.establishmentAddress}
+            onChange={(e) =>
+              setBilling((b) => ({
+                ...b,
+                establishmentAddress: e.target.value,
+              }))
+            }
+            className="w-full rounded-xl border border-separator bg-field-background px-3.5 py-2.5 text-sm"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="sri-estab">Establecimiento</Label>
+          <input
+            id="sri-estab"
+            value={billing.establishmentCode}
+            onChange={(e) =>
+              setBilling((b) => ({ ...b, establishmentCode: e.target.value }))
+            }
+            className="w-full rounded-xl border border-separator bg-field-background px-3.5 py-2.5 text-sm"
+            placeholder="001"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="sri-pto">Punto de emisión</Label>
+          <input
+            id="sri-pto"
+            value={billing.emissionPointCode}
+            onChange={(e) =>
+              setBilling((b) => ({ ...b, emissionPointCode: e.target.value }))
+            }
+            className="w-full rounded-xl border border-separator bg-field-background px-3.5 py-2.5 text-sm"
+            placeholder="001"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="sri-seq">Próximo secuencial</Label>
+          <input
+            id="sri-seq"
+            type="number"
+            min={1}
+            value={billing.nextInvoiceSequential}
+            onChange={(e) =>
+              setBilling((b) => ({
+                ...b,
+                nextInvoiceSequential: Number(e.target.value) || 1,
+              }))
+            }
+            className="w-full rounded-xl border border-separator bg-field-background px-3.5 py-2.5 text-sm"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="sri-phone">Teléfono fiscal</Label>
+          <input
+            id="sri-phone"
+            value={billing.phone}
+            onChange={(e) =>
+              setBilling((b) => ({ ...b, phone: e.target.value }))
+            }
+            className="w-full rounded-xl border border-separator bg-field-background px-3.5 py-2.5 text-sm"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5 sm:col-span-2">
+          <Label htmlFor="sri-email">Correo fiscal</Label>
+          <input
+            id="sri-email"
+            value={billing.email}
+            onChange={(e) =>
+              setBilling((b) => ({ ...b, email: e.target.value }))
+            }
+            className="w-full rounded-xl border border-separator bg-field-background px-3.5 py-2.5 text-sm"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="sri-regime">Régimen</Label>
+          <input
+            id="sri-regime"
+            value={billing.taxRegime}
+            onChange={(e) =>
+              setBilling((b) => ({ ...b, taxRegime: e.target.value }))
+            }
+            className="w-full rounded-xl border border-separator bg-field-background px-3.5 py-2.5 text-sm"
+          />
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <Label htmlFor="sri-res">Resolución contrib. especial</Label>
+          <input
+            id="sri-res"
+            value={billing.specialTaxpayerResolution}
+            onChange={(e) =>
+              setBilling((b) => ({
+                ...b,
+                specialTaxpayerResolution: e.target.value,
+              }))
+            }
+            className="w-full rounded-xl border border-separator bg-field-background px-3.5 py-2.5 text-sm"
+          />
+        </div>
+        <label className="flex items-center gap-2 text-sm sm:col-span-2">
+          <input
+            type="checkbox"
+            checked={billing.accountingRequired}
+            onChange={(e) =>
+              setBilling((b) => ({
+                ...b,
+                accountingRequired: e.target.checked,
+              }))
+            }
+          />
+          Obligado a llevar contabilidad
+        </label>
+      </div>
+
+      <Button
+        type="button"
+        variant="secondary"
+        isDisabled={pending}
+        onPress={() => void saveBilling()}
+      >
+        Guardar datos fiscales
+      </Button>
 
       {status?.hasCertificate ? (
         <div className="flex items-start gap-3 rounded-xl border border-separator bg-surface px-4 py-3">

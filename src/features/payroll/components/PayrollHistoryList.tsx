@@ -26,6 +26,7 @@ function formatDateTime(iso: string) {
     time: date.toLocaleTimeString("es-EC", {
       hour: "2-digit",
       minute: "2-digit",
+      second: "2-digit",
     }),
   };
 }

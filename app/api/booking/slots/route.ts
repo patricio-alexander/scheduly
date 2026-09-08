@@ -6,6 +6,7 @@ import {
   endOfLocalDay,
   startOfLocalDay,
 } from "@/shared/utils/booking";
+import { getAgendaHours } from "@/shared/utils/business-settings";
 
 /** Horarios libres para un servicio en un día (sin auth) */
 export async function GET(request: Request) {
@@ -15,14 +16,10 @@ export async function GET(request: Request) {
     const serviceId = Number(searchParams.get("serviceId"));
     const branchIdRaw = searchParams.get("branchId");
     const branchId =
-      branchIdRaw && branchIdRaw !== ""
-        ? Number(branchIdRaw)
-        : null;
+      branchIdRaw && branchIdRaw !== "" ? Number(branchIdRaw) : null;
     const userIdRaw = searchParams.get("userId");
     const userId =
-      userIdRaw && userIdRaw !== ""
-        ? Number(userIdRaw)
-        : null;
+      userIdRaw && userIdRaw !== "" ? Number(userIdRaw) : null;
 
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       return NextResponse.json(
@@ -55,6 +52,7 @@ export async function GET(request: Request) {
 
     const dayStart = startOfLocalDay(date);
     const dayEnd = endOfLocalDay(date);
+    const hours = await getAgendaHours();
 
     const appointments = await prisma.appointment.findMany({
       where: {
@@ -86,13 +84,15 @@ export async function GET(request: Request) {
       return { start, end: start + mins * 60_000 };
     });
 
-    const slots = buildDaySlots(date, duration, busy);
+    const slots = buildDaySlots(date, duration, busy, new Date(), hours);
     return NextResponse.json({
       date,
       serviceId,
       branchId,
       userId,
       durationMinutes: duration,
+      bookingStartHour: hours.bookingStartHour,
+      bookingEndHour: hours.bookingEndHour,
       slots,
     });
   } catch (error) {

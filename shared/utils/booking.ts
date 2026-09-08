@@ -1,6 +1,12 @@
-/** Horario de atención para reservas públicas (hora local del servidor) */
-export const BOOKING_DAY_START_HOUR = 9;
-export const BOOKING_DAY_END_HOUR = 18;
+import {
+  DEFAULT_BOOKING_END_HOUR,
+  DEFAULT_BOOKING_START_HOUR,
+} from "@/shared/utils/agenda-hours";
+
+/** @deprecated Preferir getAgendaHours() / AppSettings */
+export const BOOKING_DAY_START_HOUR = DEFAULT_BOOKING_START_HOUR;
+/** @deprecated Preferir getAgendaHours() / AppSettings */
+export const BOOKING_DAY_END_HOUR = DEFAULT_BOOKING_END_HOUR;
 export const DEFAULT_SERVICE_DURATION_MINUTES = 30;
 
 export function startOfLocalDay(dateStr: string) {
@@ -28,12 +34,15 @@ export function buildDaySlots(
   durationMinutes: number,
   busy: Array<{ start: number; end: number }>,
   now = new Date(),
+  hours?: { bookingStartHour?: number; bookingEndHour?: number },
 ) {
+  const startH = hours?.bookingStartHour ?? BOOKING_DAY_START_HOUR;
+  const endH = hours?.bookingEndHour ?? BOOKING_DAY_END_HOUR;
   const dayStart = startOfLocalDay(dateStr);
   const open = new Date(dayStart);
-  open.setHours(BOOKING_DAY_START_HOUR, 0, 0, 0);
+  open.setHours(startH, 0, 0, 0);
   const close = new Date(dayStart);
-  close.setHours(BOOKING_DAY_END_HOUR, 0, 0, 0);
+  close.setHours(endH, 0, 0, 0);
 
   const slots: string[] = [];
   const stepMs = durationMinutes * 60_000;

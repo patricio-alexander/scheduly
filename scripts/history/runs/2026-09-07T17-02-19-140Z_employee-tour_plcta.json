@@ -1,0 +1,78 @@
+{
+  "tester": "employee-tour",
+  "mode": "schedule",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 12846,
+  "ok": true,
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "ok": true
+  },
+  "actor": {
+    "username": "estilista_maria",
+    "name": "María García",
+    "role": "employee",
+    "branchKey": "colon"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como María García",
+        "Rol: Empleado · local: Andrea Guerrero · Eguiguren"
+      ]
+    },
+    {
+      "id": "load-catalog",
+      "title": "Carga clientes y servicios",
+      "ok": true,
+      "lines": [
+        "Clientes: 21",
+        "Servicios: 42",
+        "Ej. servicio: Alisado permanente ($85)"
+      ]
+    },
+    {
+      "id": "create-appointment",
+      "title": "Agenda turno con servicios",
+      "ok": true,
+      "lines": [
+        "Turno: Tour María 071202 · id=3",
+        "Cliente: Cliente Tour María 071201",
+        "Servicios: Alisado permanente · Ampolla reparadora (sesión)",
+        "Staff Person.id=1228 · branch=17"
+      ]
+    },
+    {
+      "id": "verify-agenda",
+      "title": "Verifica en «mi agenda»",
+      "ok": true,
+      "lines": [
+        "Eventos en agenda: 1",
+        "Turno visible en mi agenda"
+      ]
+    },
+    {
+      "id": "cleanup",
+      "title": "Cancela el turno de prueba",
+      "ok": true,
+      "lines": [
+        "Turno 3 → cancelled"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "María termina y sale."
+      ]
+    }
+  ],
+  "id": "2026-09-07T17-02-19-140Z_employee-tour_plcta",
+  "at": "2026-09-07T17:02:19.140Z"
+}

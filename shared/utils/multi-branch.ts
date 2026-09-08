@@ -1,13 +1,14 @@
 /**
- * Scheduly opera siempre en modo multi-local / multistock (como EdDeli).
+ * Scheduly opera siempre en modo multi-local / multistock.
  * No existe modo “un solo local” y no se puede desactivar.
- * Vinculado al feature del gestor: `multi_stock` (siempre habilitado en esta app).
  */
 export const SCHEDULY_DEPLOYMENT = {
-  /** Feature key en Gestor / Raptor Solutions */
+  /** Feature key de producto (multistock) */
+  featureKey: "multi_stock",
+  /** @deprecated usar featureKey */
   gestorFeatureKey: "multi_stock",
   /** Nombre comercial del producto */
-  productName: "Scheduly",
+  productName: "Peluquería y Spa",
   /** Siempre true: stock por sucursal obligatorio */
   multiStockEnabled: true as const,
   /** Siempre true: varias sucursales/locales */

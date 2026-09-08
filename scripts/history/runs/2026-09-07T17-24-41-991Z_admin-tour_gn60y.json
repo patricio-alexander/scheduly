@@ -1,0 +1,301 @@
+{
+  "tester": "admin-tour",
+  "mode": "catalog-all-parallel",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 2545,
+  "ok": true,
+  "summary": {
+    "passed": 30,
+    "failed": 0,
+    "total": 30
+  },
+  "subjects": [
+    {
+      "username": "admin_colon",
+      "name": "Karla Espinoza",
+      "role": "admin",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 10,
+      "failed": 0,
+      "total": 10,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Karla Espinoza",
+            "Local: Andrea Guerrero · Cristóbal Colón · id=16"
+          ]
+        },
+        {
+          "id": "products-list",
+          "title": "Lista productos · Andrea Guerrero · Cristóbal Colón",
+          "ok": true,
+          "lines": [
+            "Ve 47 producto(s)"
+          ]
+        },
+        {
+          "id": "products-create",
+          "title": "Crea producto",
+          "ok": true,
+          "lines": [
+            "«Prod colon 71224_admin_colon»",
+            "Precio $9,90"
+          ]
+        },
+        {
+          "id": "products-edit",
+          "title": "Edita nombre y precio",
+          "ok": true,
+          "lines": [
+            "→ Prod colon 71224_admin_colon · edit · $11,50"
+          ]
+        },
+        {
+          "id": "products-delete",
+          "title": "Elimina producto de prueba",
+          "ok": true,
+          "lines": [
+            "Eliminado id=445"
+          ]
+        },
+        {
+          "id": "services-list",
+          "title": "Lista servicios · Andrea Guerrero · Cristóbal Colón",
+          "ok": true,
+          "lines": [
+            "Ve 43 servicio(s)"
+          ]
+        },
+        {
+          "id": "services-create",
+          "title": "Crea servicio",
+          "ok": true,
+          "lines": [
+            "«Serv colon 71224_admin_colon»",
+            "Precio $14,00"
+          ]
+        },
+        {
+          "id": "services-edit",
+          "title": "Edita nombre y precio del servicio",
+          "ok": true,
+          "lines": [
+            "→ Serv colon 71224_admin_colon · edit · $16,50"
+          ]
+        },
+        {
+          "id": "services-delete",
+          "title": "Elimina servicio de prueba",
+          "ok": true,
+          "lines": [
+            "Eliminado id=130"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Karla termina catálogo de «Andrea Guerrero · Cristóbal Colón»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "admin_eguiguren",
+      "name": "Paola Jiménez",
+      "role": "admin",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 10,
+      "failed": 0,
+      "total": 10,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Paola Jiménez",
+            "Local: Andrea Guerrero · Eguiguren · id=17"
+          ]
+        },
+        {
+          "id": "products-list",
+          "title": "Lista productos · Andrea Guerrero · Eguiguren",
+          "ok": true,
+          "lines": [
+            "Ve 47 producto(s)"
+          ]
+        },
+        {
+          "id": "products-create",
+          "title": "Crea producto",
+          "ok": true,
+          "lines": [
+            "«Prod eguiguren 71224_admin_eguiguren»",
+            "Precio $9,90"
+          ]
+        },
+        {
+          "id": "products-edit",
+          "title": "Edita nombre y precio",
+          "ok": true,
+          "lines": [
+            "→ Prod eguiguren 71224_admin_eguiguren · edit · $11,50"
+          ]
+        },
+        {
+          "id": "products-delete",
+          "title": "Elimina producto de prueba",
+          "ok": true,
+          "lines": [
+            "Eliminado id=446"
+          ]
+        },
+        {
+          "id": "services-list",
+          "title": "Lista servicios · Andrea Guerrero · Eguiguren",
+          "ok": true,
+          "lines": [
+            "Ve 42 servicio(s)"
+          ]
+        },
+        {
+          "id": "services-create",
+          "title": "Crea servicio",
+          "ok": true,
+          "lines": [
+            "«Serv eguiguren 71224_admin_eguiguren»",
+            "Precio $14,00"
+          ]
+        },
+        {
+          "id": "services-edit",
+          "title": "Edita nombre y precio del servicio",
+          "ok": true,
+          "lines": [
+            "→ Serv eguiguren 71224_admin_eguiguren · edit · $16,50"
+          ]
+        },
+        {
+          "id": "services-delete",
+          "title": "Elimina servicio de prueba",
+          "ok": true,
+          "lines": [
+            "Eliminado id=129"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Paola termina catálogo de «Andrea Guerrero · Eguiguren»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "admin_loja",
+      "name": "Verónica Cueva",
+      "role": "admin",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 10,
+      "failed": 0,
+      "total": 10,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Verónica Cueva",
+            "Local: Andrea Guerrero · Cristóbal Colón · id=16"
+          ]
+        },
+        {
+          "id": "products-list",
+          "title": "Lista productos · Andrea Guerrero · Cristóbal Colón",
+          "ok": true,
+          "lines": [
+            "Ve 47 producto(s)"
+          ]
+        },
+        {
+          "id": "products-create",
+          "title": "Crea producto",
+          "ok": true,
+          "lines": [
+            "«Prod colon 71224_admin_loja»",
+            "Precio $9,90"
+          ]
+        },
+        {
+          "id": "products-edit",
+          "title": "Edita nombre y precio",
+          "ok": true,
+          "lines": [
+            "→ Prod colon 71224_admin_loja · edit · $11,50"
+          ]
+        },
+        {
+          "id": "products-delete",
+          "title": "Elimina producto de prueba",
+          "ok": true,
+          "lines": [
+            "Eliminado id=447"
+          ]
+        },
+        {
+          "id": "services-list",
+          "title": "Lista servicios · Andrea Guerrero · Cristóbal Colón",
+          "ok": true,
+          "lines": [
+            "Ve 44 servicio(s)"
+          ]
+        },
+        {
+          "id": "services-create",
+          "title": "Crea servicio",
+          "ok": true,
+          "lines": [
+            "«Serv colon 71224_admin_loja»",
+            "Precio $14,00"
+          ]
+        },
+        {
+          "id": "services-edit",
+          "title": "Edita nombre y precio del servicio",
+          "ok": true,
+          "lines": [
+            "→ Serv colon 71224_admin_loja · edit · $16,50"
+          ]
+        },
+        {
+          "id": "services-delete",
+          "title": "Elimina servicio de prueba",
+          "ok": true,
+          "lines": [
+            "Eliminado id=131"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Verónica termina catálogo de «Andrea Guerrero · Cristóbal Colón»."
+          ]
+        }
+      ]
+    }
+  ],
+  "id": "2026-09-07T17-24-41-991Z_admin-tour_gn60y",
+  "at": "2026-09-07T17:24:41.991Z"
+}

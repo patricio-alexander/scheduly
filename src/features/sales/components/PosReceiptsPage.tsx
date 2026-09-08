@@ -133,6 +133,7 @@ function formatReceiptDate(raw?: string | null) {
     year: "numeric",
     hour: "numeric",
     minute: "2-digit",
+    second: "2-digit",
   });
 }
 
@@ -215,8 +216,11 @@ export function PosReceiptsPage() {
       setSales(payload.data ?? payload.rows ?? []);
 
       if (sriRes?.ok) {
-        const sri = (await sriRes.json()) as { hasCertificate?: boolean };
-        setSriReady(Boolean(sri.hasCertificate));
+        const sri = (await sriRes.json()) as {
+          hasCertificate?: boolean;
+          readyForInvoicing?: boolean;
+        };
+        setSriReady(Boolean(sri.readyForInvoicing ?? sri.hasCertificate));
       } else {
         setSriReady(false);
       }
@@ -530,16 +534,23 @@ export function PosReceiptsPage() {
       </div>
 
       <div className="rounded-xl border border-separator bg-surface-secondary/40 px-3 py-2 text-[12px] text-muted">
-        Reimpresión de ventas de caja. Detalle SRI en{" "}
+        Reimpresión de ventas de caja. Estado SRI (autorizado, pendiente, rechazado) en{" "}
         <Link
-          href={appRoutes.electronicDocs.issued}
+          href={appRoutes.posDocs.issued}
           className="text-accent underline-offset-2 hover:underline"
         >
-          Documentos emitidos
+          Emitidos
         </Link>
         {" · "}
         <Link
-          href={appRoutes.electronicDocs.sriSettings}
+          href={appRoutes.posDocs.hub}
+          className="text-accent underline-offset-2 hover:underline"
+        >
+          Comprobantes POS
+        </Link>
+        {" · "}
+        <Link
+          href={appRoutes.posDocs.sriSettings}
           className="text-accent underline-offset-2 hover:underline"
         >
           Configurar SRI

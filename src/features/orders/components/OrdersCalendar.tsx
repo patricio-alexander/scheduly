@@ -50,7 +50,10 @@ type CalendarOrder = {
 
 type FilterKind = "all" | "customer" | "supplier";
 
+type GridCell = { date: Date | null; key: string };
+
 const WEEKDAYS = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
+const SEVERITIES = [0, 1, 2, 3] as const;
 
 function monthLabel(year: number, month: number) {
   return new Date(year, month, 1).toLocaleDateString("es-EC", {
@@ -59,11 +62,11 @@ function monthLabel(year: number, month: number) {
   });
 }
 
-function buildGrid(year: number, month: number) {
+function buildGrid(year: number, month: number): GridCell[] {
   const first = new Date(year, month, 1);
   const last = new Date(year, month + 1, 0);
   const startPad = (first.getDay() + 6) % 7;
-  const cells: Array<{ date: Date | null; key: string }> = [];
+  const cells: GridCell[] = [];
   for (let i = 0; i < startPad; i++) {
     cells.push({ date: null, key: `pad-${i}` });
   }
@@ -125,7 +128,7 @@ function OrderCard({ order }: { order: CalendarOrder }) {
     (order.severity === 1 || order.severity === 3 ? 100 : 0);
   const unpaidAmount =
     paidPct >= 100 ? 0 : Math.max(0, order.total * (1 - paidPct / 100));
-  const deliveredCount = order.items.filter((i) => i.deliveredAt).length;
+  const deliveredCount = order.items.filter((item) => item.deliveredAt).length;
   const itemCount = order.items.length;
   const cobroLabel =
     unpaidAmount <= 0
@@ -166,19 +169,15 @@ function OrderCard({ order }: { order: CalendarOrder }) {
             )}
           </p>
           <div className="mt-1.5 flex max-w-sm gap-2">
-            {!isSupplier ? (
+            {isSupplier ? (
               <>
-                <ProgressBar label="Cobro" pct={paidPct} tone="gold" />
-                <ProgressBar label="Entrega" pct={deliveredPct} tone="accent" />
+                <ProgressBar label="Pago" pct={paidPct} tone="gold" />
+                <ProgressBar label="Recepción" pct={deliveredPct} tone="success" />
               </>
             ) : (
               <>
-                <ProgressBar label="Pago" pct={paidPct} tone="gold" />
-                <ProgressBar
-                  label="Recepción"
-                  pct={deliveredPct}
-                  tone="success"
-                />
+                <ProgressBar label="Cobro" pct={paidPct} tone="gold" />
+                <ProgressBar label="Entrega" pct={deliveredPct} tone="accent" />
               </>
             )}
           </div>
@@ -217,7 +216,6 @@ function OrderCard({ order }: { order: CalendarOrder }) {
               Notas: {order.notes.replace(/^\[PEDIDO\]\s*(\[CREDITO\]\s*)?/, "")}
             </p>
           ) : null}
-
           {order.items.length === 0 ? (
             <p className="text-[11px] text-muted">Sin detalle de productos</p>
           ) : (
@@ -294,38 +292,44 @@ export function OrdersCalendar() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return orders.filter((o) => {
-      // Seguridad UI: no listar Consumidor Final en Pedidos
+    return orders.filter((order) => {
       if (
-        o.orderKind === "customer" &&
-        o.partyName.toLowerCase().includes("consumidor final")
+        order.orderKind === "customer" &&
+        order.partyName.toLowerCase().includes("consumidor final")
       ) {
         return false;
       }
-      if (filter === "customer" && o.orderKind !== "customer") return false;
-      if (filter === "supplier" && o.orderKind !== "supplier") return false;
+      if (filter === "customer" && order.orderKind !== "customer") return false;
+      if (filter === "supplier" && order.orderKind !== "supplier") return false;
       if (!q) return true;
       return (
-        o.partyName.toLowerCase().includes(q) ||
-        o.itemsSummary.toLowerCase().includes(q) ||
-        String(o.id).includes(q)
+        order.partyName.toLowerCase().includes(q) ||
+        order.itemsSummary.toLowerCase().includes(q) ||
+        String(order.id).includes(q)
       );
     });
   }, [orders, filter, search]);
 
   const byDay = useMemo(() => {
     const map = new Map<string, CalendarOrder[]>();
-    for (const o of filtered) {
-      if (!o.dateKey.startsWith(monthParam)) continue;
-      const list = map.get(o.dateKey) ?? [];
-      list.push(o);
-      map.set(o.dateKey, list);
+    for (const order of filtered) {
+      if (!order.dateKey.startsWith(monthParam)) continue;
+      const list = map.get(order.dateKey) ?? [];
+      list.push(order);
+      map.set(order.dateKey, list);
     }
     return map;
   }, [filtered, monthParam]);
 
-  const dayOrders = selectedDay ? byDay.get(selectedDay) ?? [] : [];
-  const grid = buildGrid(year, month);
+  const dayOrders = selectedDay ? (byDay.get(selectedDay) ?? []) : [];
+  const weeks = useMemo(() => {
+    const grid = buildGrid(year, month);
+    const rows: GridCell[][] = [];
+    for (let i = 0; i < grid.length; i += 7) {
+      rows.push(grid.slice(i, i + 7));
+    }
+    return rows;
+  }, [year, month]);
 
   const goPrev = () => {
     if (month === 0) {
@@ -414,7 +418,11 @@ export function OrdersCalendar() {
         </div>
       </div>
 
-      <SearchField aria-label="Buscar pedidos" value={search} onChange={setSearch}>
+      <SearchField
+        aria-label="Buscar pedidos"
+        value={search}
+        onChange={setSearch}
+      >
         <Label>Buscar</Label>
         <SearchField.Group>
           <SearchField.SearchIcon />
@@ -424,16 +432,14 @@ export function OrdersCalendar() {
       </SearchField>
 
       <div className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-muted">
-        {(Object.keys(ORDER_SEVERITY_META) as unknown as OrderSeverity[]).map(
-          (sev) => (
-            <span key={sev} className="inline-flex items-center gap-1.5">
-              <span
-                className={`h-2.5 w-2.5 rounded-full ${ORDER_SEVERITY_META[sev].chipClass}`}
-              />
-              {ORDER_SEVERITY_META[sev].label}
-            </span>
-          ),
-        )}
+        {SEVERITIES.map((sev) => (
+          <span key={sev} className="inline-flex items-center gap-1.5">
+            <span
+              className={`h-2.5 w-2.5 rounded-full ${ORDER_SEVERITY_META[sev].chipClass}`}
+            />
+            {ORDER_SEVERITY_META[sev].label}
+          </span>
+        ))}
         <span className="inline-flex items-center gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-[var(--warning)]" />
           Cuota / crédito a pagar
@@ -445,117 +451,142 @@ export function OrdersCalendar() {
       ) : (
         <div className="overflow-hidden rounded-2xl border border-separator bg-surface/80">
           <div className="grid grid-cols-7 border-b border-separator bg-surface-secondary/50">
-            {WEEKDAYS.map((d) => (
+            {WEEKDAYS.map((day) => (
               <div
-                key={d}
+                key={day}
                 className="px-2 py-2 text-center text-[11px] font-semibold text-muted"
               >
-                {d}
+                {day}
               </div>
             ))}
           </div>
-          <div className="grid grid-cols-7">
-            {grid.map((cell) => {
-              if (!cell.date) {
-                return (
-                  <div
-                    key={cell.key}
-                    className="min-h-[4.75rem] border-b border-r border-separator/40 bg-surface-secondary/10"
-                  />
-                );
-              }
-              const dayList = byDay.get(cell.key) ?? [];
-              const customers = dayList.filter((o) => o.orderKind === "customer")
-                .length;
-              const suppliers = dayList.filter((o) => o.orderKind === "supplier")
-                .length;
-              const worst =
-                dayList.length > 0
-                  ? (Math.min(...dayList.map((o) => o.severity)) as OrderSeverity)
-                  : null;
-              const hasCredit = dayList.some((o) => o.hasCreditDue);
-              const selected = selectedDay === cell.key;
-              const isToday = cell.key === todayKey();
+          {weeks.map((week, weekIndex) => {
+            const weekHasSelected = Boolean(
+              selectedDay && week.some((cell) => cell.key === selectedDay),
+            );
+            return (
+              <div key={`week-${weekIndex}`}>
+                <div className="grid grid-cols-7">
+                  {week.map((cell) => {
+                    if (!cell.date) {
+                      return (
+                        <div
+                          key={cell.key}
+                          className="min-h-[4.75rem] border-b border-r border-separator/40 bg-surface-secondary/10"
+                        />
+                      );
+                    }
+                    const dayList = byDay.get(cell.key) ?? [];
+                    const customers = dayList.filter(
+                      (o) => o.orderKind === "customer",
+                    ).length;
+                    const suppliers = dayList.filter(
+                      (o) => o.orderKind === "supplier",
+                    ).length;
+                    const worst =
+                      dayList.length > 0
+                        ? (Math.min(
+                            ...dayList.map((o) => o.severity),
+                          ) as OrderSeverity)
+                        : null;
+                    const hasCredit = dayList.some((o) => o.hasCreditDue);
+                    const selected = selectedDay === cell.key;
+                    const isToday = cell.key === todayKey();
+                    let pillText = "";
+                    if (dayList.length) {
+                      if (filter === "all" && customers && suppliers) {
+                        pillText = `${customers} cli · ${suppliers} prov`;
+                      } else {
+                        pillText = `${dayList.length} ped.`;
+                      }
+                    }
 
-              let pillText = "";
-              if (dayList.length) {
-                if (filter === "all" && customers && suppliers) {
-                  pillText = `${customers} cli · ${suppliers} prov`;
-                } else {
-                  pillText = `${dayList.length} ped.`;
-                }
-              }
-
-              return (
-                <button
-                  key={cell.key}
-                  type="button"
-                  onClick={() => setSelectedDay(cell.key)}
-                  className={`min-h-[4.75rem] border-b border-r border-separator/40 p-1.5 text-left transition-colors hover:bg-accent/5 ${
-                    selected
-                      ? "bg-accent/12 ring-1 ring-inset ring-accent/40"
-                      : ""
-                  }`}
-                >
-                  <span
-                    className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
-                      isToday
-                        ? "bg-accent text-accent-foreground"
-                        : "text-muted"
-                    }`}
-                  >
-                    {cell.date.getDate()}
-                  </span>
-                  {pillText ? (
-                    <span
-                      className={`mt-1 block truncate rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${
-                        hasCredit
-                          ? "bg-[var(--warning)] text-[var(--warning-foreground)]"
-                          : worst != null
-                            ? ORDER_SEVERITY_META[worst].colorClass
-                            : "bg-surface-secondary"
-                      }`}
-                    >
-                      {pillText}
-                      {hasCredit ? " · cuota" : ""}
-                    </span>
-                  ) : null}
-                </button>
-              );
-            })}
-          </div>
+                    return (
+                      <button
+                        key={cell.key}
+                        type="button"
+                        onClick={() =>
+                          setSelectedDay((prev) =>
+                            prev === cell.key ? null : cell.key,
+                          )
+                        }
+                        className={`min-h-[4.75rem] border-b border-r border-separator/40 p-1.5 text-left transition-colors hover:bg-accent/5 ${
+                          selected
+                            ? "bg-accent/12 ring-1 ring-inset ring-accent/40"
+                            : ""
+                        }`}
+                      >
+                        <span
+                          className={`inline-flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                            isToday
+                              ? "bg-accent text-accent-foreground"
+                              : "text-muted"
+                          }`}
+                        >
+                          {cell.date.getDate()}
+                        </span>
+                        {pillText ? (
+                          <span
+                            className={`mt-1 block truncate rounded-md px-1.5 py-0.5 text-[10px] font-semibold ${
+                              hasCredit
+                                ? "bg-[var(--warning)] text-[var(--warning-foreground)]"
+                                : worst != null
+                                  ? ORDER_SEVERITY_META[worst].colorClass
+                                  : "bg-surface-secondary"
+                            }`}
+                          >
+                            {pillText}
+                            {hasCredit ? " · cuota" : ""}
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+                {weekHasSelected && selectedDay ? (
+                  <section className="border-b border-separator bg-accent/5 px-3 py-3">
+                    <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
+                      <h2 className="text-sm font-bold capitalize">
+                        {new Date(`${selectedDay}T12:00:00`).toLocaleDateString(
+                          "es-EC",
+                          {
+                            weekday: "long",
+                            day: "numeric",
+                            month: "long",
+                          },
+                        )}
+                        <span className="ml-2 font-normal text-muted">
+                          ({dayOrders.length} pedido
+                          {dayOrders.length === 1 ? "" : "s"})
+                        </span>
+                      </h2>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onPress={() => setSelectedDay(null)}
+                      >
+                        Cerrar
+                      </Button>
+                    </div>
+                    {dayOrders.length === 0 ? (
+                      <p className="text-sm text-muted">Sin pedidos este día.</p>
+                    ) : (
+                      <div className="flex flex-col gap-1.5">
+                        {dayOrders.map((order) => (
+                          <OrderCard
+                            key={`${order.orderKind}-${order.id}`}
+                            order={order}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </section>
+                ) : null}
+              </div>
+            );
+          })}
         </div>
       )}
-
-      {selectedDay ? (
-        <section className="rounded-2xl border border-separator bg-surface/80 p-3">
-          <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-bold capitalize">
-              {new Date(`${selectedDay}T12:00:00`).toLocaleDateString("es-EC", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-              })}
-              <span className="ml-2 font-normal text-muted">
-                ({dayOrders.length} pedido{dayOrders.length === 1 ? "" : "s"})
-              </span>
-            </h2>
-            <Button size="sm" variant="ghost" onPress={() => setSelectedDay(null)}>
-              Cerrar
-            </Button>
-          </div>
-
-          {dayOrders.length === 0 ? (
-            <p className="text-sm text-muted">Sin pedidos este día.</p>
-          ) : (
-            <div className="flex flex-col gap-1.5">
-              {dayOrders.map((o) => (
-                <OrderCard key={`${o.orderKind}-${o.id}`} order={o} />
-              ))}
-            </div>
-          )}
-        </section>
-      ) : null}
 
       <CustomerOrderDialog
         state={customerModal}

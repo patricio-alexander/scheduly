@@ -9,7 +9,7 @@ export default function Page() {
       icon={<LayoutHeaderCells width={24} height={24} />}
       title="Catálogo config"
       description="Configuración del catálogo público."
-      moduleLabel="Canal digital"
+      moduleLabel="Marketing"
     />
   );
 }

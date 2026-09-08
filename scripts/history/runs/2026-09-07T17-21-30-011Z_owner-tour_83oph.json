@@ -1,0 +1,130 @@
+{
+  "tester": "owner-tour",
+  "mode": "catalog",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 15412,
+  "ok": false,
+  "summary": {
+    "passed": 11,
+    "failed": 1,
+    "total": 12,
+    "ok": false
+  },
+  "actor": {
+    "username": "Administrador",
+    "name": "Andrea Guerrero",
+    "role": "owner"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como Andrea Guerrero",
+        "Usuario: Administrador · rol: Dueña"
+      ]
+    },
+    {
+      "id": "products-list",
+      "title": "Lista productos",
+      "ok": true,
+      "lines": [
+        "Catálogo: 47 producto(s)",
+        "Ej: Guantes nitrilo caja · $7,50"
+      ]
+    },
+    {
+      "id": "products-create",
+      "title": "Crea un producto",
+      "ok": false,
+      "lines": [
+        "HTTP 500 Error al crear el producto"
+      ]
+    },
+    {
+      "id": "products-edit-existing",
+      "title": "Cambia nombre/precio de un producto existente",
+      "ok": true,
+      "lines": [
+        "«Guantes nitrilo caja» → «Guantes nitrilo caja · Tour»",
+        "$7,50 → $8,61"
+      ]
+    },
+    {
+      "id": "products-restore",
+      "title": "Restaura el producto existente",
+      "ok": true,
+      "lines": [
+        "Nombre: Guantes nitrilo caja",
+        "Precio: $7,50",
+        "Producto existente restaurado"
+      ]
+    },
+    {
+      "id": "services-list",
+      "title": "Lista servicios",
+      "ok": true,
+      "lines": [
+        "Carta: 42 servicio(s)",
+        "Ej: Alisado permanente · $85,00"
+      ]
+    },
+    {
+      "id": "services-create",
+      "title": "Crea un servicio",
+      "ok": true,
+      "lines": [
+        "Creado: «Servicio Tour 071221»",
+        "Precio: $18,00 · 40 min",
+        "id=127"
+      ]
+    },
+    {
+      "id": "services-edit-created",
+      "title": "Edita nombre y precio del servicio nuevo",
+      "ok": true,
+      "lines": [
+        "Nombre → Servicio Tour 071221 · editado",
+        "Precio → $22,50"
+      ]
+    },
+    {
+      "id": "services-edit-existing",
+      "title": "Cambia nombre/precio de un servicio existente",
+      "ok": true,
+      "lines": [
+        "«Alisado permanente» → «Alisado permanente · Tour»",
+        "$85,00 → $87,50"
+      ]
+    },
+    {
+      "id": "services-restore",
+      "title": "Restaura el servicio existente",
+      "ok": true,
+      "lines": [
+        "Nombre: Alisado permanente",
+        "Precio: $85,00",
+        "Servicio existente restaurado"
+      ]
+    },
+    {
+      "id": "services-delete",
+      "title": "Elimina el servicio de prueba",
+      "ok": true,
+      "lines": [
+        "Servicio tour 127 eliminado"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "Andrea Guerrero termina y sale del sistema."
+      ]
+    }
+  ],
+  "id": "2026-09-07T17-21-30-011Z_owner-tour_83oph",
+  "at": "2026-09-07T17:21:30.011Z"
+}

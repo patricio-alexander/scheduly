@@ -7,6 +7,7 @@ import {
   saveSriCertificate,
   updateSriAutoEmit,
   updateSriEnvironment,
+  updateSriBillingFields,
 } from "@/shared/utils/sri-settings";
 
 export async function GET() {
@@ -77,18 +78,12 @@ export async function PUT(request: Request) {
     if (body.remove) {
       return NextResponse.json(await clearSriCertificate());
     }
-    if (body.autoEmitOnPayment !== undefined) {
+    if (body.autoEmitOnPayment !== undefined && Object.keys(body).length <= 2) {
       return NextResponse.json(
         await updateSriAutoEmit(Boolean(body.autoEmitOnPayment)),
       );
     }
-    if (body.environment !== undefined) {
-      return NextResponse.json(await updateSriEnvironment(body.environment));
-    }
-    return NextResponse.json(
-      { message: "Usa multipart para subir el certificado .p12" },
-      { status: 400 },
-    );
+    return NextResponse.json(await updateSriBillingFields(body));
   } catch (error) {
     console.error("PUT /api/sri", error);
     const message =

@@ -1,0 +1,68 @@
+{
+  "tester": "owner-tour",
+  "mode": "register-customers",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 3949,
+  "ok": true,
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "ok": true
+  },
+  "actor": {
+    "username": "Administrador",
+    "name": "Andrea Guerrero",
+    "role": "owner"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como Andrea Guerrero",
+        "Usuario: Administrador · rol: Dueña"
+      ]
+    },
+    {
+      "id": "list-before",
+      "title": "Clientes antes de registrar",
+      "ok": true,
+      "lines": [
+        "Total en sistema: 131"
+      ]
+    },
+    {
+      "id": "register",
+      "title": "Registra 20 clientes (dueña)",
+      "ok": true,
+      "lines": [
+        "Creados: 20/20",
+        "· Elena Palacios",
+        "· Ricardo Mora",
+        "· Paula Vega",
+        "· Sebastián Guerrero",
+        "· María Burneo"
+      ]
+    },
+    {
+      "id": "verify",
+      "title": "Verifica listado",
+      "ok": true,
+      "lines": [
+        "Antes 131 → ahora 151 (+20)"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "Andrea Guerrero termina y sale del sistema."
+      ]
+    }
+  ],
+  "id": "2026-09-07T19-24-58-121Z_owner-tour_jnhcb",
+  "at": "2026-09-07T19:24:58.121Z"
+}

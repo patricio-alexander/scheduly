@@ -3,29 +3,30 @@ import { prisma } from "@/shared/utils/prisma";
 import { checkAuth } from "@/shared/utils/check-auth";
 import { toAmount } from "@/shared/utils/money";
 import { isManagementRole } from "@/shared/utils/roles";
+import { listFinanceExpenses } from "@/shared/utils/finance-ledger-list";
 
-/** Ledger completo de gastos (estilo EdDeli), sin filtro de período. */
+/** Ledger de gastos: Expense + pagos a proveedores / compras pagadas. */
 export async function GET() {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
+  if (!isManagementRole(auth.user.role)) {
+    return NextResponse.json({ message: "No autorizado" }, { status: 403 });
+  }
 
   try {
-    const expenses = await prisma.expense.findMany({
-      where: { status: "paid" },
-      orderBy: { date: "desc" },
-      take: 1000,
-    });
+    const rows = await listFinanceExpenses(2000);
     return NextResponse.json(
-      expenses.map((e) => ({
+      rows.map((e) => ({
         id: e.id,
-        date: e.date.toISOString(),
+        date: e.date,
         amount: toAmount(e.amount),
-        concept: e.concept ?? "",
-        category: e.category ?? "",
+        concept: e.concept,
+        category: e.category,
         status: e.status,
         counterpartyName: e.counterpartyName,
         referenceType: e.referenceType,
         referenceId: e.referenceId,
+        persisted: e.persisted,
       })),
     );
   } catch (error) {

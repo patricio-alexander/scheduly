@@ -26,11 +26,7 @@ export async function notifyAdminsLowStock(product: {
 
   const ownerRole = await prisma.role.findFirst({
     where: {
-      OR: [
-        { name: "owner" },
-        { name: "Programador" },
-        { name: "Administrador" },
-      ],
+      OR: [{ name: "Dueño" }, { name: "owner" }],
     },
   });
   if (!ownerRole) return;
@@ -52,7 +48,7 @@ export async function notifyAdminsLowStock(product: {
     const existing = await prisma.notification.findFirst({
       where: {
         userId,
-        type: "warning",
+        type: "alert",
         seen: false,
         OR: [{ title }, { link }],
       },

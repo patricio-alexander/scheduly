@@ -27,6 +27,7 @@ function formatRange(startsAt: string, endsAt: string | null) {
       year: "numeric",
       hour: "2-digit",
       minute: "2-digit",
+      second: "2-digit",
     });
   return endsAt ? `${fmt(startsAt)} → ${fmt(endsAt)}` : `Desde ${fmt(startsAt)}`;
 }
@@ -41,6 +42,23 @@ function offerStatus(offer: LoyaltyOffer) {
   return "Activa";
 }
 
+const WEEKDAY_LABELS = [
+  { d: 1, label: "Lun" },
+  { d: 2, label: "Mar" },
+  { d: 3, label: "Mié" },
+  { d: 4, label: "Jue" },
+  { d: 5, label: "Vie" },
+  { d: 6, label: "Sáb" },
+  { d: 0, label: "Dom" },
+] as const;
+
+function formatWeekdays(weekdays: number[] | null | undefined) {
+  if (!weekdays || weekdays.length === 0) return "Todos los días";
+  return WEEKDAY_LABELS.filter((w) => weekdays.includes(w.d))
+    .map((w) => w.label)
+    .join(" · ");
+}
+
 const emptyForm = (): OfferFormData => ({
   name: "",
   description: "",
@@ -50,6 +68,7 @@ const emptyForm = (): OfferFormData => ({
   startsAt: toLocalInput(new Date().toISOString()),
   endsAt: "",
   isActive: true,
+  weekdays: [1, 2, 3, 4, 5, 6],
 });
 
 export function OffersManager() {
@@ -92,6 +111,9 @@ export function OffersManager() {
       startsAt: toLocalInput(offer.startsAt),
       endsAt: toLocalInput(offer.endsAt),
       isActive: offer.isActive,
+      weekdays: Array.isArray(offer.weekdays)
+        ? offer.weekdays.map(Number).filter((n) => n >= 0 && n <= 6)
+        : [],
     });
     modal.open();
   };
@@ -145,9 +167,9 @@ export function OffersManager() {
         <div className="flex flex-col gap-4 p-4 sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <div>
-              <h2 className="text-lg font-semibold">Ofertas por período</h2>
+              <h2 className="text-lg font-semibold">Ofertas por período / semana</h2>
               <p className="text-sm text-muted">
-                Promociones con fecha de inicio y fin visibles para clientes
+                Promociones con vigencia y días de la semana (ej. martes 2x1)
               </p>
             </div>
             <Button variant="primary" onPress={openCreate}>
@@ -185,6 +207,13 @@ export function OffersManager() {
                       <p className="mt-1 text-sm text-muted">{offer.description}</p>
                       <p className="mt-2 text-xs text-muted">
                         {formatRange(offer.startsAt, offer.endsAt)}
+                      </p>
+                      <p className="mt-1 text-xs font-medium text-foreground">
+                        {formatWeekdays(
+                          Array.isArray(offer.weekdays)
+                            ? (offer.weekdays as number[])
+                            : null,
+                        )}
                       </p>
                       {offer.discountPct ? (
                         <p className="mt-1 text-sm font-bold text-accent">
@@ -277,6 +306,37 @@ export function OffersManager() {
                       onChange={(e) => setForm((f) => ({ ...f, endsAt: e.target.value }))}
                     />
                   </label>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <span className="text-sm font-medium">
+                    Días de la semana (vacío = todos)
+                  </span>
+                  <div className="flex flex-wrap gap-2">
+                    {WEEKDAY_LABELS.map((w) => {
+                      const on = form.weekdays.includes(w.d);
+                      return (
+                        <button
+                          key={w.d}
+                          type="button"
+                          className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                            on
+                              ? "bg-accent text-accent-foreground"
+                              : "bg-surface-secondary text-muted hover:text-foreground"
+                          }`}
+                          onClick={() =>
+                            setForm((f) => ({
+                              ...f,
+                              weekdays: on
+                                ? f.weekdays.filter((d) => d !== w.d)
+                                : [...f.weekdays, w.d].sort(),
+                            }))
+                          }
+                        >
+                          {w.label}
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
                 <Switch
                   isSelected={form.isActive}

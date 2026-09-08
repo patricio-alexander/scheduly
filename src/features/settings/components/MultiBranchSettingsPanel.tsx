@@ -24,11 +24,7 @@ export function MultiBranchSettingsPanel() {
           </h2>
           <p className="mt-1 text-sm text-muted">
             {SCHEDULY_DEPLOYMENT.productName} opera siempre con varias
-            sucursales y stock por local (feature gestor{" "}
-            <code className="rounded bg-surface-secondary px-1 text-[11px]">
-              {SCHEDULY_DEPLOYMENT.gestorFeatureKey}
-            </code>
-            ). No se puede desactivar.
+            sucursales y stock por local. No se puede desactivar.
           </p>
         </div>
       </div>
@@ -61,7 +57,7 @@ export function MultiBranchSettingsPanel() {
 
       <div className="mt-4 flex flex-wrap gap-2">
         <Link
-          href={appRoutes.channel.stores}
+          href={appRoutes.inventory.stores}
           className="inline-flex items-center gap-1.5 rounded-xl border border-separator bg-surface px-3 py-2 text-sm font-medium transition-colors hover:border-accent/40 hover:bg-accent/5"
         >
           <House width={14} height={14} />

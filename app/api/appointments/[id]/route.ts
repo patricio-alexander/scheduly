@@ -9,6 +9,12 @@ import { emitAppointmentDeleted, emitAppointmentUpdated } from "@/shared/utils/s
 import { checkAuth } from "@/shared/utils/check-auth";
 import { getUserPrimaryBranchId, resolveAppointmentBranchId } from "@/shared/utils/branches";
 import { canDeleteRecords, isBranchAdminRole } from "@/shared/utils/roles";
+import {
+  customerAppointmentSelect,
+  serializeCustomerForAgenda,
+  serializeStaffAsUser,
+  staffAppointmentSelect,
+} from "@/shared/utils/person-name";
 
 export async function GET(
   _request: Request,
@@ -22,8 +28,8 @@ export async function GET(
     const appointment = await prisma.appointment.findUnique({
       where: { id: Number(id) },
       include: {
-        customer: { select: { id: true, name: true, lastnames: true, phone: true, email: true } },
-        user: { select: { id: true, name: true } },
+        customer: { select: customerAppointmentSelect },
+        staff: { select: staffAppointmentSelect },
         services: {
           include: { service: { select: { id: true, name: true, price: true } } },
         },
@@ -57,8 +63,8 @@ export async function GET(
       appointmentDate: appointment.appointmentDate.toISOString(),
       status: appointment.status,
       stockDeducted: appointment.stockDeducted,
-      customer: appointment.customer,
-      user: appointment.user,
+      customer: serializeCustomerForAgenda(appointment.customer),
+      user: serializeStaffAsUser(appointment.staff),
       payment: appointment.payment
         ? {
             ...appointment.payment,
@@ -150,16 +156,16 @@ export async function PUT(
         },
       });
 
-      await tx.appointmentsServices.deleteMany({
+      await tx.appointmentService.deleteMany({
         where: { appointmentId: Number(id) },
       });
 
-      await tx.appointmentsProducts.deleteMany({
+      await tx.appointmentProduct.deleteMany({
         where: { appointmentId: Number(id) },
       });
 
       if (serviceIds?.length > 0) {
-        await tx.appointmentsServices.createMany({
+        await tx.appointmentService.createMany({
           data: serviceIds.map((serviceId: number) => ({
             appointmentId: updated.id,
             serviceId: Number(serviceId),
@@ -168,7 +174,7 @@ export async function PUT(
       }
 
       if (products.length > 0) {
-        await tx.appointmentsProducts.createMany({
+        await tx.appointmentProduct.createMany({
           data: products.map(({ productId, quantity }) => ({
             appointmentId: updated.id,
             productId,

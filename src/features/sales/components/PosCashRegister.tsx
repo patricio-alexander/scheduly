@@ -7,6 +7,7 @@ import {
   Input,
   Label,
   ListBox,
+  Modal,
   toast,
   useOverlayState,
 } from "@heroui/react";
@@ -15,18 +16,39 @@ import CircleXmark from "@gravity-ui/icons/CircleXmark";
 import CircleDollar from "@gravity-ui/icons/CircleDollar";
 import ArrowUpRightFromSquare from "@gravity-ui/icons/ArrowUpRightFromSquare";
 import LayoutCellsLarge from "@gravity-ui/icons/LayoutCellsLarge";
+import PersonPlus from "@gravity-ui/icons/PersonPlus";
+import SquarePlus from "@gravity-ui/icons/SquarePlus";
+import Pencil from "@gravity-ui/icons/Pencil";
 import TrashBin from "@gravity-ui/icons/TrashBin";
 import { useAuth } from "@/src/features/auth";
-import { useCustomers } from "@/src/features/customers";
-import { useProducts } from "@/src/features/products";
-import type { Product } from "@/src/features/products";
+import {
+  CustomerForm,
+  useCustomers,
+  type CustomerFormData,
+} from "@/src/features/customers";
+import * as customerService from "@/src/features/customers/services/customer-service";
+import {
+  ProductForm,
+  useProducts,
+  type Product,
+  type ProductFormData,
+} from "@/src/features/products";
+import * as productService from "@/src/features/products/services/product-service";
+import { useCategories } from "@/src/features/categories";
 import { useBranches } from "@/src/features/branches";
+import { useOperationFlags } from "@/src/features/settings/hooks/useOperationFlags";
 import { apiUrl } from "@/shared/utils/api";
 import { appRoutes } from "@/shared/utils/app-routes";
 import { formatMoney, lineTotal } from "@/shared/utils/money";
 import { type PaymentMethodValue } from "@/shared/utils/payment-methods";
 import { isManagementRole, isOwnerRole } from "@/shared/utils/roles";
 import { createDirectProductSale } from "../services/product-sale-service";
+import {
+  CreditPlanFields,
+  buildCreditInstallmentsPayload,
+  type CreditPlanMode,
+  type InstallmentDraft,
+} from "@/src/features/orders/components/CreditPlanFields";
 import { PosQuickAccessModal } from "./PosQuickAccessModal";
 
 /** Input numérico compacto (sin botones ± grandes de NumberField). */
@@ -136,9 +158,16 @@ export function PosCashRegister() {
   const { user } = useAuth();
   const { products, loading: productsLoading, refetch: refetchProducts } =
     useProducts();
-  const { customers, loading: customersLoading } = useCustomers();
+  const { customers, loading: customersLoading, refetch: refetchCustomers } =
+    useCustomers();
+  const { categories } = useCategories();
   const { branches } = useBranches();
+  const flags = useOperationFlags();
   const quickModal = useOverlayState();
+  const customerModal = useOverlayState();
+  const productModal = useOverlayState();
+
+  const [sriReady, setSriReady] = useState(false);
 
   const canSell = user ? isManagementRole(user.role) : false;
   const owner = user ? isOwnerRole(user.role) : false;
@@ -151,6 +180,8 @@ export function PosCashRegister() {
   const [showStock, setShowStock] = useState(false);
   const [documentType, setDocumentType] = useState<DocumentType>("documento");
   const [saleType, setSaleType] = useState<SaleType>("contado");
+  const [creditMode, setCreditMode] = useState<CreditPlanMode>("open");
+  const [installments, setInstallments] = useState<InstallmentDraft[]>([]);
   const [useCustomerData, setUseCustomerData] = useState(false);
   const [customerId, setCustomerId] = useState<string>("");
   const [method, setMethod] = useState<PaymentMethodValue>("cash");
@@ -158,6 +189,12 @@ export function PosCashRegister() {
   const [amountReceived, setAmountReceived] = useState("");
   const [pending, setPending] = useState(false);
   const [showShiftBanner, setShowShiftBanner] = useState(false);
+  const [savingCustomer, setSavingCustomer] = useState(false);
+  const [savingProduct, setSavingProduct] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+
+  const allowCreateProduct = flags.cajaAllowCreateProductFromSelect;
+  const allowEditProduct = flags.cajaAllowEditProductFromCart;
 
   const openShift = cash?.openShifts[0] ?? null;
 
@@ -184,6 +221,19 @@ export function PosCashRegister() {
   useEffect(() => {
     void loadCash();
   }, [loadCash]);
+
+  useEffect(() => {
+    void fetch(apiUrl("/api/sri"), { cache: "no-store" })
+      .then(async (res) => {
+        if (!res.ok) return;
+        const sri = (await res.json()) as {
+          readyForInvoicing?: boolean;
+          hasCertificate?: boolean;
+        };
+        setSriReady(Boolean(sri.readyForInvoicing ?? sri.hasCertificate));
+      })
+      .catch(() => setSriReady(false));
+  }, []);
 
   // Banner de turno: se muestra un momento y se oculta (el check del header queda)
   useEffect(() => {
@@ -299,6 +349,74 @@ export function PosCashRegister() {
 
   const clearCart = () => setCart([]);
 
+  const openCreateProduct = () => {
+    setEditingProduct(null);
+    productModal.open();
+  };
+
+  const openEditProduct = (productId: number) => {
+    const product = products.find((p) => p.id === productId);
+    if (!product) {
+      toast.danger("No se encontró el producto en el catálogo.");
+      return;
+    }
+    setEditingProduct(product);
+    productModal.open();
+  };
+
+  const handleCreateCustomer = async (data: CustomerFormData) => {
+    setSavingCustomer(true);
+    try {
+      const created = await customerService.createCustomer(data);
+      toast.success("Cliente creado");
+      customerModal.close();
+      setCustomerId(String(created.id));
+      setUseCustomerData(true);
+      await refetchCustomers();
+    } catch (err) {
+      toast.danger(err instanceof Error ? err.message : "No se pudo crear el cliente");
+    } finally {
+      setSavingCustomer(false);
+    }
+  };
+
+  const handleSaveProduct = async (data: ProductFormData) => {
+    setSavingProduct(true);
+    try {
+      if (editingProduct) {
+        const updated = await productService.updateProduct(editingProduct.id, data);
+        toast.success("Producto actualizado");
+        setCart((prev) =>
+          prev.map((row) =>
+            row.productId === updated.id
+              ? {
+                  ...row,
+                  name: updated.name,
+                  code: productCode(updated),
+                  price: Number(updated.price) || 0,
+                  stock: Number(updated.stock) || 0,
+                  taxRate: Number(updated.taxRate ?? row.taxRate),
+                }
+              : row,
+          ),
+        );
+      } else {
+        const created = await productService.createProduct(data);
+        toast.success("Producto creado");
+        addProduct(created, 1);
+      }
+      productModal.close();
+      setEditingProduct(null);
+      await refetchProducts();
+    } catch (err) {
+      toast.danger(
+        err instanceof Error ? err.message : "No se pudo guardar el producto",
+      );
+    } finally {
+      setSavingProduct(false);
+    }
+  };
+
   const openOtherCaja = () => {
     window.open(`${window.location.origin}${appRoutes.operation.cash}`, "_blank");
   };
@@ -316,9 +434,18 @@ export function PosCashRegister() {
       toast.danger("No hay sucursal para la venta");
       return;
     }
-    if ((useCustomerData || documentType === "factura") && !customerId) {
+    if (
+      (useCustomerData || documentType === "factura" || saleType === "credito") &&
+      !customerId
+    ) {
       toast.danger("Selecciona un cliente");
       return;
+    }
+    if (saleType === "credito" && creditMode === "installments") {
+      if (installments.length === 0 || installments.some((r) => !(r.amount > 0))) {
+        toast.danger("Revisá las cuotas del crédito");
+        return;
+      }
     }
     if (saleType === "contado" && method === "cash") {
       const received = Number(amountReceived);
@@ -333,13 +460,22 @@ export function PosCashRegister() {
       await createDirectProductSale({
         branchId,
         customerId:
-          useCustomerData || documentType === "factura"
+          useCustomerData || documentType === "factura" || saleType === "credito"
             ? Number(customerId)
             : null,
         method: saleType === "credito" ? "cash" : method,
         saleType,
         documentType,
         notes: notes.trim() || undefined,
+        ...(saleType === "credito"
+          ? {
+              installments: buildCreditInstallmentsPayload(
+                creditMode,
+                installments,
+                totals.total,
+              ),
+            }
+          : {}),
         lines: cart.map((row) => ({
           productId: row.productId,
           quantity: row.quantity,
@@ -354,6 +490,8 @@ export function PosCashRegister() {
       clearCart();
       setAmountReceived("");
       setNotes("");
+      setCreditMode("open");
+      setInstallments([]);
       void loadCash();
       void refetchProducts();
     } catch (err) {
@@ -365,7 +503,8 @@ export function PosCashRegister() {
 
   if (!user) return null;
 
-  const needCustomer = useCustomerData || documentType === "factura";
+  const needCustomer =
+    useCustomerData || documentType === "factura" || saleType === "credito";
   const colCount = showStock ? 8 : 7;
 
   return (
@@ -388,10 +527,14 @@ export function PosCashRegister() {
             </span>
           )}
           <a
-            href={appRoutes.electronicDocs.sriSettings}
-            className="inline-flex items-center rounded-full border border-warning/50 bg-warning/10 px-2 py-px text-[10px] font-semibold text-warning"
+            href={appRoutes.posDocs.sriSettings}
+            className={`inline-flex items-center rounded-full border px-2 py-px text-[10px] font-semibold ${
+              sriReady
+                ? "border-success/50 bg-success/10 text-success"
+                : "border-warning/50 bg-warning/10 text-warning"
+            }`}
           >
-            SRI no listo
+            {sriReady ? "SRI listo" : "SRI no listo"}
           </a>
         </div>
         <Button size="sm" variant="secondary" onPress={openOtherCaja}>
@@ -426,7 +569,8 @@ export function PosCashRegister() {
           </p>
 
           <div className="mb-1.5 flex flex-col gap-1.5 md:flex-row md:items-end">
-            <div className="min-w-0 flex-1">
+            <div className="flex min-w-0 flex-1 items-end gap-1">
+              <div className="min-w-0 flex-1">
               <ComboBox
                 key={productPickerKey}
                 aria-label="Producto"
@@ -463,6 +607,19 @@ export function PosCashRegister() {
                   </ListBox>
                 </ComboBox.Popover>
               </ComboBox>
+              </div>
+              {allowCreateProduct ? (
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="secondary"
+                  className="mb-0.5 shrink-0"
+                  aria-label="Crear producto"
+                  onPress={openCreateProduct}
+                >
+                  <SquarePlus width={16} height={16} />
+                </Button>
+              ) : null}
             </div>
             <Button size="sm" variant="secondary" onPress={() => quickModal.open()}>
               <LayoutCellsLarge width={14} height={14} />
@@ -570,15 +727,28 @@ export function PosCashRegister() {
                           {formatMoney(b.total)}
                         </td>
                         <td className="px-2.5 py-1 text-center">
-                          <Button
-                            isIconOnly
-                            size="sm"
-                            variant="ghost"
-                            aria-label="Quitar"
-                            onPress={() => removeRow(row.key)}
-                          >
-                            <TrashBin width={13} height={13} />
-                          </Button>
+                          <div className="inline-flex items-center justify-center gap-0.5">
+                            {allowEditProduct ? (
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="ghost"
+                                aria-label="Editar producto"
+                                onPress={() => openEditProduct(row.productId)}
+                              >
+                                <Pencil width={13} height={13} />
+                              </Button>
+                            ) : null}
+                            <Button
+                              isIconOnly
+                              size="sm"
+                              variant="ghost"
+                              aria-label="Quitar"
+                              onPress={() => removeRow(row.key)}
+                            >
+                              <TrashBin width={13} height={13} />
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     );
@@ -640,7 +810,10 @@ export function PosCashRegister() {
               onSelectionChange={(key) => {
                 const next = String(key || "contado") as SaleType;
                 setSaleType(next);
-                if (next === "credito") setMethod("cash");
+                if (next === "credito") {
+                  setMethod("cash");
+                  setUseCustomerData(true);
+                }
               }}
             >
               <Label>Condición de pago</Label>
@@ -662,10 +835,20 @@ export function PosCashRegister() {
               </ComboBox.Popover>
             </ComboBox>
             {saleType === "credito" ? (
-              <p className="text-[10px] text-muted">
-                Queda pendiente de cobro; no suma al turno hasta cobrarla en
-                Cobranzas.
-              </p>
+              <>
+                <p className="text-[10px] text-muted">
+                  Queda pendiente de cobro; no suma al turno hasta cobrarla en
+                  Cobranzas. Elegí cliente y plan de pago.
+                </p>
+                <CreditPlanFields
+                  compact
+                  mode={creditMode}
+                  onModeChange={setCreditMode}
+                  installments={installments}
+                  onInstallmentsChange={setInstallments}
+                  total={totals.total}
+                />
+              </>
             ) : null}
 
             <PosCheckbox
@@ -682,6 +865,8 @@ export function PosCashRegister() {
             </p>
 
             {needCustomer ? (
+              <div className="flex items-end gap-1">
+                <div className="min-w-0 flex-1">
               <ComboBox
                 aria-label="Cliente"
                 selectedKey={customerId || null}
@@ -711,6 +896,18 @@ export function PosCashRegister() {
                   </ListBox>
                 </ComboBox.Popover>
               </ComboBox>
+                </div>
+                <Button
+                  isIconOnly
+                  size="sm"
+                  variant="secondary"
+                  className="mb-0.5 shrink-0"
+                  aria-label="Agregar cliente"
+                  onPress={() => customerModal.open()}
+                >
+                  <PersonPlus width={16} height={16} />
+                </Button>
+              </div>
             ) : null}
 
             <ComboBox
@@ -806,6 +1003,87 @@ export function PosCashRegister() {
         products={productsSorted}
         onAdd={(product, qty) => addProduct(product, qty)}
       />
+
+      <Modal state={customerModal}>
+        <Modal.Backdrop>
+          <Modal.Container placement="center">
+            <Modal.Dialog>
+              <Modal.CloseTrigger />
+              <Modal.Header>
+                <Modal.Heading>Nuevo cliente</Modal.Heading>
+              </Modal.Header>
+              <Modal.Body>
+                <CustomerForm
+                  formId="pos-customer-form"
+                  onSubmit={handleCreateCustomer}
+                />
+              </Modal.Body>
+              <Modal.Footer>
+                <Button variant="secondary" onPress={() => customerModal.close()}>
+                  Cancelar
+                </Button>
+                <Button
+                  variant="primary"
+                  isDisabled={savingCustomer}
+                  form="pos-customer-form"
+                  type="submit"
+                >
+                  {savingCustomer ? "Guardando…" : "Guardar cliente"}
+                </Button>
+              </Modal.Footer>
+            </Modal.Dialog>
+          </Modal.Container>
+        </Modal.Backdrop>
+      </Modal>
+
+      {allowCreateProduct || allowEditProduct ? (
+        <Modal state={productModal}>
+          <Modal.Backdrop>
+            <Modal.Container placement="center">
+              <Modal.Dialog>
+                <Modal.CloseTrigger />
+                <Modal.Header>
+                  <Modal.Heading>
+                    {editingProduct ? "Editar producto" : "Crear producto"}
+                  </Modal.Heading>
+                </Modal.Header>
+                <Modal.Body>
+                  <ProductForm
+                    key={editingProduct?.id ?? "new"}
+                    formId="pos-product-form"
+                    defaultValues={editingProduct ?? undefined}
+                    categories={categories}
+                    onSubmit={handleSaveProduct}
+                  />
+                </Modal.Body>
+                <Modal.Footer>
+                  <Button
+                    variant="secondary"
+                    onPress={() => {
+                      productModal.close();
+                      setEditingProduct(null);
+                    }}
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    variant="primary"
+                    isDisabled={savingProduct}
+                    form="pos-product-form"
+                    type="submit"
+                  >
+                    {savingProduct
+                      ? "Guardando…"
+                      : editingProduct
+                        ? "Actualizar"
+                        : "Guardar"}
+                  </Button>
+                </Modal.Footer>
+              </Modal.Dialog>
+            </Modal.Container>
+          </Modal.Backdrop>
+        </Modal>
+      ) : null}
     </div>
   );
 }

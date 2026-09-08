@@ -178,7 +178,7 @@ export async function POST(request: Request) {
         },
       });
 
-      await tx.appointmentsServices.create({
+      await tx.appointmentService.create({
         data: {
           appointmentId: created.id,
           serviceId: service.id,

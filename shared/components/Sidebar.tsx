@@ -15,6 +15,7 @@ import {
   isBranchAdminRole,
   isManagementRole,
   isOwnerRole,
+  isProgrammerRole,
   hasEmployeeExperience,
 } from "@/shared/utils/roles";
 import { appRoutes } from "@/shared/utils/app-routes";
@@ -174,12 +175,31 @@ function filterVisibleModules(
     isManagement: boolean;
     isBranchAdmin: boolean;
     showEmployeeExperience: boolean;
+    isProgrammer: boolean;
   },
 ) {
-  const { isOwner, isManagement, isBranchAdmin, showEmployeeExperience } = opts;
+  const {
+    isOwner,
+    isManagement,
+    isBranchAdmin,
+    showEmployeeExperience,
+    isProgrammer,
+  } = opts;
+
+  if (isProgrammer) {
+    return modules
+      .filter((mod) => mod.programmerOnly)
+      .map((mod) => ({
+        ...mod,
+        items: mod.items.filter((item) => item.programmerOnly),
+      }))
+      .filter((mod) => mod.items.length > 0);
+  }
+
   return modules
     .filter(
       (mod) =>
+        !mod.programmerOnly &&
         (!mod.ownerOnly || isOwner) &&
         (!mod.adminOnly || isManagement) &&
         (!mod.employeeExperienceOnly || showEmployeeExperience),
@@ -188,6 +208,7 @@ function filterVisibleModules(
       ...mod,
       items: mod.items.filter(
         (item) =>
+          !item.programmerOnly &&
           (!item.ownerOnly || isOwner) &&
           (!item.adminOnly || isManagement) &&
           (!item.branchAdminOnly || isBranchAdmin) &&
@@ -215,12 +236,14 @@ export function Sidebar({ collapsed }: SidebarProps) {
   const isManagement = isManagementRole(user?.role);
   const isBranchAdmin = isBranchAdminRole(user?.role);
   const showEmployeeExperience = hasEmployeeExperience(user?.role);
+  const isProgrammer = isProgrammerRole(user?.role);
 
   const visibleModules = filterVisibleModules(navModules, {
     isOwner,
     isManagement,
     isBranchAdmin,
     showEmployeeExperience,
+    isProgrammer,
   });
 
   useEffect(() => {
@@ -339,15 +362,19 @@ export function Sidebar({ collapsed }: SidebarProps) {
       <nav className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
         {visibleModules.map((mod) => {
           const ModuleIcon = mod.icon;
-          const isOpen = collapsed || Boolean(openModules[mod.id]);
+          const isFlat = Boolean(mod.flat) || (isProgrammer && mod.programmerOnly);
+          const isOpen = isFlat || collapsed || Boolean(openModules[mod.id]);
           const visibleItems = mod.items;
           const hasActiveChild = visibleItems.some((item) =>
             isRouteActive(pathname, item.href, search),
           );
           const entitlementModule = getModule(mod.entitlementKey);
-          const moduleAccess = entitlementModule
-            ? resolveAccessView(entitlementModule.status, { isDeveloper })
-            : "ok";
+          const moduleAccess =
+            isProgrammer && mod.programmerOnly
+              ? "ok"
+              : entitlementModule
+                ? resolveAccessView(entitlementModule.status, { isDeveloper })
+                : "ok";
           const moduleStatusKind: AccessViewKind | null = isAppInMaintenance
             ? "maintenance"
             : moduleAccess !== "ok"
@@ -356,6 +383,58 @@ export function Sidebar({ collapsed }: SidebarProps) {
           const moduleStatusLabel = moduleStatusKind
             ? accessTitle(moduleStatusKind)
             : null;
+
+          if (isFlat) {
+            return (
+              <div key={mod.id} className="flex flex-col gap-1">
+                {visibleItems.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = isRouteActive(pathname, item.href, search);
+                  const { section } = getSectionForPath(
+                    pathWithoutQuery(item.href),
+                  );
+                  const sectionAccess = section
+                    ? resolveAccessView(section.status, { isDeveloper })
+                    : "ok";
+                  const sectionStatusKind: AccessViewKind | null =
+                    isAppInMaintenance
+                      ? "maintenance"
+                      : sectionAccess !== "ok"
+                        ? sectionAccess
+                        : null;
+                  const sectionStatusLabel = sectionStatusKind
+                    ? accessTitle(sectionStatusKind)
+                    : null;
+                  const displayLabel = navItemLabel(item);
+
+                  return (
+                    <NavButton
+                      key={item.href}
+                      isActive={isActive}
+                      collapsed={collapsed}
+                      label={displayLabel}
+                      statusLabel={sectionStatusLabel}
+                      statusKind={sectionStatusKind}
+                      nested={false}
+                      tourId={item.tourId}
+                      onPress={() => router.push(item.href)}
+                    >
+                      <Icon
+                        width={18}
+                        height={18}
+                        className={collapsed ? "" : "shrink-0"}
+                      />
+                      {!collapsed && (
+                        <span className="flex-1 truncate text-left">
+                          {displayLabel}
+                        </span>
+                      )}
+                    </NavButton>
+                  );
+                })}
+              </div>
+            );
+          }
 
           return (
             <div key={mod.id} className="flex flex-col gap-1">

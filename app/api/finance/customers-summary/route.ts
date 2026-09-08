@@ -4,7 +4,8 @@ import { isManagementRole } from "@/shared/utils/roles";
 import { parseBranchId, resolveDashboardScope } from "@/shared/utils/branches";
 import { prisma } from "@/shared/utils/prisma";
 import { toAmount } from "@/shared/utils/money";
-import { appointmentPaidAmount } from "@/shared/utils/finance-revenue";
+import { saleWhereForLocation, linesForLocation } from "@/shared/utils/pos-location";
+import { isPaidSale, saleLineTotal } from "@/shared/utils/dashboard-eddeli-metrics";
 
 export async function GET(request: Request) {
   const auth = await checkAuth();
@@ -19,23 +20,25 @@ export async function GET(request: Request) {
     const scope = await resolveDashboardScope(prisma, auth.user, requestedBranchId);
     const branchId = scope.branchId;
 
-    const appointments = await prisma.appointment.findMany({
-      where: branchId ? { branchId } : {},
+    const sales = await prisma.sale.findMany({
+      where: saleWhereForLocation(branchId),
       include: {
         customer: {
-          select: { id: true, name: true, lastnames: true, phone: true, email: true },
-        },
-        payment: true,
-        services: {
-          include: { service: { select: { id: true, name: true, price: true } } },
-        },
-        products: {
-          include: {
-            product: { select: { id: true, name: true, price: true } },
+          select: {
+            id: true,
+            name: true,
+            firstLastName: true,
+            secondLastName: true,
+            phone: true,
+            email: true,
           },
         },
+        lines: {
+          include: { product: { select: { id: true, name: true } } },
+        },
       },
-      orderBy: { appointmentDate: "desc" },
+      orderBy: { date: "desc" },
+      take: 5000,
     });
 
     type LineAgg = {
@@ -70,14 +73,19 @@ export async function GET(request: Request) {
 
     const byCustomer = new Map<number, CustAgg>();
 
-    for (const apt of appointments) {
-      const c = apt.customer;
+    for (const sale of sales) {
+      const c = sale.customer;
+      const lines = linesForLocation(sale.lines, branchId);
+      const catalog = lines.reduce((sum, line) => sum + saleLineTotal(line), 0);
+      const paid = isPaidSale(sale) ? catalog : 0;
+      const pending = isPaidSale(sale) ? 0 : catalog;
+
       const current = byCustomer.get(c.id) ?? {
         customerId: c.id,
         customer: {
-          name: `${c.name} ${c.lastnames}`.trim(),
-          phone: c.phone,
-          email: c.email,
+          name: [c.name, c.firstLastName, c.secondLastName].filter(Boolean).join(" "),
+          phone: c.phone ?? "",
+          email: c.email ?? "",
         },
         ordersCount: 0,
         revenueTotal: 0,
@@ -90,32 +98,13 @@ export async function GET(request: Request) {
       };
 
       current.ordersCount += 1;
-      const catalog =
-        apt.services.reduce((s, row) => s + toAmount(row.service.price), 0) +
-        apt.products.reduce(
-          (s, row) => s + toAmount(row.product.price) * row.quantity,
-          0,
-        );
-      const paid = appointmentPaidAmount(apt);
-      const pending =
-        apt.status === "pending_payment" || apt.status === "scheduled"
-          ? Math.max(0, catalog - paid)
-          : apt.status === "completed"
-            ? 0
-            : Math.max(0, catalog - paid);
-
       current.revenueTotal += catalog;
       current.cobrable += catalog;
       current.debe += pending;
+      if (pending > 0) current.abonado += paid;
+      else current.liquidado += catalog;
 
-      // Verde = pagado (sin deuda). Azul = abono parcial. Rojo = no pagado.
-      if (pending > 0) {
-        current.abonado += paid;
-      } else {
-        current.liquidado += Math.max(paid, catalog > 0 ? catalog : paid);
-      }
-
-      const iso = apt.appointmentDate.toISOString();
+      const iso = (sale.paidAt ?? sale.date).toISOString();
       if (!current.lastOrderAt || iso > current.lastOrderAt) {
         current.lastOrderAt = iso;
       }
@@ -147,20 +136,14 @@ export async function GET(request: Request) {
         current.lineItems.set(key, agg);
       };
 
-      for (const row of apt.products) {
-        const p = row.product;
+      for (const line of lines) {
         bumpLine(
           "product",
-          p.id,
-          p.name,
-          row.quantity,
-          toAmount(p.price) * row.quantity,
+          line.product.id,
+          line.product.name,
+          line.quantity,
+          saleLineTotal(line),
         );
-      }
-
-      for (const row of apt.services) {
-        const s = row.service;
-        bumpLine("service", s.id, s.name, 1, toAmount(s.price));
       }
 
       byCustomer.set(c.id, current);

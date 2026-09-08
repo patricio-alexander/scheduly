@@ -7,5 +7,6 @@ export interface Customer {
   identificationType?: string | null;
   identification?: string | null;
   address?: string;
+  isActive?: boolean;
   hasPortalAccess?: boolean;
 }

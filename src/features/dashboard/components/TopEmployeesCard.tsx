@@ -14,11 +14,13 @@ function formatCurrency(n: number) {
 type TopEmployeesCardProps = {
   employees: DashboardTopEmployee[];
   periodDescription?: string;
+  posMode?: boolean;
 };
 
 export function TopEmployeesCard({
   employees,
   periodDescription,
+  posMode = false,
 }: TopEmployeesCardProps) {
   return (
     <div
@@ -28,7 +30,9 @@ export function TopEmployeesCard({
       <div className="mb-3 flex items-center gap-2">
         <Person width={18} height={18} className="text-accent" />
         <div>
-          <h2 className="text-base font-semibold">Top empleados</h2>
+          <h2 className="text-base font-semibold">
+            {posMode ? "Top vendedores" : "Top empleados"}
+          </h2>
           <p className="text-xs text-muted">
             Por ingresos generados
             {periodDescription ? ` · ${periodDescription}` : ""}
@@ -55,7 +59,13 @@ export function TopEmployeesCard({
                 <p className="truncate text-sm font-medium">{emp.name}</p>
                 <p className="text-[11px] text-muted">
                   {emp.appointments}{" "}
-                  {emp.appointments === 1 ? "turno" : "turnos"}
+                  {posMode
+                    ? emp.appointments === 1
+                      ? "pedido"
+                      : "pedidos"
+                    : emp.appointments === 1
+                      ? "turno"
+                      : "turnos"}
                 </p>
               </div>
               <p className="shrink-0 text-sm font-semibold tabular-nums">
@@ -66,7 +76,9 @@ export function TopEmployeesCard({
         </ul>
       ) : (
         <p className="py-6 text-center text-xs text-muted">
-          Sin turnos completados en el período
+          {posMode
+            ? "Sin ventas cobradas en el período"
+            : "Sin turnos completados en el período"}
         </p>
       )}
     </div>

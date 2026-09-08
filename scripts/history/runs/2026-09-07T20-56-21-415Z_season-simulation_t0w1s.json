@@ -1,0 +1,417 @@
+{
+  "tester": "season-simulation",
+  "mode": "2026-07-01_2026-09-01",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 1017554,
+  "ok": true,
+  "summary": {
+    "passed": 49,
+    "failed": 0,
+    "total": 49,
+    "ok": true
+  },
+  "scenes": [
+    {
+      "id": "owner-login",
+      "title": "Dueña ingresa",
+      "ok": true,
+      "lines": [
+        "Andrea Guerrero · configura temporada"
+      ]
+    },
+    {
+      "id": "owner-config",
+      "title": "Dueña configura horario + caja",
+      "ok": true,
+      "lines": [
+        "Agenda 09:00–19:00 · employee_own · stock repuesto"
+      ]
+    },
+    {
+      "id": "day-2026-07-01",
+      "title": "2026-07-01 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-02",
+      "title": "2026-07-02 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-03",
+      "title": "2026-07-03 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-06",
+      "title": "2026-07-06 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-07",
+      "title": "2026-07-07 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-08",
+      "title": "2026-07-08 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-09",
+      "title": "2026-07-09 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-10",
+      "title": "2026-07-10 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-13",
+      "title": "2026-07-13 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-14",
+      "title": "2026-07-14 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-15",
+      "title": "2026-07-15 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-16",
+      "title": "2026-07-16 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-17",
+      "title": "2026-07-17 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-20",
+      "title": "2026-07-20 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-21",
+      "title": "2026-07-21 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-22",
+      "title": "2026-07-22 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-23",
+      "title": "2026-07-23 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-24",
+      "title": "2026-07-24 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-27",
+      "title": "2026-07-27 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-28",
+      "title": "2026-07-28 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-29",
+      "title": "2026-07-29 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-30",
+      "title": "2026-07-30 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-07-31",
+      "title": "2026-07-31 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-03",
+      "title": "2026-08-03 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-04",
+      "title": "2026-08-04 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-05",
+      "title": "2026-08-05 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-06",
+      "title": "2026-08-06 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-07",
+      "title": "2026-08-07 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-10",
+      "title": "2026-08-10 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-11",
+      "title": "2026-08-11 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-12",
+      "title": "2026-08-12 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-13",
+      "title": "2026-08-13 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-14",
+      "title": "2026-08-14 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-17",
+      "title": "2026-08-17 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-18",
+      "title": "2026-08-18 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-19",
+      "title": "2026-08-19 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-20",
+      "title": "2026-08-20 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-21",
+      "title": "2026-08-21 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-24",
+      "title": "2026-08-24 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-25",
+      "title": "2026-08-25 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-26",
+      "title": "2026-08-26 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-27",
+      "title": "2026-08-27 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-28",
+      "title": "2026-08-28 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-08-31",
+      "title": "2026-08-31 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "day-2026-09-01",
+      "title": "2026-09-01 · operación",
+      "ok": true,
+      "lines": [
+        "Cobradas 10/10 · POS 10 · errores 0"
+      ]
+    },
+    {
+      "id": "owner-panel",
+      "title": "Dueña revisa panel (all)",
+      "ok": true,
+      "lines": [
+        "Ingresos all: $6149.40",
+        "Citas: 486 · completadas: 486"
+      ]
+    },
+    {
+      "id": "season-summary",
+      "title": "Resumen temporada",
+      "ok": true,
+      "lines": [
+        "Días OK 45/45 · fallidos 0",
+        "Cobros 450 · POS 450",
+        "2026-07-01 → 2026-09-01"
+      ]
+    }
+  ],
+  "meta": {
+    "start": "2026-07-01",
+    "end": "2026-09-01",
+    "cashRegisterMode": "employee_own"
+  },
+  "id": "2026-09-07T20-56-21-415Z_season-simulation_t0w1s",
+  "at": "2026-09-07T20:56:21.415Z"
+}

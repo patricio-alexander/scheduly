@@ -1,0 +1,68 @@
+{
+  "tester": "employee-tour",
+  "mode": "edit-profile",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 22429,
+  "ok": true,
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "ok": true
+  },
+  "actor": {
+    "username": "estilista_maria",
+    "name": "María García",
+    "role": "employee",
+    "branchKey": "colon"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como María García",
+        "Rol: Empleado · local: Andrea Guerrero · Eguiguren"
+      ]
+    },
+    {
+      "id": "profile-get",
+      "title": "Lee su perfil",
+      "ok": true,
+      "lines": [
+        "Nombre: María García",
+        "Email: estilista_maria@andreaguerrero.ec",
+        "Tel: 0987112233"
+      ]
+    },
+    {
+      "id": "profile-put",
+      "title": "Edita nombre y teléfono",
+      "ok": true,
+      "lines": [
+        "Nombre → María Tour",
+        "Tel → 0990000111"
+      ]
+    },
+    {
+      "id": "profile-restore",
+      "title": "Restaura perfil original",
+      "ok": true,
+      "lines": [
+        "Nombre: María García",
+        "Perfil OK · sin cambios permanentes"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "María termina y sale."
+      ]
+    }
+  ],
+  "id": "2026-09-07T17-01-01-577Z_employee-tour_69d6b",
+  "at": "2026-09-07T17:01:01.578Z"
+}

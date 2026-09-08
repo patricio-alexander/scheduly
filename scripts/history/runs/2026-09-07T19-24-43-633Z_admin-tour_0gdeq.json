@@ -1,0 +1,194 @@
+{
+  "tester": "admin-tour",
+  "mode": "register-customers-all",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 1542,
+  "ok": true,
+  "summary": {
+    "passed": 15,
+    "failed": 0,
+    "total": 15
+  },
+  "subjects": [
+    {
+      "username": "admin_colon",
+      "name": "Karla Espinoza",
+      "role": "admin",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "created": 10,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Karla Espinoza",
+            "Local: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "list-before",
+          "title": "Clientes antes de registrar",
+          "ok": true,
+          "lines": [
+            "Total en sistema: 101"
+          ]
+        },
+        {
+          "id": "register",
+          "title": "Registra 10 clientes",
+          "ok": true,
+          "lines": [
+            "Creados: 10/10",
+            "· Jorge Samaniego",
+            "· Elena Espinoza",
+            "· Ricardo Ríos",
+            "· Paula Salazar"
+          ]
+        },
+        {
+          "id": "verify",
+          "title": "Verifica listado",
+          "ok": true,
+          "lines": [
+            "Antes 101 → ahora 131"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Karla registró 10 clientes."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "admin_eguiguren",
+      "name": "Paola Jiménez",
+      "role": "admin",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "created": 10,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Paola Jiménez",
+            "Local: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "list-before",
+          "title": "Clientes antes de registrar",
+          "ok": true,
+          "lines": [
+            "Total en sistema: 101"
+          ]
+        },
+        {
+          "id": "register",
+          "title": "Registra 10 clientes",
+          "ok": true,
+          "lines": [
+            "Creados: 10/10",
+            "· Sebastián Mora",
+            "· María Vega",
+            "· Gabriel Guerrero",
+            "· Isabel Burneo"
+          ]
+        },
+        {
+          "id": "verify",
+          "title": "Verifica listado",
+          "ok": true,
+          "lines": [
+            "Antes 101 → ahora 129"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Paola registró 10 clientes."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "admin_loja",
+      "name": "Verónica Cueva",
+      "role": "admin",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "created": 10,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Verónica Cueva",
+            "Local: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "list-before",
+          "title": "Clientes antes de registrar",
+          "ok": true,
+          "lines": [
+            "Total en sistema: 101"
+          ]
+        },
+        {
+          "id": "register",
+          "title": "Registra 10 clientes",
+          "ok": true,
+          "lines": [
+            "Creados: 10/10",
+            "· Camila Valdivieso",
+            "· Jorge Jiménez",
+            "· Elena Castro",
+            "· Ricardo Paredes"
+          ]
+        },
+        {
+          "id": "verify",
+          "title": "Verifica listado",
+          "ok": true,
+          "lines": [
+            "Antes 101 → ahora 131"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Verónica registró 10 clientes."
+          ]
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "totalCreated": 30,
+    "perAdmin": 10
+  },
+  "id": "2026-09-07T19-24-43-633Z_admin-tour_0gdeq",
+  "at": "2026-09-07T19:24:43.633Z"
+}

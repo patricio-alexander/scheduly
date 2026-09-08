@@ -9,6 +9,7 @@ import type { Product } from "@/src/features/products";
 import type { ProductFormData } from "@/src/features/products";
 import * as productService from "@/src/features/products/services/product-service";
 import { useCategories } from "@/src/features/categories";
+import { useUnits } from "@/src/features/units";
 import { PageHeader } from "@/shared/components/ui";
 import { canDeleteRecords, isManagementRole } from "@/shared/utils/roles";
 import Plus from "@gravity-ui/icons/Plus";
@@ -21,6 +22,7 @@ export default function ProductsPage() {
   const canManage = isManagementRole(user?.role);
   const { products, loading, refetch } = useProducts();
   const { categories } = useCategories();
+  const { units } = useUnits();
   const [editing, setEditing] = useState<Product | null>(null);
   const [pending, setPending] = useState(false);
   const modal = useOverlayState();
@@ -152,6 +154,7 @@ export default function ProductsPage() {
                   key={editing?.id ?? "new"}
                   defaultValues={editing ?? undefined}
                   categories={categories}
+                  units={units}
                   onSubmit={handleSubmit}
                   formId="product-form"
                 />

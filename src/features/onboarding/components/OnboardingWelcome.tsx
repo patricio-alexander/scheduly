@@ -7,6 +7,7 @@ import Calendar from "@gravity-ui/icons/Calendar";
 import ShoppingCart from "@gravity-ui/icons/ShoppingCart";
 import ListCheck from "@gravity-ui/icons/ListCheck";
 import { useOnboarding } from "../hooks/useOnboarding";
+import { APP_BRAND_NAME } from "@/shared/utils/business-profile";
 
 export function OnboardingWelcome() {
   const { phase, startTour, skip } = useOnboarding();
@@ -26,7 +27,7 @@ export function OnboardingWelcome() {
               <Modal.Icon>
                 <Rocket width={20} height={20} />
               </Modal.Icon>
-              <Modal.Heading>Bienvenido a Scheduly</Modal.Heading>
+              <Modal.Heading>Bienvenido a {APP_BRAND_NAME}</Modal.Heading>
             </Modal.Header>
             <Modal.Body>
               <p className="text-sm text-muted">

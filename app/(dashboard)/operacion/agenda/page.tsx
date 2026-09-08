@@ -50,7 +50,12 @@ import { formatMoney, lineTotal, toAmount, toQuantity } from "@/shared/utils/mon
 import { useAppointmentSocket } from "@/src/features/appointments";
 import type { AppointmentCalendarEvent } from "@/src/features/appointments";
 import { BranchSelector, StaffSelector, useBranches, type StaffMember } from "@/src/features/branches";
-import { canDeleteRecords, isBranchAdminRole, isEmployeeRole, isOwnerRole } from "@/shared/utils/roles";
+import {
+  canDeleteRecords,
+  isBranchAdminRole,
+  isEmployeeRole,
+  isOwnerRole,
+} from "@/shared/utils/roles";
 import TrashBin from "@gravity-ui/icons/TrashBin";
 
 type CalendarEvent = AppointmentCalendarEvent;
@@ -369,6 +374,9 @@ export default function AgendaPage() {
   const { user } = useAuth();
   const isOwner = isOwnerRole(user?.role);
   const isBranchAdmin = isBranchAdminRole(user?.role);
+  /** Dueña: solo lectura (ve todos / por sucursal). Admin y empleados agendan. */
+  const canSchedule =
+    isEmployeeRole(user?.role) || isBranchAdminRole(user?.role);
   const { branches } = useBranches();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -377,6 +385,7 @@ export default function AgendaPage() {
     (isBranchAdminRole(user?.role) && searchParams.get("view") === "mine");
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [hideCancelled, setHideCancelled] = useState(true);
   const [branchFilter, setBranchFilter] = useState<number | "all">("all");
   const [staffFilter, setStaffFilter] = useState<number | "all">("all");
   const [branchStaff, setBranchStaff] = useState<StaffMember[]>([]);
@@ -438,6 +447,7 @@ export default function AgendaPage() {
   }, [modal, paymentConfirmState, deleteConfirmState]);
 
   const openCreate = useCallback((dateStr?: string) => {
+    if (!canSchedule) return;
     const date = dateStr ? parseDate(dateStr.slice(0, 10)) : today(getLocalTimeZone());
     setSelectedDate(date);
     setSelectedTime(parseTime("09:00"));
@@ -456,7 +466,7 @@ export default function AgendaPage() {
     setSelectedDayDate("");
     setViewMode("create");
     modal.open();
-  }, [modal, reset]);
+  }, [modal, reset, canSchedule]);
 
   const applyAppointmentToForm = useCallback((data: AppointmentDetail) => {
     const datePart = data.appointmentDate.slice(0, 10);
@@ -723,8 +733,19 @@ export default function AgendaPage() {
     (day: string) =>
       events
         .filter((e) => getLocalDateKey(e.start) === day)
+        .filter((e) =>
+          hideCancelled ? e.extendedProps.status !== "cancelled" : true,
+        )
         .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime()),
-    [events],
+    [events, hideCancelled],
+  );
+
+  const visibleEvents = useMemo(
+    () =>
+      hideCancelled
+        ? events.filter((e) => e.extendedProps.status !== "cancelled")
+        : events,
+    [events, hideCancelled],
   );
 
   const formatDayLabel = (day: string) =>
@@ -1025,20 +1046,28 @@ export default function AgendaPage() {
     ? "Mi agenda"
     : isBranchAdmin
       ? "Agenda sucursal"
-      : "Agenda";
+      : isOwner
+        ? "Agenda general"
+        : "Agenda";
   const selectedStaffName =
     staffFilter !== "all"
       ? branchStaff.find((member) => member.id === staffFilter)?.name
       : null;
   const agendaDescription = personalAgendaView
     ? "Consulta y gestiona tus turnos asignados"
-    : selectedStaffName
-      ? `Turnos de ${selectedStaffName}`
-      : isBranchAdmin && branchScope?.name
-        ? `Turnos de ${branchScope.name}`
-        : branchScope?.name
+    : isOwner
+      ? selectedStaffName
+        ? `Turnos de ${selectedStaffName} · solo lectura`
+        : branchFilter !== "all" && branchScope?.name
+          ? `${branchScope.name} · solo lectura`
+          : "Todos los locales · filtra por sucursal (solo lectura)"
+      : selectedStaffName
+        ? `Turnos de ${selectedStaffName}`
+        : isBranchAdmin && branchScope?.name
           ? `Turnos de ${branchScope.name}`
-          : "Visualiza y gestiona los turnos de tu negocio";
+          : branchScope?.name
+            ? `Turnos de ${branchScope.name}`
+            : "Visualiza y gestiona los turnos de tu negocio";
 
   const setAgendaView = (mode: "branch" | "mine") => {
     const params = new URLSearchParams(searchParams.toString());
@@ -1107,12 +1136,23 @@ export default function AgendaPage() {
                 onChange={setStaffFilter}
               />
             ) : null}
-            <div className="shrink-0" data-onboarding="agenda-create">
-              <Button variant="primary" onPress={() => openCreate()}>
-                <Plus width={16} height={16} />
-                <span className="whitespace-nowrap">Agendar turno</span>
-              </Button>
-            </div>
+            <label className="inline-flex shrink-0 cursor-pointer items-center gap-2 text-sm text-muted">
+              <input
+                type="checkbox"
+                className="rounded border-separator"
+                checked={hideCancelled}
+                onChange={(e) => setHideCancelled(e.target.checked)}
+              />
+              Ocultar cancelados
+            </label>
+            {canSchedule ? (
+              <div className="shrink-0" data-onboarding="agenda-create">
+                <Button variant="primary" onPress={() => openCreate()}>
+                  <Plus width={16} height={16} />
+                  <span className="whitespace-nowrap">Agendar turno</span>
+                </Button>
+              </div>
+            ) : null}
           </div>
         }
       />
@@ -1135,7 +1175,7 @@ export default function AgendaPage() {
                 center: "title",
                 right: "dayGridMonth,timeGridWeek,timeGridDay",
               }}
-              events={events}
+              events={visibleEvents}
               locale={esLocale}
               height="100%"
               dayMaxEvents={3}
@@ -1148,10 +1188,10 @@ export default function AgendaPage() {
               scrollTime="08:00:00"
               expandRows={false}
               allDaySlot={false}
-              editable
-              eventStartEditable
+              editable={canSchedule}
+              eventStartEditable={canSchedule}
               eventDurationEditable={false}
-              eventDrop={handleEventDrop}
+              eventDrop={canSchedule ? handleEventDrop : undefined}
               eventClick={handleEventClick}
               dateClick={handleDateClick}
               eventContent={(arg) => <CalendarEventContent arg={arg} />}
@@ -1238,10 +1278,12 @@ export default function AgendaPage() {
                   </Modal.Body>
                   <Modal.Footer>
                     <Button variant="secondary" onPress={closeModal}>Cerrar</Button>
-                    <Button variant="primary" onPress={() => openCreate(selectedDayDate)}>
-                      <Plus width={16} height={16} />
-                      Agendar turno
-                    </Button>
+                    {canSchedule ? (
+                      <Button variant="primary" onPress={() => openCreate(selectedDayDate)}>
+                        <Plus width={16} height={16} />
+                        Agendar turno
+                      </Button>
+                    ) : null}
                   </Modal.Footer>
                 </>
               )}
@@ -1412,7 +1454,8 @@ export default function AgendaPage() {
                               </div>
                             ) : null}
                           </div>
-                        ) : detailData.status !== "cancelled" &&
+                        ) : canSchedule &&
+                          detailData.status !== "cancelled" &&
                           detailData.status !== "completed" ? (
                           <div className="overflow-hidden rounded-2xl ring-1 ring-accent/20">
                             <div className="border-b border-separator bg-accent/5 px-4 py-3.5">
@@ -1600,9 +1643,11 @@ export default function AgendaPage() {
                       </Button>
                     ) : null}
                     <Button variant="secondary" onPress={closeModal}>Cerrar</Button>
-                    <Button variant="primary" onPress={handleEdit} isDisabled={detailLoading}>
-                      Editar
-                    </Button>
+                    {canSchedule ? (
+                      <Button variant="primary" onPress={handleEdit} isDisabled={detailLoading}>
+                        Editar
+                      </Button>
+                    ) : null}
                   </Modal.Footer>
                 </>
               )}

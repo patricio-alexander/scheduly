@@ -5,6 +5,7 @@ import {
   roleLabel,
   type AppRole,
 } from "@/shared/utils/roles";
+import { getAccountPrimaryBranch } from "@/shared/utils/account-branch";
 
 export type AuthUserBranch = {
   id: number;
@@ -35,10 +36,17 @@ export type AuthUserPayload = {
 
 type Db = Pick<
   PrismaClient,
-  "account" | "role" | "accountRole" | "person" | "personData"
+  | "account"
+  | "role"
+  | "accountRole"
+  | "person"
+  | "personData"
+  | "branch"
+  | "$queryRawUnsafe"
+  | "$executeRawUnsafe"
 >;
 
-const SWITCHABLE_FOR_OWNER = ["owner", "admin", "employee"] as const;
+const SWITCHABLE_FOR_OWNER = ["Dueño", "Administrador", "Empleado"] as const;
 
 function personDisplayName(person: {
   firstName: string | null;
@@ -112,8 +120,8 @@ export async function serializeAuthUser(
 
   if (!roles.length) {
     activeRole = "employee";
-    let role = await db.role.findFirst({ where: { name: "employee" } });
-    if (!role) role = await db.role.create({ data: { name: "employee" } });
+    let role = await db.role.findFirst({ where: { name: "Empleado" } });
+    if (!role) role = await db.role.create({ data: { name: "Empleado" } });
     await db.accountRole.create({
       data: { accountId: account.id, roleId: role.id },
     });
@@ -139,7 +147,7 @@ export async function serializeAuthUser(
     });
   }
 
-  // Una opción por AppRole (Programador/Administrador → owner, etc.)
+  // Una opción por AppRole (Dueño/Admin/Empleado/Programador)
   const deduped = new Map<string, AuthUserRoleOption>();
   for (const role of roles) {
     const prev = deduped.get(role.name);
@@ -147,11 +155,18 @@ export async function serializeAuthUser(
   }
   roles = [...deduped.values()];
 
-  const order = { owner: 0, admin: 1, employee: 2 } as Record<string, number>;
+  const order = {
+    owner: 0,
+    admin: 1,
+    employee: 2,
+    programmer: 3,
+  } as Record<string, number>;
   roles.sort((a, b) => (order[a.name] ?? 9) - (order[b.name] ?? 9));
 
   const active =
     roles.find((r) => r.name === activeRole) ?? roles[0] ?? null;
+
+  const branch = await getAccountPrimaryBranch(db, account.id);
 
   return {
     id: account.id,
@@ -163,7 +178,7 @@ export async function serializeAuthUser(
     rolId: active?.id ?? null,
     roles,
     photo: account.person?.photo ?? null,
-    branch: null,
+    branch,
   };
 }
 

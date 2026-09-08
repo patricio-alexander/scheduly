@@ -80,23 +80,13 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
         name: "Comprobantes POS",
         path: appRoutes.operation.posReceipts,
         description:
-          "Reimpresión de ventas de caja con estado SRI embebido.",
+          "Facturas, notas de venta, emitidos SRI y reimpresión de ventas de caja.",
       },
       {
         name: "Supervisión caja",
         path: appRoutes.operation.shiftSupervision,
         status: "planned",
         description: "Revisión de turnos cerrados y diferencias.",
-      },
-      {
-        name: "Sucursales / locales",
-        path: appRoutes.operation.stores,
-        description: "Locales del negocio (multi-local).",
-      },
-      {
-        name: "Catálogo",
-        path: appRoutes.operation.catalog,
-        description: "Configuración del catálogo de productos/servicios.",
       },
     ],
   },
@@ -165,6 +155,11 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
         description: "Catálogo de productos e insumos.",
       },
       {
+        name: "Sucursales / locales",
+        path: appRoutes.inventory.stores,
+        description: "Locales del negocio (multi-local / multistock).",
+      },
+      {
         name: "Movimientos",
         path: appRoutes.inventory.movement,
         status: "planned",
@@ -184,8 +179,7 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
       {
         name: "Unidades",
         path: appRoutes.inventory.units,
-        status: "maintenance",
-        description: "Unidades de medida.",
+        description: "Unidades de medida (ml, L, und, etc.).",
       },
       {
         name: "Lotes y vencimientos",
@@ -205,7 +199,7 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
     id: "marketing",
     entitlementKey: "marketing",
     label: "Marketing",
-    summary: "Promociones y noticias.",
+    summary: "Promociones, noticias y catálogo público.",
     status: "planned",
     sections: [
       {
@@ -219,29 +213,30 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
         status: "planned",
         description: "Noticias y novedades.",
       },
+      {
+        name: "Catálogo config",
+        path: appRoutes.marketing.catalog,
+        status: "planned",
+        description: "Configuración de la vitrina / catálogo público.",
+      },
     ],
   },
   {
     id: "administracion",
     entitlementKey: "admin",
     label: "Administración",
-    summary: "Usuarios, cuentas y roles.",
+    summary: "Cuentas de acceso y roles (1 persona = 1 cuenta, multi-rol).",
     sections: [
-      {
-        name: "Usuarios",
-        path: appRoutes.admin.users,
-        description: "Cuentas del personal.",
-      },
       {
         name: "Cuentas",
         path: appRoutes.admin.accounts,
-        status: "planned",
-        description: "Cuentas vinculadas / multi-cuenta.",
+        description:
+          "Personas con una sola cuenta de login. Una cuenta puede tener varios roles; activar/desactivar.",
       },
       {
         name: "Roles",
         path: appRoutes.admin.roles,
-        description: "Dueño, encargado de sucursal, empleado.",
+        description: "Catálogo de roles del sistema y personalizados.",
       },
     ],
   },
@@ -249,23 +244,13 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
     id: "sistema",
     entitlementKey: "system",
     label: "Sistema",
-    summary: "Configuración, planes, módulos, perfil y donaciones.",
+    summary: "Configuración, backups, perfil y donaciones.",
     sections: [
       {
         name: "Configuración",
         path: appRoutes.system.settings,
         description:
           "Negocio, apariencia, SRI, locales, multistock y backups JSON (Dueño).",
-      },
-      {
-        name: "Planes",
-        path: appRoutes.system.plans,
-        description: "Planes comerciales del gestor.",
-      },
-      {
-        name: "Módulos",
-        path: appRoutes.system.modules,
-        description: "Catálogo de módulos del gestor.",
       },
       {
         name: "Backups JSON",

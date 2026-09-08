@@ -1,0 +1,676 @@
+{
+  "tester": "employee-tour",
+  "mode": "customers-all-parallel",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 11577,
+  "ok": true,
+  "summary": {
+    "passed": 60,
+    "failed": 0,
+    "total": 60
+  },
+  "subjects": [
+    {
+      "username": "estilista_maria",
+      "name": "María García",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 6,
+      "failed": 0,
+      "total": 6,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como María García",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "list-customers",
+          "title": "Ve clientes · Andrea Guerrero · Eguiguren",
+          "ok": true,
+          "lines": [
+            "Cargaron 21 cliente(s)",
+            "· Cliente Tour María 071201",
+            "· Ana Lucía Castillo Bravo"
+          ]
+        },
+        {
+          "id": "create-customer",
+          "title": "Registra cliente (su sucursal)",
+          "ok": true,
+          "lines": [
+            "Cliente: Cliente colon 71228_estilista_maria",
+            "id=102 · local colon"
+          ]
+        },
+        {
+          "id": "edit-customer",
+          "title": "Edita datos del cliente",
+          "ok": true,
+          "lines": [
+            "Nombre → Cliente colon 71228_estilista_maria · edit",
+            "Tel → 0987654321",
+            "Empleado puede editar clientes"
+          ]
+        },
+        {
+          "id": "verify-customer",
+          "title": "Verifica el cliente editado",
+          "ok": true,
+          "lines": [
+            "GET: Cliente colon 71228_estilista_maria · edit · 0987654321"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "María termina clientes de «Andrea Guerrero · Eguiguren»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_juan",
+      "name": "Juan Pérez",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 6,
+      "failed": 0,
+      "total": 6,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Juan Pérez",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "list-customers",
+          "title": "Ve clientes · Andrea Guerrero · Cristóbal Colón",
+          "ok": true,
+          "lines": [
+            "Cargaron 22 cliente(s)",
+            "· Cliente eguiguren 71228_estilista_marco",
+            "· Cliente Tour María 071201"
+          ]
+        },
+        {
+          "id": "create-customer",
+          "title": "Registra cliente (su sucursal)",
+          "ok": true,
+          "lines": [
+            "Cliente: Cliente eguiguren 71228_estilista_juan",
+            "id=107 · local eguiguren"
+          ]
+        },
+        {
+          "id": "edit-customer",
+          "title": "Edita datos del cliente",
+          "ok": true,
+          "lines": [
+            "Nombre → Cliente eguiguren 71228_estilista_juan · edit",
+            "Tel → 0987654321",
+            "Empleado puede editar clientes"
+          ]
+        },
+        {
+          "id": "verify-customer",
+          "title": "Verifica el cliente editado",
+          "ok": true,
+          "lines": [
+            "GET: Cliente eguiguren 71228_estilista_juan · edit · 0987654321"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Juan termina clientes de «Andrea Guerrero · Cristóbal Colón»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "colorista_camila",
+      "name": "Camila Rojas",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 6,
+      "failed": 0,
+      "total": 6,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Camila Rojas",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "list-customers",
+          "title": "Ve clientes · Andrea Guerrero · Eguiguren",
+          "ok": true,
+          "lines": [
+            "Cargaron 22 cliente(s)",
+            "· Cliente eguiguren 71228_estilista_marco",
+            "· Cliente Tour María 071201"
+          ]
+        },
+        {
+          "id": "create-customer",
+          "title": "Registra cliente (su sucursal)",
+          "ok": true,
+          "lines": [
+            "Cliente: Cliente colon 71228_colorista_camila",
+            "id=109 · local colon"
+          ]
+        },
+        {
+          "id": "edit-customer",
+          "title": "Edita datos del cliente",
+          "ok": true,
+          "lines": [
+            "Nombre → Cliente colon 71228_colorista_camila · edit",
+            "Tel → 0987654321",
+            "Empleado puede editar clientes"
+          ]
+        },
+        {
+          "id": "verify-customer",
+          "title": "Verifica el cliente editado",
+          "ok": true,
+          "lines": [
+            "GET: Cliente colon 71228_colorista_camila · edit · 0987654321"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Camila termina clientes de «Andrea Guerrero · Eguiguren»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "unas_natalia",
+      "name": "Natalia Ortiz",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 6,
+      "failed": 0,
+      "total": 6,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Natalia Ortiz",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "list-customers",
+          "title": "Ve clientes · Andrea Guerrero · Cristóbal Colón",
+          "ok": true,
+          "lines": [
+            "Cargaron 22 cliente(s)",
+            "· Cliente eguiguren 71228_estilista_marco",
+            "· Cliente Tour María 071201"
+          ]
+        },
+        {
+          "id": "create-customer",
+          "title": "Registra cliente (su sucursal)",
+          "ok": true,
+          "lines": [
+            "Cliente: Cliente eguiguren 71228_unas_natalia",
+            "id=106 · local eguiguren"
+          ]
+        },
+        {
+          "id": "edit-customer",
+          "title": "Edita datos del cliente",
+          "ok": true,
+          "lines": [
+            "Nombre → Cliente eguiguren 71228_unas_natalia · edit",
+            "Tel → 0987654321",
+            "Empleado puede editar clientes"
+          ]
+        },
+        {
+          "id": "verify-customer",
+          "title": "Verifica el cliente editado",
+          "ok": true,
+          "lines": [
+            "GET: Cliente eguiguren 71228_unas_natalia · edit · 0987654321"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Natalia termina clientes de «Andrea Guerrero · Cristóbal Colón»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "makeup_andres",
+      "name": "Andrés Muñoz",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 6,
+      "failed": 0,
+      "total": 6,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Andrés Muñoz",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "list-customers",
+          "title": "Ve clientes · Andrea Guerrero · Eguiguren",
+          "ok": true,
+          "lines": [
+            "Cargaron 22 cliente(s)",
+            "· Cliente eguiguren 71228_estilista_marco",
+            "· Cliente Tour María 071201"
+          ]
+        },
+        {
+          "id": "create-customer",
+          "title": "Registra cliente (su sucursal)",
+          "ok": true,
+          "lines": [
+            "Cliente: Cliente colon 71228_makeup_andres",
+            "id=108 · local colon"
+          ]
+        },
+        {
+          "id": "edit-customer",
+          "title": "Edita datos del cliente",
+          "ok": true,
+          "lines": [
+            "Nombre → Cliente colon 71228_makeup_andres · edit",
+            "Tel → 0987654321",
+            "Empleado puede editar clientes"
+          ]
+        },
+        {
+          "id": "verify-customer",
+          "title": "Verifica el cliente editado",
+          "ok": true,
+          "lines": [
+            "GET: Cliente colon 71228_makeup_andres · edit · 0987654321"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Andrés termina clientes de «Andrea Guerrero · Eguiguren»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_diego",
+      "name": "Diego Salinas",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 6,
+      "failed": 0,
+      "total": 6,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Diego Salinas",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "list-customers",
+          "title": "Ve clientes · Andrea Guerrero · Cristóbal Colón",
+          "ok": true,
+          "lines": [
+            "Cargaron 23 cliente(s)",
+            "· Cliente colon 71228_estilista_maria",
+            "· Cliente eguiguren 71228_estilista_marco"
+          ]
+        },
+        {
+          "id": "create-customer",
+          "title": "Registra cliente (su sucursal)",
+          "ok": true,
+          "lines": [
+            "Cliente: Cliente eguiguren 71228_estilista_diego",
+            "id=110 · local eguiguren"
+          ]
+        },
+        {
+          "id": "edit-customer",
+          "title": "Edita datos del cliente",
+          "ok": true,
+          "lines": [
+            "Nombre → Cliente eguiguren 71228_estilista_diego · edit",
+            "Tel → 0987654321",
+            "Empleado puede editar clientes"
+          ]
+        },
+        {
+          "id": "verify-customer",
+          "title": "Verifica el cliente editado",
+          "ok": true,
+          "lines": [
+            "GET: Cliente eguiguren 71228_estilista_diego · edit · 0987654321"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Diego termina clientes de «Andrea Guerrero · Cristóbal Colón»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "tratamientos_paola",
+      "name": "Paola Herrera",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 6,
+      "failed": 0,
+      "total": 6,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Paola Herrera",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "list-customers",
+          "title": "Ve clientes · Andrea Guerrero · Eguiguren",
+          "ok": true,
+          "lines": [
+            "Cargaron 22 cliente(s)",
+            "· Cliente eguiguren 71228_estilista_marco",
+            "· Cliente Tour María 071201"
+          ]
+        },
+        {
+          "id": "create-customer",
+          "title": "Registra cliente (su sucursal)",
+          "ok": true,
+          "lines": [
+            "Cliente: Cliente colon 71228_tratamientos_paola",
+            "id=105 · local colon"
+          ]
+        },
+        {
+          "id": "edit-customer",
+          "title": "Edita datos del cliente",
+          "ok": true,
+          "lines": [
+            "Nombre → Cliente colon 71228_tratamientos_paola · edit",
+            "Tel → 0987654321",
+            "Empleado puede editar clientes"
+          ]
+        },
+        {
+          "id": "verify-customer",
+          "title": "Verifica el cliente editado",
+          "ok": true,
+          "lines": [
+            "GET: Cliente colon 71228_tratamientos_paola · edit · 0987654321"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Paola termina clientes de «Andrea Guerrero · Eguiguren»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "depilacion_ricardo",
+      "name": "Ricardo Vélez",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 6,
+      "failed": 0,
+      "total": 6,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Ricardo Vélez",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "list-customers",
+          "title": "Ve clientes · Andrea Guerrero · Cristóbal Colón",
+          "ok": true,
+          "lines": [
+            "Cargaron 22 cliente(s)",
+            "· Cliente eguiguren 71228_estilista_marco",
+            "· Cliente Tour María 071201"
+          ]
+        },
+        {
+          "id": "create-customer",
+          "title": "Registra cliente (su sucursal)",
+          "ok": true,
+          "lines": [
+            "Cliente: Cliente eguiguren 71228_depilacion_ricardo",
+            "id=103 · local eguiguren"
+          ]
+        },
+        {
+          "id": "edit-customer",
+          "title": "Edita datos del cliente",
+          "ok": true,
+          "lines": [
+            "Nombre → Cliente eguiguren 71228_depilacion_ricardo · edit",
+            "Tel → 0987654321",
+            "Empleado puede editar clientes"
+          ]
+        },
+        {
+          "id": "verify-customer",
+          "title": "Verifica el cliente editado",
+          "ok": true,
+          "lines": [
+            "GET: Cliente eguiguren 71228_depilacion_ricardo · edit · 0987654321"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Ricardo termina clientes de «Andrea Guerrero · Cristóbal Colón»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "recepcion_felipe",
+      "name": "Felipe López",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 6,
+      "failed": 0,
+      "total": 6,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Felipe López",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "list-customers",
+          "title": "Ve clientes · Andrea Guerrero · Eguiguren",
+          "ok": true,
+          "lines": [
+            "Cargaron 22 cliente(s)",
+            "· Cliente eguiguren 71228_estilista_marco",
+            "· Cliente Tour María 071201"
+          ]
+        },
+        {
+          "id": "create-customer",
+          "title": "Registra cliente (su sucursal)",
+          "ok": true,
+          "lines": [
+            "Cliente: Cliente colon 71228_recepcion_felipe",
+            "id=104 · local colon"
+          ]
+        },
+        {
+          "id": "edit-customer",
+          "title": "Edita datos del cliente",
+          "ok": true,
+          "lines": [
+            "Nombre → Cliente colon 71228_recepcion_felipe · edit",
+            "Tel → 0987654321",
+            "Empleado puede editar clientes"
+          ]
+        },
+        {
+          "id": "verify-customer",
+          "title": "Verifica el cliente editado",
+          "ok": true,
+          "lines": [
+            "GET: Cliente colon 71228_recepcion_felipe · edit · 0987654321"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Felipe termina clientes de «Andrea Guerrero · Eguiguren»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_marco",
+      "name": "Marco Espinosa",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 6,
+      "failed": 0,
+      "total": 6,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Marco Espinosa",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "list-customers",
+          "title": "Ve clientes · Andrea Guerrero · Cristóbal Colón",
+          "ok": true,
+          "lines": [
+            "Cargaron 21 cliente(s)",
+            "· Cliente Tour María 071201",
+            "· Ana Lucía Castillo Bravo"
+          ]
+        },
+        {
+          "id": "create-customer",
+          "title": "Registra cliente (su sucursal)",
+          "ok": true,
+          "lines": [
+            "Cliente: Cliente eguiguren 71228_estilista_marco",
+            "id=101 · local eguiguren"
+          ]
+        },
+        {
+          "id": "edit-customer",
+          "title": "Edita datos del cliente",
+          "ok": true,
+          "lines": [
+            "Nombre → Cliente eguiguren 71228_estilista_marco · edit",
+            "Tel → 0987654321",
+            "Empleado puede editar clientes"
+          ]
+        },
+        {
+          "id": "verify-customer",
+          "title": "Verifica el cliente editado",
+          "ok": true,
+          "lines": [
+            "GET: Cliente eguiguren 71228_estilista_marco · edit · 0987654321"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Marco termina clientes de «Andrea Guerrero · Cristóbal Colón»."
+          ]
+        }
+      ]
+    }
+  ],
+  "id": "2026-09-07T17-28-43-730Z_employee-tour_zw4i2",
+  "at": "2026-09-07T17:28:43.730Z"
+}

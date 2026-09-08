@@ -47,10 +47,32 @@ export function SupplierOrderDialog({ state, defaultDate, onSuccess }: Props) {
   const [notes, setNotes] = useState("");
   const [cart, setCart] = useState<Line[]>([]);
   const [pending, setPending] = useState(false);
+  const [receiveNow, setReceiveNow] = useState(true);
+  const [payNow, setPayNow] = useState(true);
+  const [branchId, setBranchId] = useState("");
+  const [branches, setBranches] = useState<
+    Array<{ id: number; name: string }>
+  >([]);
 
   useEffect(() => {
     if (defaultDate) setDate(defaultDate);
   }, [defaultDate]);
+
+  useEffect(() => {
+    if (!state.isOpen) return;
+    fetch(apiUrl("/api/branches"), { credentials: "include" })
+      .then((r) => r.json())
+      .then((rows: unknown) => {
+        if (!Array.isArray(rows)) return;
+        const list = rows
+          .map((b) => b as { id?: number; name?: string })
+          .filter((b): b is { id: number; name: string } => Boolean(b.id))
+          .map((b) => ({ id: b.id, name: b.name ?? `Local #${b.id}` }));
+        setBranches(list);
+        if (!branchId && list[0]) setBranchId(String(list[0].id));
+      })
+      .catch(() => {});
+  }, [state.isOpen, branchId]);
 
   const selectedProduct = products.find((p) => String(p.id) === productId);
   const total = useMemo(
@@ -97,6 +119,10 @@ export function SupplierOrderDialog({ state, defaultDate, onSuccess }: Props) {
       toast.danger("Agrega productos");
       return;
     }
+    if (receiveNow && !branchId) {
+      toast.danger("Selecciona el local que recibe la mercadería");
+      return;
+    }
     setPending(true);
     try {
       const res = await fetch(apiUrl("/api/purchases"), {
@@ -108,8 +134,9 @@ export function SupplierOrderDialog({ state, defaultDate, onSuccess }: Props) {
           invoiceNumber: invoiceNumber.trim() || null,
           notes,
           method: "cash",
-          receiveNow: false,
-          payNow: false,
+          branchId: branchId ? Number(branchId) : null,
+          receiveNow,
+          payNow,
           lines: cart.map((l) => ({
             productId: l.productId,
             quantity: l.quantity,
@@ -121,7 +148,11 @@ export function SupplierOrderDialog({ state, defaultDate, onSuccess }: Props) {
         message?: string;
       } | null;
       if (!res.ok) throw new Error(json?.message ?? "No se pudo guardar");
-      toast.success("Pedido a proveedor guardado");
+      toast.success(
+        payNow
+          ? "Compra registrada y pagada (gasto en Finanzas)"
+          : "Pedido a proveedor guardado",
+      );
       reset();
       state.close();
       onSuccess?.();
@@ -143,8 +174,8 @@ export function SupplierOrderDialog({ state, defaultDate, onSuccess }: Props) {
             </Modal.Header>
             <Modal.Body>
               <div className="mb-3 rounded-xl border border-separator bg-surface-secondary/50 px-3 py-2 text-xs text-muted">
-                A la izquierda armás cada línea y la guía de factura; a la derecha
-                el carrito de productos del pedido.
+                Si marcás recibir y pagar, entra el stock y el gasto aparece en
+                Finanzas. Si solo pedís, queda pendiente de abono en Cobranzas.
               </div>
               <div className="grid gap-4 lg:grid-cols-2">
                 <div className="flex flex-col gap-3">
@@ -176,6 +207,51 @@ export function SupplierOrderDialog({ state, defaultDate, onSuccess }: Props) {
                       </ListBox>
                     </ComboBox.Popover>
                   </ComboBox>
+
+                  <ComboBox
+                    selectedKey={branchId || null}
+                    onSelectionChange={(k) =>
+                      setBranchId(k ? String(k) : "")
+                    }
+                    variant="secondary"
+                  >
+                    <Label>Local que recibe</Label>
+                    <ComboBox.InputGroup>
+                      <Input placeholder="Sucursal" />
+                      <ComboBox.Trigger />
+                    </ComboBox.InputGroup>
+                    <ComboBox.Popover>
+                      <ListBox>
+                        {branches.map((b) => (
+                          <ListBox.Item
+                            key={b.id}
+                            id={String(b.id)}
+                            textValue={b.name}
+                          >
+                            {b.name}
+                            <ListBox.ItemIndicator />
+                          </ListBox.Item>
+                        ))}
+                      </ListBox>
+                    </ComboBox.Popover>
+                  </ComboBox>
+
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={receiveNow}
+                      onChange={(e) => setReceiveNow(e.target.checked)}
+                    />
+                    Recibir mercadería ahora (suma stock)
+                  </label>
+                  <label className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={payNow}
+                      onChange={(e) => setPayNow(e.target.checked)}
+                    />
+                    Pagar ahora (registra gasto en Finanzas)
+                  </label>
 
                   <ComboBox
                     selectedKey={productId || null}

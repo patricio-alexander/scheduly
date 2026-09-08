@@ -1,5 +1,10 @@
 import { prisma } from "@/shared/utils/prisma";
 import { toAmount } from "@/shared/utils/money";
+import {
+  isPaidSale,
+  saleTotal,
+} from "@/shared/utils/dashboard-eddeli-metrics";
+import { saleWhereForLocation } from "@/shared/utils/pos-location";
 
 export type CashGranularity = "day" | "week" | "month";
 
@@ -9,6 +14,8 @@ export type CashMovement = {
   delta: number;
   kind: "income" | "expense";
   label?: string;
+  /** Origen del movimiento (para métricas de calendario). */
+  source?: "ledger" | "sale" | "appointment";
 };
 
 export type DayMetrics = {
@@ -140,49 +147,201 @@ export function bucketMeta(date: Date, granularity: CashGranularity) {
   };
 }
 
-/** Ingresos (Income EdDeli) y gastos (Expense) del rango. */
+function saleEventDate(sale: { paidAt: Date | null; date: Date }) {
+  return sale.paidAt ?? sale.date;
+}
+
+/**
+ * Ingresos/gastos del rango para charts de caja.
+ * Incluye ledger (Income/Expense) + ventas POS pagadas + cobros de citas,
+ * alineado con el panel (que ya cae a sales/appointments si no hay Income).
+ */
 export async function fetchCashMovements(
   start: Date,
   end: Date,
-  _branchId: number | null,
+  branchId: number | null,
 ): Promise<CashMovement[]> {
-  const [incomes, expenses] = await Promise.all([
-    prisma.income.findMany({
-      where: {
-        date: { gte: start, lte: end },
-        status: "paid",
-      },
-      select: { date: true, amount: true, concept: true, category: true },
-      orderBy: { date: "asc" },
-    }),
-    prisma.expense.findMany({
-      where: {
-        date: { gte: start, lte: end },
-        status: "paid",
-      },
-      select: { date: true, amount: true, concept: true, category: true },
-      orderBy: { date: "asc" },
-    }),
-  ]);
+  const location = branchId
+    ? await prisma.branch.findUnique({
+        where: { id: branchId },
+        select: { locationKind: true },
+      })
+    : null;
+  const isVitrina = location?.locationKind === "vitrina";
 
-  const movements: CashMovement[] = [
-    ...incomes.map((row) => ({
-      ts: row.date,
-      dayKey: toDayKey(row.date),
-      delta: toAmount(row.amount),
+  const [incomes, expenses, deliveryLines, sales, appointmentPayments] =
+    await Promise.all([
+      isVitrina
+        ? Promise.resolve([])
+        : prisma.income.findMany({
+            where: {
+              date: { gte: start, lte: end },
+              status: "paid",
+            },
+            select: {
+              date: true,
+              amount: true,
+              concept: true,
+              category: true,
+              referenceType: true,
+            },
+            orderBy: { date: "asc" },
+          }),
+      isVitrina
+        ? Promise.resolve([])
+        : prisma.expense.findMany({
+            where: {
+              date: { gte: start, lte: end },
+              status: "paid",
+            },
+            select: { date: true, amount: true, concept: true, category: true },
+            orderBy: { date: "asc" },
+          }),
+      branchId
+        ? prisma.saleLine.findMany({
+            where: {
+              deliveredStoreId: branchId,
+              sale: {
+                OR: [
+                  { paidAt: { gte: start, lte: end } },
+                  { paidAt: null, date: { gte: start, lte: end } },
+                ],
+              },
+            },
+            select: {
+              quantity: true,
+              price: true,
+              damagedQty: true,
+              giftQty: true,
+              sale: { select: { date: true, paidAt: true, status: true } },
+            },
+          })
+        : Promise.resolve([]),
+      // Ventas POS (salón): no duplicar si ya hay Income vía financeIncomeId
+      isVitrina
+        ? Promise.resolve([])
+        : prisma.sale.findMany({
+            where: {
+              financeIncomeId: null,
+              ...saleWhereForLocation(branchId),
+              OR: [
+                { paidAt: { gte: start, lte: end } },
+                {
+                  paidAt: null,
+                  date: { gte: start, lte: end },
+                  status: "pagado",
+                },
+              ],
+            },
+            select: {
+              id: true,
+              date: true,
+              paidAt: true,
+              status: true,
+              notes: true,
+              lines: {
+                select: {
+                  quantity: true,
+                  price: true,
+                  damagedQty: true,
+                  giftQty: true,
+                },
+              },
+            },
+          }),
+      isVitrina
+        ? Promise.resolve([])
+        : prisma.appointmentPayment.findMany({
+            where: {
+              paidAt: { gte: start, lte: end },
+              ...(branchId ? { appointment: { branchId } } : {}),
+            },
+            select: {
+              id: true,
+              amount: true,
+              paidAt: true,
+              method: true,
+              appointmentId: true,
+            },
+          }),
+    ]);
+
+  const incomeMovements: CashMovement[] = isVitrina
+    ? deliveryLines.map((line) => {
+        const qty = Math.max(
+          0,
+          toAmount(line.quantity) -
+            toAmount(line.damagedQty) -
+            toAmount(line.giftQty),
+        );
+        const ts = line.sale.paidAt ?? line.sale.date;
+        return {
+          ts,
+          dayKey: toDayKey(ts),
+          delta: qty * toAmount(line.price),
+          kind: "income" as const,
+          label: "Entrega vitrina",
+          source: "sale" as const,
+        };
+      })
+    : incomes.map((row) => {
+        const ref = (row.referenceType ?? "").toLowerCase();
+        const cat = (row.category ?? "").toLowerCase();
+        const isSaleRef = ref === "order" || cat === "sales";
+        return {
+          ts: row.date,
+          dayKey: toDayKey(row.date),
+          delta: toAmount(row.amount),
+          kind: "income" as const,
+          label: row.concept || row.category || "Ingreso",
+          source: isSaleRef ? ("sale" as const) : ("ledger" as const),
+        };
+      });
+
+  const expenseMovements: CashMovement[] = expenses.map((row) => ({
+    ts: row.date,
+    dayKey: toDayKey(row.date),
+    delta: -toAmount(row.amount),
+    kind: "expense" as const,
+    label: row.concept || row.category || "Gasto",
+    source: "ledger" as const,
+  }));
+
+  const saleMovements: CashMovement[] = sales
+    .filter((sale) => isPaidSale(sale))
+    .map((sale) => {
+      const ts = saleEventDate(sale);
+      const amount = saleTotal(sale);
+      return {
+        ts,
+        dayKey: toDayKey(ts),
+        delta: amount,
+        kind: "income" as const,
+        label: sale.notes?.includes("[CAJA_POS]")
+          ? `Venta POS #${sale.id}`
+          : `Venta #${sale.id}`,
+        source: "sale" as const,
+      };
+    })
+    .filter((m) => m.delta > 0);
+
+  const appointmentMovements: CashMovement[] = appointmentPayments
+    .map((pay) => ({
+      ts: pay.paidAt,
+      dayKey: toDayKey(pay.paidAt),
+      delta: toAmount(pay.amount),
       kind: "income" as const,
-      label: row.concept || row.category || "Ingreso",
-    })),
-    ...expenses.map((row) => ({
-      ts: row.date,
-      dayKey: toDayKey(row.date),
-      delta: -toAmount(row.amount),
-      kind: "expense" as const,
-      label: row.concept || row.category || "Gasto",
-    })),
-  ];
+      label: `Cobro cita #${pay.appointmentId}`,
+      source: "appointment" as const,
+    }))
+    .filter((m) => m.delta > 0);
 
-  return movements.sort((a, b) => a.ts.getTime() - b.ts.getTime());
+  return [
+    ...incomeMovements,
+    ...expenseMovements,
+    ...saleMovements,
+    ...appointmentMovements,
+  ].sort((a, b) => a.ts.getTime() - b.ts.getTime());
 }
 
 export async function fetchDayMetricsMap(
@@ -199,16 +358,15 @@ export async function fetchDayMetricsMap(
     if (m.kind === "income") {
       row.incomeAmount = round2(row.incomeAmount + m.delta);
       row.incomeCount += 1;
-      const isSale =
-        (m.label ?? "").toLowerCase().includes("order") ||
-        (m.label ?? "").toLowerCase().includes("venta") ||
-        (m.label ?? "").toLowerCase().includes("sales");
-      if (isSale) {
+      if (m.source === "appointment") {
+        row.appointmentsAmount = round2(row.appointmentsAmount + m.delta);
+        row.appointmentsCount += 1;
+      } else if (m.source === "sale") {
         row.productSalesAmount = round2(row.productSalesAmount + m.delta);
         row.productSalesCount += 1;
       } else {
-        row.appointmentsAmount = round2(row.appointmentsAmount + m.delta);
-        row.appointmentsCount += 1;
+        row.productSalesAmount = round2(row.productSalesAmount + m.delta);
+        row.productSalesCount += 1;
       }
     } else {
       row.expenseAmount = round2(row.expenseAmount + Math.abs(m.delta));

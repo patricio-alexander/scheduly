@@ -118,6 +118,18 @@ export async function PUT(request: Request) {
         body.operationFlags !== undefined
           ? (body.operationFlags as import("@/shared/utils/operation-flags").OperationFlags)
           : undefined,
+      bookingStartHour:
+        body.bookingStartHour !== undefined
+          ? Number(body.bookingStartHour)
+          : current.bookingStartHour,
+      bookingEndHour:
+        body.bookingEndHour !== undefined
+          ? Number(body.bookingEndHour)
+          : current.bookingEndHour,
+      cashRegisterMode:
+        body.cashRegisterMode !== undefined
+          ? (String(body.cashRegisterMode) as import("@/shared/utils/cash-register-mode").CashRegisterMode)
+          : current.cashRegisterMode,
     });
     emitThemeColorsUpdated(normalizeThemeColors(settings));
     return NextResponse.json(settings);

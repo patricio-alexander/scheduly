@@ -8,8 +8,8 @@ export default function Page() {
     <ModulePlaceholder
       icon={<Star width={24} height={24} />}
       title="Productos destacados"
-      description="Destacados en vitrina pública."
-      moduleLabel="Canal digital"
+      description="Destacados en vitrina pública (fuera del menú; legacy)."
+      moduleLabel="Marketing"
     />
   );
 }

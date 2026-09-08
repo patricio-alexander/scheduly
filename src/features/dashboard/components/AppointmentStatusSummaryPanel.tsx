@@ -50,23 +50,27 @@ const icons = {
 
 type AppointmentStatusSummaryPanelProps = {
   items: AppointmentStatusOverviewItem[];
+  posMode?: boolean;
 };
 
 export function AppointmentStatusSummaryPanel({
   items,
+  posMode = false,
 }: AppointmentStatusSummaryPanelProps) {
   return (
     <div className="flex h-full min-h-[18rem] min-w-0 flex-col rounded-2xl border border-separator bg-surface p-4 md:p-5">
       <div className="mb-3 flex items-start justify-between gap-2">
         <div>
           <h2 className="text-base font-semibold">Resumen de estados</h2>
-          <p className="text-xs text-muted">Turnos del período</p>
+          <p className="text-xs text-muted">
+            {posMode ? "Pedidos del período" : "Turnos del período"}
+          </p>
         </div>
         <Link
-          href={appRoutes.operation.agenda}
+          href={posMode ? appRoutes.sales.orders : appRoutes.operation.agenda}
           className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
         >
-          Ver agenda
+          {posMode ? "Ver pedidos" : "Ver agenda"}
           <ArrowRight width={12} height={12} />
         </Link>
       </div>

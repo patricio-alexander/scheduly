@@ -7,10 +7,12 @@ import { AppNumberField } from "@/shared/components/AppNumberField";
 import { productSchema, type ProductFormData } from "../lib/product-schema";
 import type { Product } from "../types";
 import type { Category } from "@/src/features/categories";
+import type { Unit } from "@/src/features/units";
 
 interface Props {
   defaultValues?: Product;
   categories: Category[];
+  units: Unit[];
   onSubmit: (data: ProductFormData) => Promise<void>;
   formId?: string;
 }
@@ -18,6 +20,7 @@ interface Props {
 export function ProductForm({
   defaultValues,
   categories,
+  units,
   onSubmit,
   formId = "product-form",
 }: Props) {
@@ -34,8 +37,17 @@ export function ProductForm({
           price: defaultValues.price,
           stock: defaultValues.stock,
           categoryId: defaultValues.categoryId ?? defaultValues.category?.id ?? null,
+          unitId: defaultValues.unitId ?? defaultValues.unit?.id ?? null,
+          commissionPct: defaultValues.commissionPct ?? 0,
         }
-      : { name: "", price: 0, stock: 0, categoryId: null },
+      : {
+          name: "",
+          price: 0,
+          stock: 0,
+          categoryId: null,
+          unitId: units[0]?.id ?? null,
+          commissionPct: 0,
+        },
   });
 
   return (
@@ -95,6 +107,45 @@ export function ProductForm({
       />
 
       <Controller
+        name="unitId"
+        control={control}
+        render={({ field }) => (
+          <ComboBox
+            selectedKey={field.value != null ? String(field.value) : "none"}
+            onSelectionChange={(key) => {
+              const value = String(key ?? "none");
+              field.onChange(value === "none" ? null : Number(value));
+            }}
+            variant="secondary"
+          >
+            <Label className="text-sm font-medium">Unidad de medida</Label>
+            <ComboBox.InputGroup>
+              <Input placeholder="ml, L, und…" />
+              <ComboBox.Trigger />
+            </ComboBox.InputGroup>
+            <ComboBox.Popover>
+              <ListBox>
+                <ListBox.Item id="none" textValue="Por defecto">
+                  Por defecto
+                  <ListBox.ItemIndicator />
+                </ListBox.Item>
+                {units.map((unit) => (
+                  <ListBox.Item
+                    key={String(unit.id)}
+                    id={String(unit.id)}
+                    textValue={`${unit.name} (${unit.abbreviation})`}
+                  >
+                    {unit.name} ({unit.abbreviation})
+                    <ListBox.ItemIndicator />
+                  </ListBox.Item>
+                ))}
+              </ListBox>
+            </ComboBox.Popover>
+          </ComboBox>
+        )}
+      />
+
+      <Controller
         name="price"
         control={control}
         render={({ field }) => (
@@ -108,6 +159,28 @@ export function ProductForm({
             />
             {errors.price && (
               <p className="text-danger text-sm">{String(errors.price.message ?? "")}</p>
+            )}
+          </div>
+        )}
+      />
+
+      <Controller
+        name="commissionPct"
+        control={control}
+        render={({ field }) => (
+          <div className="flex flex-col gap-1">
+            <AppNumberField
+              id="product-commission"
+              label="Comisión % (0 = hereda de categoría)"
+              minValue={0}
+              maxValue={100}
+              value={field.value ?? 0}
+              onChange={field.onChange}
+            />
+            {errors.commissionPct && (
+              <p className="text-danger text-sm">
+                {String(errors.commissionPct.message ?? "")}
+              </p>
             )}
           </div>
         )}

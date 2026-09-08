@@ -1,3 +1,6 @@
+/**
+ * Comisión de una cita: servicios + productos (producto o categoría).
+ */
 import type { PrismaClient } from "@/generated/prisma/client";
 import { lineTotal, toAmount } from "@/shared/utils/money";
 
@@ -13,9 +16,23 @@ type AppointmentServiceForCommission = {
 };
 
 type AppointmentProductForCommission = {
-  product: { price: unknown };
+  product: {
+    price: unknown;
+    commissionPct?: unknown;
+    category?: { commissionPct?: unknown } | null;
+  };
   quantity: unknown;
 };
+
+/** % efectivo del producto: propio si > 0, si no el de categoría. */
+export function resolveProductCommissionPct(product: {
+  commissionPct?: unknown;
+  category?: { commissionPct?: unknown } | null;
+}): number {
+  const own = toAmount(product.commissionPct);
+  if (own > 0) return own;
+  return toAmount(product.category?.commissionPct);
+}
 
 export function calcAppointmentCommission(
   services: AppointmentServiceForCommission[],
@@ -32,7 +49,7 @@ export function calcAppointmentCommission(
   );
   const total = servicesTotal + productsTotal;
 
-  const rawCommission = services.reduce(
+  const servicesCommission = services.reduce(
     (sum, { service }) =>
       sum +
       toAmount(service.price) *
@@ -40,12 +57,25 @@ export function calcAppointmentCommission(
     0,
   );
 
+  const productsCommission = products.reduce((sum, { product, quantity }) => {
+    const line = lineTotal(product.price, quantity);
+    const pct = resolveProductCommissionPct(product);
+    return sum + line * (pct / 100);
+  }, 0);
+
+  const rawCommission = servicesCommission + productsCommission;
   const scale = total > 0 ? paidAmount / total : 1;
   const amount = Math.round(rawCommission * scale * 100) / 100;
   const ratePct =
     paidAmount > 0 ? Math.round((amount / paidAmount) * 10000) / 100 : 0;
 
-  return { amount, ratePct, baseAmount: paidAmount };
+  return {
+    amount,
+    ratePct,
+    baseAmount: paidAmount,
+    servicesCommission: Math.round(servicesCommission * scale * 100) / 100,
+    productsCommission: Math.round(productsCommission * scale * 100) / 100,
+  };
 }
 
 export async function recordCommissionForPayment(

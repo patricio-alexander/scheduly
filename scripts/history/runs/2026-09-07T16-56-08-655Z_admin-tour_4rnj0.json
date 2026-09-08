@@ -1,0 +1,81 @@
+{
+  "tester": "admin-tour",
+  "mode": "toggle-accounts",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 1879,
+  "ok": true,
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "ok": true
+  },
+  "actor": {
+    "username": "admin_colon",
+    "name": "Karla Espinoza",
+    "role": "admin",
+    "branchKey": "colon"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como Karla Espinoza",
+        "Rol: Administrador · local: Andrea Guerrero · Cristóbal Colón"
+      ]
+    },
+    {
+      "id": "list",
+      "title": "Lista equipo del local",
+      "ok": true,
+      "lines": [
+        "Activos: 10 · total: 10"
+      ]
+    },
+    {
+      "id": "deactivate",
+      "title": "Desactiva cuenta del empleado",
+      "ok": true,
+      "lines": [
+        "@estilista_marco quedó inactiva"
+      ]
+    },
+    {
+      "id": "verify-inactive",
+      "title": "Verifica que aparece inactiva",
+      "ok": true,
+      "lines": [
+        "@estilista_marco isActive=false"
+      ]
+    },
+    {
+      "id": "reactivate",
+      "title": "Reactiva la cuenta",
+      "ok": true,
+      "lines": [
+        "@estilista_marco volvió a activa",
+        "Toggle OK"
+      ]
+    },
+    {
+      "id": "verify-active",
+      "title": "Verifica que vuelve a listarse activa",
+      "ok": true,
+      "lines": [
+        "@estilista_marco visible y activa"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "Karla termina y sale."
+      ]
+    }
+  ],
+  "id": "2026-09-07T16-56-08-655Z_admin-tour_4rnj0",
+  "at": "2026-09-07T16:56:08.655Z"
+}

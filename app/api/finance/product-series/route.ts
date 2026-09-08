@@ -9,6 +9,7 @@ import {
   parseDashboardPeriod,
 } from "@/shared/utils/dashboard-period";
 import { toDayKey } from "@/shared/utils/finance-cashflow";
+import { saleLineWhereForLocation } from "@/shared/utils/pos-location";
 
 type ItemKind = "all" | "products" | "services";
 
@@ -38,48 +39,19 @@ export async function GET(request: Request) {
     const { start, end } = getDashboardPeriodRange(period);
 
     const includeProducts = kind === "all" || kind === "products";
-    const includeServices = kind === "all" || kind === "services";
 
-    const appointmentWhere = {
-      status: "completed" as const,
-      appointmentDate: { gte: start, lte: end },
-      ...(branchId ? { branchId } : {}),
-    };
-
-    const [aptProducts, saleLines, aptServices] = await Promise.all([
-      includeProducts
-        ? prisma.appointmentsProducts.findMany({
-            where: { appointment: appointmentWhere },
-            include: {
-              product: { select: { id: true, name: true, price: true } },
-              appointment: { select: { appointmentDate: true } },
-            },
-          })
-        : Promise.resolve([]),
-      includeProducts
-        ? prisma.productSaleLine.findMany({
-            where: {
-              sale: {
-                paidAt: { gte: start, lte: end },
-                ...(branchId ? { branchId } : {}),
-              },
-            },
-            include: {
-              product: { select: { id: true, name: true } },
-              sale: { select: { paidAt: true } },
-            },
-          })
-        : Promise.resolve([]),
-      includeServices
-        ? prisma.appointmentsServices.findMany({
-            where: { appointment: appointmentWhere },
-            include: {
-              service: { select: { id: true, name: true, price: true } },
-              appointment: { select: { appointmentDate: true } },
-            },
-          })
-        : Promise.resolve([]),
-    ]);
+    const saleLines = includeProducts
+      ? await prisma.saleLine.findMany({
+          where: {
+            ...saleLineWhereForLocation(branchId),
+            sale: { date: { gte: start, lte: end } },
+          },
+          include: {
+            product: { select: { id: true, name: true } },
+            sale: { select: { date: true, paidAt: true } },
+          },
+        })
+      : [];
 
     type Agg = {
       key: string;
@@ -120,36 +92,21 @@ export async function GET(request: Request) {
       map.set(key, current);
     };
 
-    for (const row of aptProducts) {
-      bump(
-        "product",
-        row.product.id,
-        row.product.name,
-        row.quantity,
-        toAmount(row.product.price) * row.quantity,
-        row.appointment.appointmentDate,
-      );
-    }
-
     for (const row of saleLines) {
+      const qty = Math.max(
+        0,
+        toAmount(row.quantity) -
+          toAmount(row.damagedQty) -
+          toAmount(row.giftQty),
+      );
+      if (qty <= 0) continue;
       bump(
         "product",
         row.product.id,
         row.product.name,
-        row.quantity,
-        toAmount(row.unitPrice) * row.quantity,
-        row.sale.paidAt,
-      );
-    }
-
-    for (const row of aptServices) {
-      bump(
-        "service",
-        row.service.id,
-        row.service.name,
-        1,
-        toAmount(row.service.price),
-        row.appointment.appointmentDate,
+        qty,
+        qty * toAmount(row.price),
+        row.sale.paidAt ?? row.sale.date,
       );
     }
 
@@ -196,7 +153,13 @@ export async function GET(request: Request) {
       totalBands,
       totalRanked,
       periodLabel:
-        period === "today" ? "Hoy" : period === "week" ? "Semana" : "Mes",
+        period === "today"
+          ? "Hoy"
+          : period === "week"
+            ? "Semana"
+            : period === "all"
+              ? "Todo"
+              : "Mes",
       sales: {
         products: slice.map((item, i) => ({
           id: item.id,

@@ -23,6 +23,8 @@ import {
   isManagementRole,
   isOwnerRole,
 } from "@/shared/utils/roles";
+import { recordLedgerExpense } from "@/shared/utils/finance-ledger";
+import { recordStockMovements } from "@/shared/utils/stock-movement-log";
 
 function parseMethod(value: unknown): PaymentMethodValue {
   const method = String(value ?? "cash");
@@ -56,6 +58,9 @@ async function resolvePurchaseBranchId(
 export async function GET(request: Request) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
+  if (!isManagementRole(auth.user.role)) {
+    return NextResponse.json({ message: "No autorizado" }, { status: 403 });
+  }
 
   try {
     const url = new URL(request.url);
@@ -255,7 +260,7 @@ export async function POST(request: Request) {
           status: receiveNow ? "recibido" : "pendiente",
           receivedAt: receiveNow ? new Date() : null,
           receivedStoreId: receiveNow ? branchId : null,
-          paidAt: payNow ? new Date() : null,
+          paidAt: payNow ? purchasedAt : null,
           paymentMethod: payNow ? method : null,
           lines: {
             create: lines.map((line) => ({
@@ -266,7 +271,7 @@ export async function POST(request: Request) {
           },
         },
         include: {
-          supplier: { select: { id: true, name: true } },
+          supplier: { select: { id: true, name: true, tradeName: true } },
           lines: {
             include: {
               product: { select: { id: true, name: true, price: true } },
@@ -277,7 +282,63 @@ export async function POST(request: Request) {
 
       if (receiveNow) {
         await incrementStockForPurchase(tx, lines, branchId);
+        await recordStockMovements(
+          tx,
+          auth.user.id,
+          "entrada",
+          lines.map((l) => ({
+            productId: l.productId,
+            quantity: l.quantity,
+            price: l.unitCost,
+          })),
+          {
+            description: `Compra proveedor · PO (recibido)`,
+            reason: "compra",
+            referenceType: "purchase_order",
+            referenceId: created.id,
+            date: purchasedAt,
+          },
+        );
       }
+
+      // Si se paga al comprar → gasto en módulo Finanzas
+      if (payNow && totalAmount > 0) {
+        const supplierName =
+          created.supplier.tradeName?.trim() || created.supplier.name;
+        const payment = await tx.supplierOrderPayment.create({
+          data: {
+            supplierOrderId: created.id,
+            supplierId,
+            amount: totalAmount,
+            method,
+            note: notes || `Pago compra PO #${created.id}`,
+            date: purchasedAt,
+            status: "completed",
+            createdBy: auth.user.id,
+          },
+        });
+        const expense = await recordLedgerExpense(tx, {
+          amount: totalAmount,
+          date: purchasedAt,
+          concept: notes || `Compra insumos PO #${created.id}`,
+          category: "Compra de insumos",
+          createdByAccountId: auth.user.id,
+          counterpartyName: supplierName,
+          referenceType: "supplier_payment",
+          referenceId: payment.id,
+        });
+        if (expense) {
+          await tx.supplierOrderPayment.update({
+            where: { id: payment.id },
+            data: { expenseId: expense.id },
+          });
+          await tx.purchaseOrder.update({
+            where: { id: created.id },
+            data: { financeExpenseId: expense.id },
+          });
+        }
+      }
+
       return created;
     });
 

@@ -3,20 +3,17 @@
 import { useMemo, useState } from "react";
 import {
   Button,
-  Modal,
-  Pagination,
-  SearchField,
   Label,
-  Table,
+  Modal,
+  SearchField,
   useOverlayState,
 } from "@heroui/react";
 import Receipt from "@gravity-ui/icons/Receipt";
-import {
-  useReactTable,
-  getCoreRowModel,
-  getPaginationRowModel,
-} from "@tanstack/react-table";
 import { ContentCard, EmptyState, TableSkeleton } from "@/shared/components/ui";
+import {
+  TablePro,
+  type TableProColumn,
+} from "@/shared/components/TablePro";
 import { formatMoney } from "@/shared/utils/money";
 import {
   paymentMethodLabel,
@@ -56,6 +53,7 @@ function formatPaidAt(iso: string) {
     time: date.toLocaleTimeString("es-CL", {
       hour: "2-digit",
       minute: "2-digit",
+      second: "2-digit",
     }),
   };
 }
@@ -163,7 +161,6 @@ export function SalesList({
   search,
   onSearchChange,
 }: Props) {
-  const [page, setPage] = useState(1);
   const [selectedSale, setSelectedSale] = useState<SaleRecord | null>(null);
   const detailModal = useOverlayState();
   const flags = useOperationFlags();
@@ -195,30 +192,87 @@ export function SalesList({
     );
   }, [sales, search]);
 
-  const columns = useMemo(
-    () => [{ accessorKey: "id" as const, header: "Venta" }],
-    [],
-  );
-
-  const table = useReactTable({
-    data: filtered,
-    columns,
-    pageCount: Math.max(1, Math.ceil(filtered.length / PAGE_SIZE)),
-    state: { pagination: { pageIndex: page - 1, pageSize: PAGE_SIZE } },
-    onPaginationChange: (updater) => {
-      const next =
-        typeof updater === "function"
-          ? updater({ pageIndex: page - 1, pageSize: PAGE_SIZE })
-          : updater;
-      setPage(next.pageIndex + 1);
-    },
-    getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
-    manualPagination: false,
-  });
-
-  const pageRows = table.getRowModel().rows;
-  const totalPages = table.getPageCount();
+  const columns = useMemo<TableProColumn<SaleRecord>[]>(() => {
+    const cols: TableProColumn<SaleRecord>[] = [
+      {
+        id: "paidAt",
+        label: "Fecha",
+        getSortValue: (s) => new Date(s.paidAt).getTime(),
+        getSearchValue: (s) => s.paidAt,
+        render: (s) => {
+          const { date, time } = formatPaidAt(s.paidAt);
+          return (
+            <div>
+              <p className="text-sm font-medium tabular-nums">{date}</p>
+              <p className="text-xs text-muted tabular-nums">{time}</p>
+            </div>
+          );
+        },
+      },
+    ];
+    if (showBranch) {
+      cols.push({
+        id: "branch",
+        label: "Sucursal",
+        getSortValue: (s) => (s.branch?.name ?? "").toLowerCase(),
+        getSearchValue: (s) => s.branch?.name ?? "",
+        render: (s) => (
+          <span className="text-sm text-muted">{s.branch?.name ?? "—"}</span>
+        ),
+      });
+    }
+    if (showCustomer) {
+      cols.push({
+        id: "customer",
+        label: "Cliente",
+        getSortValue: (s) => s.customer.name.toLowerCase(),
+        getSearchValue: (s) => s.customer.name,
+        render: (s) => (
+          <span className="text-sm font-semibold uppercase tracking-wide">
+            {s.customer.name || "—"}
+          </span>
+        ),
+      });
+    }
+    cols.push(
+      {
+        id: "detail",
+        label: "Detalle",
+        getSortValue: (s) => (s.itemsSummary || s.title).toLowerCase(),
+        getSearchValue: (s) => `${s.itemsSummary} ${s.title} ${s.notes}`,
+        render: (s) => (
+          <span className="line-clamp-2 text-sm text-muted">
+            {s.itemsSummary || s.title}
+          </span>
+        ),
+      },
+      {
+        id: "staff",
+        label: "Atendido por",
+        getSortValue: (s) => s.staff.name.toLowerCase(),
+        getSearchValue: (s) => s.staff.name,
+        render: (s) => s.staff.name,
+      },
+      {
+        id: "method",
+        label: "Método",
+        getSortValue: (s) => paymentMethodLabel[s.method] ?? s.method,
+        render: (s) => paymentMethodLabel[s.method],
+      },
+      {
+        id: "amount",
+        label: "Monto",
+        align: "right",
+        getSortValue: (s) => s.amount,
+        render: (s) => (
+          <span className="font-semibold tabular-nums">
+            {formatMoney(s.amount)}
+          </span>
+        ),
+      },
+    );
+    return cols;
+  }, [showBranch, showCustomer]);
 
   if (loading) {
     return (
@@ -256,7 +310,6 @@ export function SalesList({
                     type="button"
                     onClick={() => {
                       onPeriodChange(option);
-                      setPage(1);
                     }}
                     className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                       period === option
@@ -271,10 +324,9 @@ export function SalesList({
               <div className="inline-flex overflow-x-auto rounded-xl border border-separator p-1">
                 <button
                   type="button"
-                  onClick={() => {
-                    onMethodChange("all");
-                    setPage(1);
-                  }}
+                    onClick={() => {
+                      onMethodChange("all");
+                    }}
                   className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                     method === "all"
                       ? "bg-accent text-accent-foreground"
@@ -289,7 +341,6 @@ export function SalesList({
                     type="button"
                     onClick={() => {
                       onMethodChange(option);
-                      setPage(1);
                     }}
                     className={`shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
                       method === option
@@ -317,90 +368,17 @@ export function SalesList({
               description="Prueba con otro cliente, servicio, producto o método de pago."
             />
           ) : (
-            <>
-              <ul className="flex flex-col gap-2 md:hidden">
-                {pageRows.map((row) => (
-                  <li key={row.original.id}>
-                    <SaleRowButton
-                      sale={row.original}
-                      layout="mobile"
-                      showCustomer={showCustomer}
-                      showBranch={showBranch}
-                      onPress={() => openSaleDetail(row.original)}
-                    />
-                  </li>
-                ))}
-              </ul>
-
-              <div className="hidden md:block">
-                <Table>
-                  <Table.ScrollContainer>
-                    <Table.Content aria-label="Ingresos por turnos" className="min-w-[720px]">
-                      <Table.Header>
-                        <Table.Column isRowHeader>Fecha</Table.Column>
-                        {showBranch ? <Table.Column>Sucursal</Table.Column> : null}
-                        {showCustomer ? <Table.Column>Cliente</Table.Column> : null}
-                        <Table.Column>Detalle</Table.Column>
-                        <Table.Column>Atendido por</Table.Column>
-                        <Table.Column>Método</Table.Column>
-                        <Table.Column>Monto</Table.Column>
-                      </Table.Header>
-                      <Table.Body>
-                        {pageRows.map((row) => (
-                          <Table.Row key={row.original.id}>
-                            <Table.Cell colSpan={colSpan} className="p-0">
-                              <SaleRowButton
-                                sale={row.original}
-                                layout="desktop"
-                                showCustomer={showCustomer}
-                                showBranch={showBranch}
-                                onPress={() => openSaleDetail(row.original)}
-                              />
-                            </Table.Cell>
-                          </Table.Row>
-                        ))}
-                      </Table.Body>
-                    </Table.Content>
-                  </Table.ScrollContainer>
-                </Table>
-              </div>
-
-              {totalPages > 1 && (
-                <Pagination>
-                  <Pagination.Summary>
-                    {filtered.length} venta{filtered.length === 1 ? "" : "s"}
-                  </Pagination.Summary>
-                  <Pagination.Content>
-                    <Pagination.Item>
-                      <Pagination.Previous
-                        isDisabled={page <= 1}
-                        onPress={() => setPage((p) => Math.max(1, p - 1))}
-                      >
-                        <Pagination.PreviousIcon />
-                      </Pagination.Previous>
-                    </Pagination.Item>
-                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((p) => (
-                      <Pagination.Item key={p}>
-                        <Pagination.Link
-                          isActive={p === page}
-                          onPress={() => setPage(p)}
-                        >
-                          {p}
-                        </Pagination.Link>
-                      </Pagination.Item>
-                    ))}
-                    <Pagination.Item>
-                      <Pagination.Next
-                        isDisabled={page >= totalPages}
-                        onPress={() => setPage((p) => Math.min(totalPages, p + 1))}
-                      >
-                        <Pagination.NextIcon />
-                      </Pagination.Next>
-                    </Pagination.Item>
-                  </Pagination.Content>
-                </Pagination>
-              )}
-            </>
+            <TablePro
+              columns={columns}
+              rows={filtered}
+              getRowId={(s) => s.id}
+              showSearch={false}
+              emptyMessage="Sin resultados"
+              defaultRowsPerPage={12}
+              rowsPerPageOptions={[12, 25, 50]}
+              dense
+              onRowClick={(sale) => openSaleDetail(sale)}
+            />
           )}
         </div>
       </ContentCard>

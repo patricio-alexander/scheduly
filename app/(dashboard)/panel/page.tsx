@@ -50,6 +50,7 @@ interface ComparisonMetric {
 
 interface DashboardData {
   period: DashboardPeriod;
+  metricsMode?: "pos" | "agenda";
   totalCustomers: number;
   totalServices: number;
   totalAppointments: number;
@@ -222,9 +223,9 @@ function PeriodFilter({
 
 const quickActions = [
   {
-    href: appRoutes.operation.agenda,
-    label: "Nuevo turno",
-    hint: "Agenda",
+    href: appRoutes.sales.orders,
+    label: "Nuevo pedido",
+    hint: "Ventas",
     icon: Plus,
   },
   {
@@ -257,7 +258,7 @@ type StatusChartEntry = {
 export default function DashboardPage() {
   const { user } = useAuth();
   const { branches } = useBranches();
-  const [period, setPeriod] = useState<DashboardPeriod>("week");
+  const [period, setPeriod] = useState<DashboardPeriod>("all");
   const [branchFilter, setBranchFilter] = useState<number | "all">("all");
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -340,8 +341,26 @@ export default function DashboardPage() {
 
   const completionRate = data?.completionRate ?? 0;
 
+  const posMode = data?.metricsMode === "pos";
+
   const statusChartData = data
-    ? [
+    ? posMode && data.appointmentStatusOverview?.length
+      ? data.appointmentStatusOverview
+          .filter((item) => item.count > 0)
+          .map((item) => ({
+            key: item.id,
+            name: item.label,
+            value: item.count,
+            color:
+              item.id === "completed"
+                ? statusChartColor.completed
+                : item.id === "pending_payment"
+                  ? statusChartColor.pending_payment
+                  : item.id === "paid_pending"
+                    ? statusChartColor.paid_pending
+                    : statusChartColor.scheduled,
+          }))
+      : [
         {
           key: "scheduled",
           name: statusLabel.scheduled,
@@ -411,9 +430,9 @@ export default function DashboardPage() {
             </h1>
             <p className="mt-1 max-w-xl text-sm text-muted">
               {isOwner
-                ? "Panel ejecutivo · "
+                ? "Todos los locales · "
                 : isEmployee
-                  ? "Tus turnos · "
+                  ? "Tus ventas · "
                   : "Tu sucursal · "}
               {periodDescription.toLowerCase()}
               {userBranchLabel ? (
@@ -464,7 +483,7 @@ export default function DashboardPage() {
               data-onboarding="dash-kpis"
             >
               <StatCard
-                label="Turnos"
+                label="Pedidos"
                 value={data?.totalAppointments ?? 0}
                 icon={<Calendar width={20} height={20} />}
                 delta={
@@ -473,7 +492,7 @@ export default function DashboardPage() {
                     label={comparisonLabel}
                   />
                 }
-                subtitle={`${data?.scheduled ?? 0} agendados · ${data?.pending_payment ?? 0} por pagar`}
+                subtitle={`${data?.pending_payment ?? 0} por cobrar · ${data?.completed ?? 0} pagados`}
               />
               <StatCard
                 label="Tasa de cierre"
@@ -496,7 +515,7 @@ export default function DashboardPage() {
                 subtitle={
                   isEmployee
                     ? `${data?.totalServices ?? 0} servicios realizados`
-                    : `${data?.totalServices ?? 0} servicios activos`
+                    : `${data?.totalServices ?? 0} productos activos`
                 }
               />
             </div>
@@ -512,6 +531,7 @@ export default function DashboardPage() {
               <div className="min-w-0 xl:col-span-4">
                 <AppointmentStatusSummaryPanel
                   items={data?.appointmentStatusOverview ?? []}
+                  posMode={posMode}
                 />
               </div>
             </div>
@@ -528,6 +548,7 @@ export default function DashboardPage() {
               onActiveStatusKeyChange={setActiveStatusKey}
               activeStatusEntry={activeStatusEntry}
               activeStatusPct={activeStatusPct}
+              unitLabel={posMode ? "pedidos" : "turnos"}
             />
           ) : null}
 
@@ -536,11 +557,13 @@ export default function DashboardPage() {
               <TopEmployeesCard
                 employees={data?.topEmployees ?? []}
                 periodDescription={periodDescription}
+                posMode={posMode}
               />
               <RecentAppointmentsCard
                 appointments={data?.recentAppointments ?? []}
                 periodDescription={periodDescription}
                 className="max-h-[20rem]"
+                posMode={posMode}
               />
             </div>
           ) : null}
@@ -555,10 +578,12 @@ export default function DashboardPage() {
                 activeStatusEntry={activeStatusEntry}
                 activeStatusPct={activeStatusPct}
                 periodDescription={periodDescription}
+                unitLabel={posMode ? "pedidos" : "turnos"}
               />
               <RecentAppointmentsCard
                 appointments={data?.recentAppointments ?? []}
                 periodDescription={periodDescription}
+                posMode={posMode}
               />
             </div>
           ) : null}

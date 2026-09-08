@@ -7,7 +7,19 @@ import {
   resolveUserBranchId,
   setUserPrimaryBranch,
 } from "@/shared/utils/branches";
-import { isOwnerRole } from "@/shared/utils/roles";
+import { isBranchAdminRole, isOwnerRole } from "@/shared/utils/roles";
+import {
+  resolveRoleIdByName,
+  resolveRoleIds,
+  serializeAccountRow,
+  splitPersonName,
+} from "@/shared/utils/account-serialize";
+import {
+  assertCanManageTargetAccount,
+  canManageBranchStaff,
+  getManagerBranchId,
+  rolesAllowedForBranchAdmin,
+} from "@/shared/utils/staff-scope";
 
 function parseBranchIdFromBody(body: Record<string, unknown>): number | null {
   const raw = body.branchId;
@@ -16,31 +28,66 @@ function parseBranchIdFromBody(body: Record<string, unknown>): number | null {
   return Number.isInteger(id) && id > 0 ? id : null;
 }
 
+function parseRoles(body: Record<string, unknown>): string[] {
+  if (Array.isArray(body.roles)) {
+    return body.roles.map((r) => String(r).trim()).filter(Boolean);
+  }
+  if (body.role) return [String(body.role).trim()].filter(Boolean);
+  return [];
+}
+
 export async function PUT(
   request: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
-  if (!isOwnerRole(auth.user.role)) {
+  if (!canManageBranchStaff(auth.user.role)) {
     return NextResponse.json({ message: "No autorizado" }, { status: 403 });
   }
 
   const { id } = await params;
+  const accountId = Number(id);
+  if (!Number.isInteger(accountId) || accountId <= 0) {
+    return NextResponse.json({ message: "ID inválido" }, { status: 400 });
+  }
+
+  const scope = await assertCanManageTargetAccount(auth.user, accountId);
+  if (!scope.ok) {
+    return NextResponse.json({ message: scope.message }, { status: scope.status });
+  }
+
   try {
     const body = (await request.json()) as Record<string, unknown>;
     const username = String(body.username ?? "").trim();
     const name = String(body.name ?? "").trim();
     const email = String(body.email ?? "").trim();
-    const role = String(body.role ?? "");
-    const branchId = parseBranchIdFromBody(body);
-    const resolvedBranchId = await resolveUserBranchId(prisma, role, branchId);
+    let roles = parseRoles(body);
+    let branchId = parseBranchIdFromBody(body);
+
+    if (isBranchAdminRole(auth.user.role) && !isOwnerRole(auth.user.role)) {
+      roles = rolesAllowedForBranchAdmin(roles.length ? roles : ["Empleado"]);
+      const myBranch = await getManagerBranchId(auth.user);
+      branchId = myBranch;
+    }
+
+    const primaryRole = roles[0] ?? String(body.role ?? "Empleado");
+    const resolvedBranchId = await resolveUserBranchId(
+      prisma,
+      primaryRole,
+      branchId,
+    );
     const password =
       typeof body.password === "string" ? body.password.trim() : "";
+    const setActive =
+      typeof body.isActive === "boolean" ? body.isActive : undefined;
 
-    if (!username || !name || !email || !role) {
+    if (!username || !name || !email || roles.length === 0) {
       return NextResponse.json(
-        { message: "Datos incompletos" },
+        {
+          message:
+            "Datos incompletos (usuario, nombre, correo y al menos un rol)",
+        },
         { status: 400 },
       );
     }
@@ -54,13 +101,13 @@ export async function PUT(
 
     if (!resolvedBranchId) {
       return NextResponse.json(
-        { message: "Selecciona una sucursal para el usuario" },
+        { message: "Selecciona una sucursal para la cuenta" },
         { status: 400 },
       );
     }
 
-    const existing = await prisma.user.findFirst({
-      where: { username, NOT: { id: Number(id) } },
+    const existing = await prisma.account.findFirst({
+      where: { username, NOT: { id: accountId } },
     });
     if (existing) {
       return NextResponse.json(
@@ -69,55 +116,86 @@ export async function PUT(
       );
     }
 
-    const data: {
-      username: string;
-      name: string;
-      email: string;
-      role: string;
-      password?: string;
-    } = { username, name, email, role };
-
-    if (password) {
-      data.password = await hashPassword(password);
+    const current = await prisma.account.findUnique({
+      where: { id: accountId },
+      include: { person: true },
+    });
+    if (!current) {
+      return NextResponse.json(
+        { message: "Cuenta no encontrada" },
+        { status: 404 },
+      );
     }
 
-    const user = await prisma.$transaction(async (tx) => {
-      const updated = await tx.user.update({
-        where: { id: Number(id) },
-        data,
-        select: {
-          id: true,
-          username: true,
-          name: true,
-          email: true,
-          role: true,
-          photo: true,
+    const { firstName, firstLastName } = splitPersonName(name);
+    const roleIds = await resolveRoleIds(
+      (n) => resolveRoleIdByName(prisma, n),
+      { roles },
+    );
+
+    const account = await prisma.$transaction(async (tx) => {
+      await tx.account.update({
+        where: { id: accountId },
+        data: {
+          username,
+          ...(password ? { password: await hashPassword(password) } : {}),
+          ...(setActive !== undefined ? { isActive: setActive } : {}),
         },
       });
 
-      if (body.branchId !== undefined || role === "owner") {
-        await setUserPrimaryBranch(tx, updated.id, resolvedBranchId);
+      if (current.userId) {
+        await tx.person.update({
+          where: { id: current.userId },
+          data: { firstName, firstLastName },
+        });
+        await tx.personData.upsert({
+          where: { idUser: current.userId },
+          create: {
+            idUser: current.userId,
+            personalEmail: email,
+          },
+          update: { personalEmail: email },
+        });
       }
 
-      return updated;
+      await tx.accountRole.deleteMany({ where: { accountId } });
+      for (const roleId of roleIds) {
+        await tx.accountRole.create({
+          data: { accountId, roleId },
+        });
+      }
+
+      if (
+        isOwnerRole(auth.user.role) &&
+        (body.branchId !== undefined || isOwnerRole(primaryRole))
+      ) {
+        await setUserPrimaryBranch(tx, accountId, resolvedBranchId);
+      } else if (isBranchAdminRole(auth.user.role) && resolvedBranchId) {
+        await setUserPrimaryBranch(tx, accountId, resolvedBranchId);
+      }
+
+      return tx.account.findUniqueOrThrow({
+        where: { id: accountId },
+        include: {
+          person: true,
+          roles: { include: { role: true }, orderBy: { id: "asc" } },
+        },
+      });
     });
 
-    const branch = await getUserBranchSummary(prisma, user.id);
+    const summary = await getUserBranchSummary(prisma, account.id);
+    const branch = summary
+      ? { id: summary.id, name: summary.name, code: `suc-${summary.id}` }
+      : null;
 
     return NextResponse.json({
-      id: user.id,
-      username: user.username,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      photo: user.photo,
-      branch,
+      ...serializeAccountRow(account, email, branch),
       passwordUpdated: Boolean(password),
     });
   } catch (error) {
     console.error("PUT /api/users/[id]", error);
     return NextResponse.json(
-      { message: "Error al actualizar el usuario" },
+      { message: "Error al actualizar la cuenta" },
       { status: 500 },
     );
   }
@@ -129,17 +207,37 @@ export async function DELETE(
 ) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
-  if (!isOwnerRole(auth.user.role)) {
+  if (!canManageBranchStaff(auth.user.role)) {
     return NextResponse.json({ message: "No autorizado" }, { status: 403 });
   }
 
   const { id } = await params;
+  const accountId = Number(id);
+  if (!Number.isInteger(accountId) || accountId <= 0) {
+    return NextResponse.json({ message: "ID inválido" }, { status: 400 });
+  }
+
+  const scope = await assertCanManageTargetAccount(auth.user, accountId);
+  if (!scope.ok) {
+    return NextResponse.json({ message: scope.message }, { status: scope.status });
+  }
+
   try {
-    await prisma.user.delete({ where: { id: Number(id) } });
-    return NextResponse.json({ message: "Usuario eliminado" });
+    if (accountId === auth.user.id) {
+      return NextResponse.json(
+        { message: "No puedes desactivar tu propia cuenta" },
+        { status: 400 },
+      );
+    }
+
+    await prisma.account.update({
+      where: { id: accountId },
+      data: { isActive: false },
+    });
+    return NextResponse.json({ message: "Cuenta desactivada" });
   } catch {
     return NextResponse.json(
-      { message: "Error al eliminar el usuario" },
+      { message: "Error al desactivar la cuenta" },
       { status: 500 },
     );
   }

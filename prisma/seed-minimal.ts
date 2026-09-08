@@ -1,11 +1,12 @@
 /**
- * Seed mínimo post-migración schema EdDeli-aligned.
- * Tras importar backup EdDeli no hace falta; útil en BD vacía.
+ * Seed mínimo: roles + cuenta Administrador.
+ * Preferir `npm run db:reset` para vaciar y bootstrap completo.
  */
 import "dotenv/config";
 import { PrismaClient } from "../generated/prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { hashPassword } from "../shared/utils/password";
+import { SYSTEM_ROLES } from "../shared/utils/system-roles";
 
 async function main() {
   const url = process.env.DATABASE_URL?.trim();
@@ -16,20 +17,19 @@ async function main() {
   });
 
   try {
-    const roles = ["owner", "admin", "employee", "Programador", "Administrador", "Empleado"];
-    for (const name of roles) {
-      const existing = await prisma.role.findFirst({ where: { name } });
-      if (!existing) await prisma.role.create({ data: { name } });
+    for (const role of SYSTEM_ROLES) {
+      const existing = await prisma.role.findFirst({ where: { name: role.name } });
+      if (!existing) await prisma.role.create({ data: { name: role.name } });
     }
 
     let person = await prisma.person.findFirst({
-      where: { firstName: "Dueño", firstLastName: "Scheduly" },
+      where: { firstName: "Andrea", firstLastName: "Guerrero" },
     });
     if (!person) {
       person = await prisma.person.create({
         data: {
-          firstName: "Dueño",
-          firstLastName: "Scheduly",
+          firstName: "Andrea",
+          firstLastName: "Guerrero",
           documentType: "05",
         },
       });
@@ -39,20 +39,20 @@ async function main() {
       where: { idUser: person.id },
       create: {
         idUser: person.id,
-        personalEmail: "dueno@scheduly.local",
-        cellPhone: "",
+        personalEmail: "andrea@andreaguerrero.ec",
+        cellPhone: "0994960155",
       },
       update: {},
     });
 
-    const password = await hashPassword("admin123");
+    const password = await hashPassword("12345678");
     let account = await prisma.account.findFirst({
-      where: { username: "admin" },
+      where: { username: "Administrador" },
     });
     if (!account) {
       account = await prisma.account.create({
         data: {
-          username: "admin",
+          username: "Administrador",
           password,
           userId: person.id,
           isActive: true,
@@ -65,7 +65,7 @@ async function main() {
       });
     }
 
-    const ownerRole = await prisma.role.findFirst({ where: { name: "owner" } });
+    const ownerRole = await prisma.role.findFirst({ where: { name: "Dueño" } });
     if (ownerRole) {
       const link = await prisma.accountRole.findFirst({
         where: { accountId: account.id, roleId: ownerRole.id },
@@ -81,36 +81,19 @@ async function main() {
       where: { id: 1 },
       create: {
         id: 1,
-        name: "Scheduly",
-        alias: "scheduly",
+        name: "Andrea Guerrero Estética y Peluquería",
+        alias: "andrea-guerrero",
+        phone: "0994960155",
         accentColor: "#D4AF37",
       },
-      update: {},
-    });
-
-    await prisma.appEntitlement.upsert({
-      where: { id: 1 },
-      create: {
-        id: 1,
-        payload: { modules: [] },
-        source: "gestor_push",
+      update: {
+        name: "Andrea Guerrero Estética y Peluquería",
+        phone: "0994960155",
+        accentColor: "#D4AF37",
       },
-      update: {},
     });
 
-    await prisma.sriBillingSettings.upsert({
-      where: { id: 1 },
-      create: { id: 1 },
-      update: {},
-    });
-
-    await prisma.loyaltySettings.upsert({
-      where: { id: 1 },
-      create: { id: 1 },
-      update: {},
-    });
-
-    console.log("Seed OK — login: admin / admin123");
+    console.log("Seed OK — login: Administrador / 12345678");
   } finally {
     await prisma.$disconnect();
   }

@@ -1,0 +1,570 @@
+{
+  "tester": "employee-tour",
+  "mode": "register-customers-all",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 2833,
+  "ok": true,
+  "summary": {
+    "passed": 50,
+    "failed": 0,
+    "total": 50
+  },
+  "subjects": [
+    {
+      "username": "estilista_maria",
+      "name": "María García",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "created": 1,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como María García",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "list-before",
+          "title": "Clientes antes de registrar",
+          "ok": true,
+          "lines": [
+            "Total en sistema: 81"
+          ]
+        },
+        {
+          "id": "register",
+          "title": "Registra 1 cliente(s)",
+          "ok": true,
+          "lines": [
+            "Creados: 1/1",
+            "· Sebastián Mora"
+          ]
+        },
+        {
+          "id": "verify",
+          "title": "Verifica listado",
+          "ok": true,
+          "lines": [
+            "Antes 81 → ahora 83"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "María registró 1 cliente(s)."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_juan",
+      "name": "Juan Pérez",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "created": 1,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Juan Pérez",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "list-before",
+          "title": "Clientes antes de registrar",
+          "ok": true,
+          "lines": [
+            "Total en sistema: 81"
+          ]
+        },
+        {
+          "id": "register",
+          "title": "Registra 1 cliente(s)",
+          "ok": true,
+          "lines": [
+            "Creados: 1/1",
+            "· Paula Espinoza"
+          ]
+        },
+        {
+          "id": "verify",
+          "title": "Verifica listado",
+          "ok": true,
+          "lines": [
+            "Antes 81 → ahora 83"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Juan registró 1 cliente(s)."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "colorista_camila",
+      "name": "Camila Rojas",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "created": 1,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Camila Rojas",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "list-before",
+          "title": "Clientes antes de registrar",
+          "ok": true,
+          "lines": [
+            "Total en sistema: 81"
+          ]
+        },
+        {
+          "id": "register",
+          "title": "Registra 1 cliente(s)",
+          "ok": true,
+          "lines": [
+            "Creados: 1/1",
+            "· María Castro"
+          ]
+        },
+        {
+          "id": "verify",
+          "title": "Verifica listado",
+          "ok": true,
+          "lines": [
+            "Antes 81 → ahora 91"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Camila registró 1 cliente(s)."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "unas_natalia",
+      "name": "Natalia Ortiz",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "created": 1,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Natalia Ortiz",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "list-before",
+          "title": "Clientes antes de registrar",
+          "ok": true,
+          "lines": [
+            "Total en sistema: 81"
+          ]
+        },
+        {
+          "id": "register",
+          "title": "Registra 1 cliente(s)",
+          "ok": true,
+          "lines": [
+            "Creados: 1/1",
+            "· Elena Palacios"
+          ]
+        },
+        {
+          "id": "verify",
+          "title": "Verifica listado",
+          "ok": true,
+          "lines": [
+            "Antes 81 → ahora 91"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Natalia registró 1 cliente(s)."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "makeup_andres",
+      "name": "Andrés Muñoz",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "created": 1,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Andrés Muñoz",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "list-before",
+          "title": "Clientes antes de registrar",
+          "ok": true,
+          "lines": [
+            "Total en sistema: 81"
+          ]
+        },
+        {
+          "id": "register",
+          "title": "Registra 1 cliente(s)",
+          "ok": true,
+          "lines": [
+            "Creados: 1/1",
+            "· Ricardo Jiménez"
+          ]
+        },
+        {
+          "id": "verify",
+          "title": "Verifica listado",
+          "ok": true,
+          "lines": [
+            "Antes 81 → ahora 91"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Andrés registró 1 cliente(s)."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_diego",
+      "name": "Diego Salinas",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "created": 1,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Diego Salinas",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "list-before",
+          "title": "Clientes antes de registrar",
+          "ok": true,
+          "lines": [
+            "Total en sistema: 81"
+          ]
+        },
+        {
+          "id": "register",
+          "title": "Registra 1 cliente(s)",
+          "ok": true,
+          "lines": [
+            "Creados: 1/1",
+            "· Sebastián Mora"
+          ]
+        },
+        {
+          "id": "verify",
+          "title": "Verifica listado",
+          "ok": true,
+          "lines": [
+            "Antes 81 → ahora 91"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Diego registró 1 cliente(s)."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "tratamientos_paola",
+      "name": "Paola Herrera",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "created": 1,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Paola Herrera",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "list-before",
+          "title": "Clientes antes de registrar",
+          "ok": true,
+          "lines": [
+            "Total en sistema: 81"
+          ]
+        },
+        {
+          "id": "register",
+          "title": "Registra 1 cliente(s)",
+          "ok": true,
+          "lines": [
+            "Creados: 1/1",
+            "· Isabel Vega"
+          ]
+        },
+        {
+          "id": "verify",
+          "title": "Verifica listado",
+          "ok": true,
+          "lines": [
+            "Antes 81 → ahora 91"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Paola registró 1 cliente(s)."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "depilacion_ricardo",
+      "name": "Ricardo Vélez",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "created": 1,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Ricardo Vélez",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "list-before",
+          "title": "Clientes antes de registrar",
+          "ok": true,
+          "lines": [
+            "Total en sistema: 81"
+          ]
+        },
+        {
+          "id": "register",
+          "title": "Registra 1 cliente(s)",
+          "ok": true,
+          "lines": [
+            "Creados: 1/1",
+            "· Isabel Vega"
+          ]
+        },
+        {
+          "id": "verify",
+          "title": "Verifica listado",
+          "ok": true,
+          "lines": [
+            "Antes 81 → ahora 91"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Ricardo registró 1 cliente(s)."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "recepcion_felipe",
+      "name": "Felipe López",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "created": 1,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Felipe López",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "list-before",
+          "title": "Clientes antes de registrar",
+          "ok": true,
+          "lines": [
+            "Total en sistema: 81"
+          ]
+        },
+        {
+          "id": "register",
+          "title": "Registra 1 cliente(s)",
+          "ok": true,
+          "lines": [
+            "Creados: 1/1",
+            "· María Castro"
+          ]
+        },
+        {
+          "id": "verify",
+          "title": "Verifica listado",
+          "ok": true,
+          "lines": [
+            "Antes 81 → ahora 91"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Felipe registró 1 cliente(s)."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_marco",
+      "name": "Marco Espinosa",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 5,
+      "failed": 0,
+      "total": 5,
+      "created": 1,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Marco Espinosa",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "list-before",
+          "title": "Clientes antes de registrar",
+          "ok": true,
+          "lines": [
+            "Total en sistema: 81"
+          ]
+        },
+        {
+          "id": "register",
+          "title": "Registra 1 cliente(s)",
+          "ok": true,
+          "lines": [
+            "Creados: 1/1",
+            "· Sebastián Mora"
+          ]
+        },
+        {
+          "id": "verify",
+          "title": "Verifica listado",
+          "ok": true,
+          "lines": [
+            "Antes 81 → ahora 91"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Marco registró 1 cliente(s)."
+          ]
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "totalCreated": 10,
+    "perEmployee": 1
+  },
+  "id": "2026-09-07T19-24-01-090Z_employee-tour_2r5ga",
+  "at": "2026-09-07T19:24:01.090Z"
+}

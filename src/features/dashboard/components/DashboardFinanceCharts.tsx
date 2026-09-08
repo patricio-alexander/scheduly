@@ -30,6 +30,7 @@ type DashboardFinanceChartsProps = {
   onActiveStatusKeyChange?: (key: string | null) => void;
   activeStatusEntry?: StatusChartEntry | null;
   activeStatusPct?: number;
+  unitLabel?: string;
 };
 
 export function DashboardFinanceCharts({
@@ -42,6 +43,7 @@ export function DashboardFinanceCharts({
   onActiveStatusKeyChange,
   activeStatusEntry = null,
   activeStatusPct = 0,
+  unitLabel = "turnos",
 }: DashboardFinanceChartsProps) {
   const normalizedBranchId = typeof branchId === "number" ? branchId : null;
   const [navigateToMonth, setNavigateToMonth] = useState<{
@@ -100,6 +102,7 @@ export function DashboardFinanceCharts({
             activeStatusEntry={activeStatusEntry}
             activeStatusPct={activeStatusPct}
             periodDescription={periodDescription}
+            unitLabel={unitLabel}
           />
         </div>
       </section>

@@ -20,6 +20,7 @@ type AppointmentStatusPieCardProps = {
   activeStatusPct: number;
   className?: string;
   periodDescription?: string;
+  unitLabel?: string;
 };
 
 export function AppointmentStatusPieCard({
@@ -31,6 +32,7 @@ export function AppointmentStatusPieCard({
   activeStatusPct,
   className = "",
   periodDescription,
+  unitLabel = "turnos",
 }: AppointmentStatusPieCardProps) {
   if (statusChartData.length === 0) {
     return (
@@ -41,7 +43,9 @@ export function AppointmentStatusPieCard({
         <div className="mb-3 flex items-center gap-2">
           <Calendar width={18} height={18} className="text-accent" />
           <div>
-            <h2 className="text-base font-semibold">Turnos por estado</h2>
+            <h2 className="text-base font-semibold">
+              {unitLabel === "pedidos" ? "Pedidos por estado" : "Turnos por estado"}
+            </h2>
             <p className="text-xs text-muted">
               Distribución del período
               {periodDescription ? ` · ${periodDescription}` : ""}
@@ -50,7 +54,9 @@ export function AppointmentStatusPieCard({
         </div>
         <div className="flex flex-1 flex-col items-center justify-center">
           <Gear width={28} height={28} className="mb-2 text-muted opacity-40" />
-          <p className="text-xs text-muted">Sin datos de turnos aún</p>
+          <p className="text-xs text-muted">
+            {unitLabel === "pedidos" ? "Sin datos de pedidos aún" : "Sin datos de turnos aún"}
+          </p>
         </div>
       </div>
     );
@@ -64,7 +70,9 @@ export function AppointmentStatusPieCard({
       <div className="mb-3 flex items-center gap-2">
         <Calendar width={18} height={18} className="text-accent" />
         <div>
-          <h2 className="text-base font-semibold">Turnos por estado</h2>
+            <h2 className="text-base font-semibold">
+              {unitLabel === "pedidos" ? "Pedidos por estado" : "Turnos por estado"}
+            </h2>
           <p className="text-xs text-muted">
             Distribución del período
             {periodDescription ? ` · ${periodDescription}` : ""}
@@ -122,7 +130,7 @@ export function AppointmentStatusPieCard({
                   {activeStatusEntry.name}
                 </span>
                 <span className="text-[10px] tabular-nums text-muted">
-                  {activeStatusEntry.value} turnos
+                  {activeStatusEntry.value} {unitLabel}
                 </span>
               </>
             ) : (
@@ -131,7 +139,7 @@ export function AppointmentStatusPieCard({
                   {totalStatus}
                 </span>
                 <span className="mt-1 text-[10px] font-medium uppercase tracking-wide text-muted">
-                  turnos
+                  {unitLabel}
                 </span>
               </>
             )}

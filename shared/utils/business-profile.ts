@@ -14,7 +14,12 @@ export type BusinessProfile = {
   obligationAccounting: boolean;
 } & ThemeColors;
 
-export const DEFAULT_BUSINESS_NAME = "Scheduly";
+export const APP_BRAND_NAME = "Peluquería y Spa";
+
+/** Nombre corto en la barra pública */
+export const PUBLIC_BRAND_NAME = "Andrea Guerrero";
+
+export const DEFAULT_BUSINESS_NAME = "Andrea Guerrero Estética y Peluquería";
 
 export const DEFAULT_THEME_COLORS: ThemeColors = {
   accentColor: "#D4AF37",
@@ -23,24 +28,29 @@ export const DEFAULT_THEME_COLORS: ThemeColors = {
   dangerColor: "#F04438",
 };
 
-/** v3: oro metálico (invalida cache local del verde / dorado claro) */
-export const THEME_COLOR_STORAGE_KEY = "scheduly.theme-colors.v3";
+/** v4: oro neón (invalida rosa / acentos viejos) */
+export const THEME_COLOR_STORAGE_KEY = "scheduly.theme-colors.v4";
 
 export const ACCENT_PRESETS = [
-  { label: "Oro", value: "#D4AF37" },
+  { label: "Oro neón", value: "#D4AF37" },
   { label: "Oro intenso", value: "#C5A028" },
   { label: "Ámbar", value: "#FFB020" },
   { label: "Champagne", value: "#E8C547" },
   { label: "Azul", value: "#5B8CFF" },
   { label: "Cian", value: "#2DD4BF" },
-  { label: "Rosa", value: "#FF6B9D" },
-  { label: "Violeta", value: "#A78BFA" },
 ] as const;
 
 const HEX_RE = /^#([0-9a-fA-F]{6})$/;
 
-/** Acentos legacy (verde o dorado claro) → oro metálico */
-const LEGACY_ACCENTS = new Set(["#7DFF7A", "#C8F542", "#F5C518"]);
+/** Acentos legacy → oro */
+const LEGACY_ACCENTS = new Set([
+  "#7DFF7A",
+  "#C8F542",
+  "#F5C518",
+  "#C4786A",
+  "#3A9EA8",
+  "#4AADB6",
+]);
 
 export function normalizeHex(value: unknown, fallback: string): string {
   const raw = String(value ?? "").trim();

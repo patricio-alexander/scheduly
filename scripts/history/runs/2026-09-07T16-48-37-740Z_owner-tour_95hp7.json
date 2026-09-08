@@ -1,0 +1,142 @@
+{
+  "tester": "owner-tour",
+  "mode": "review",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 1658,
+  "ok": true,
+  "summary": {
+    "passed": 14,
+    "failed": 0,
+    "total": 14,
+    "ok": true
+  },
+  "actor": {
+    "username": "Administrador",
+    "name": "Andrea Guerrero",
+    "role": "owner"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como Andrea Guerrero",
+        "Usuario: Administrador · rol: Dueña"
+      ]
+    },
+    {
+      "id": "panel",
+      "title": "Está en el Panel · revisando la semana",
+      "ok": true,
+      "lines": [
+        "Ingresos (periodo): $0,00",
+        "Citas / actividad: 0 · completadas: 0",
+        "Clientes: 20 · servicios: 42 · productos: 47"
+      ]
+    },
+    {
+      "id": "branches",
+      "title": "Revisa sucursales",
+      "ok": true,
+      "lines": [
+        "Cargaron 3 registro(s) correctamente",
+        "Locales: Andrea Guerrero · Cristóbal Colón · Andrea Guerrero · Eguiguren · Andrea Guerrero · Tour 071131"
+      ]
+    },
+    {
+      "id": "accounts",
+      "title": "Entra a Cuentas (equipo)",
+      "ok": true,
+      "lines": [
+        "Cargaron 15 registro(s) correctamente",
+        "Activas: 14 · total listadas: 15"
+      ]
+    },
+    {
+      "id": "roles",
+      "title": "Entra a Roles",
+      "ok": true,
+      "lines": [
+        "Cargaron 3 registro(s) correctamente"
+      ]
+    },
+    {
+      "id": "customers",
+      "title": "Entra a Clientes",
+      "ok": true,
+      "lines": [
+        "Cargaron 20 registro(s) correctamente"
+      ]
+    },
+    {
+      "id": "services",
+      "title": "Entra a Servicios",
+      "ok": true,
+      "lines": [
+        "Cargaron 42 registro(s) correctamente"
+      ]
+    },
+    {
+      "id": "products",
+      "title": "Entra a Productos / inventario",
+      "ok": true,
+      "lines": [
+        "Cargaron 47 registro(s) correctamente"
+      ]
+    },
+    {
+      "id": "appointments",
+      "title": "Entra a Agenda",
+      "ok": true,
+      "lines": [
+        "Agenda OK · sin citas todavía"
+      ]
+    },
+    {
+      "id": "pos-sales",
+      "title": "Revisa ventas POS",
+      "ok": true,
+      "lines": [
+        "Ventas POS OK · sin tickets aún"
+      ]
+    },
+    {
+      "id": "finance",
+      "title": "Entra a Finanzas · mira el dinero",
+      "ok": true,
+      "lines": [
+        "Ingresos: $0,00 · egresos: $0,00",
+        "Balance: $0,00"
+      ]
+    },
+    {
+      "id": "suppliers",
+      "title": "Revisa proveedores",
+      "ok": true,
+      "lines": [
+        "Cargaron 3 registro(s) correctamente"
+      ]
+    },
+    {
+      "id": "system",
+      "title": "Revisa Configuración y SRI (solo lectura)",
+      "ok": true,
+      "lines": [
+        "Negocio: Andrea Guerrero Estética y Peluquería",
+        "Colores: accent #D4AF37",
+        "SRI cargó OK"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "Andrea Guerrero termina y sale del sistema."
+      ]
+    }
+  ],
+  "id": "2026-09-07T16-48-37-740Z_owner-tour_95hp7",
+  "at": "2026-09-07T16:48:37.740Z"
+}

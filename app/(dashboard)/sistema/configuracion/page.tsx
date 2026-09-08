@@ -19,7 +19,7 @@ import {
 } from "@/src/features/settings";
 import { BackupsManager } from "@/src/features/backups";
 import { useAuth } from "@/src/features/auth";
-import { isOwnerRole } from "@/shared/utils/roles";
+import { isOwnerRole, isProgrammerRole } from "@/shared/utils/roles";
 import { appRoutes } from "@/shared/utils/app-routes";
 
 const BASE_TABS = [
@@ -67,17 +67,18 @@ type TabId = (typeof BASE_TABS)[number]["id"] | typeof BACKUPS_TAB.id;
 function SettingsContent() {
   const searchParams = useSearchParams();
   const { user } = useAuth();
-  const isOwner = isOwnerRole(user?.role);
+  const isProgrammer = isProgrammerRole(user?.role);
+  const canManageBackups = isOwnerRole(user?.role) || isProgrammer;
   const [sriEnv, setSriEnv] = useState<"pruebas" | "produccion">("pruebas");
 
   const tabs = useMemo(
-    () => (isOwner ? [...BASE_TABS, BACKUPS_TAB] : [...BASE_TABS]),
-    [isOwner],
+    () => (canManageBackups ? [...BASE_TABS, BACKUPS_TAB] : [...BASE_TABS]),
+    [canManageBackups],
   );
 
   function resolveTab(raw: string | null): TabId {
     if (raw === "negocio" || raw === "app" || !raw) return "marca";
-    if (raw === "backups" && !isOwner) return "marca";
+    if (raw === "backups" && !canManageBackups) return "marca";
     if (tabs.some((t) => t.id === raw)) return raw as TabId;
     return "marca";
   }
@@ -96,7 +97,7 @@ function SettingsContent() {
         <h1 className="text-2xl font-bold tracking-tight">Configuración</h1>
         <p className="text-sm text-muted">
           Marca, inventario, comprobantes, canal público, locales
-          {isOwner ? ", SRI y backups" : " y SRI"} — como EdDeli.
+          {canManageBackups ? ", SRI y backups" : " y SRI"} — como EdDeli.
         </p>
       </header>
 
@@ -180,7 +181,7 @@ function SettingsContent() {
         <OperationFlagsPanel tab={tab} />
       ) : null}
 
-      {tab === "backups" && isOwner ? (
+      {tab === "backups" && canManageBackups ? (
         <BackupsManager embedded />
       ) : null}
     </div>

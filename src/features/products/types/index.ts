@@ -3,6 +3,12 @@ export interface ProductCategory {
   name: string;
 }
 
+export interface ProductUnit {
+  id: number;
+  name: string;
+  abbreviation: string;
+}
+
 export type ProductTypeKind = "raw" | "intermediate" | "final";
 
 export interface Product {
@@ -11,6 +17,7 @@ export interface Product {
   desc?: string | null;
   type?: ProductTypeKind | string | null;
   price: number;
+  commissionPct?: number;
   supplierPrice?: number | null;
   distributorPrice?: number | null;
   stock: number;
@@ -21,4 +28,6 @@ export interface Product {
   primaryImageUrl?: string | null;
   categoryId?: number | null;
   category?: ProductCategory | null;
+  unitId?: number | null;
+  unit?: ProductUnit | null;
 }

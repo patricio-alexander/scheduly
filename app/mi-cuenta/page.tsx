@@ -14,7 +14,7 @@ export default function CustomerLoginPage() {
 
   if (loading) {
     return (
-      <PublicShell>
+      <PublicShell active="account">
         <div className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
           <div className="h-40 animate-pulse rounded-2xl bg-surface-secondary" />
         </div>
@@ -23,7 +23,7 @@ export default function CustomerLoginPage() {
   }
 
   return (
-    <PublicShell>
+    <PublicShell active="account">
       <div className="mx-auto flex w-full max-w-md flex-col gap-6 px-4 py-8">
         <header>
           <h1 className="text-2xl font-bold tracking-tight">Mi cuenta</h1>

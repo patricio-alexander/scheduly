@@ -1,0 +1,74 @@
+{
+  "tester": "owner-tour",
+  "mode": "link-employees",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 3812,
+  "ok": true,
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "ok": true
+  },
+  "actor": {
+    "username": "Administrador",
+    "name": "Andrea Guerrero",
+    "role": "owner"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como Andrea Guerrero",
+        "Usuario: Administrador · rol: Dueña"
+      ]
+    },
+    {
+      "id": "load",
+      "title": "Carga cuentas y sucursales",
+      "ok": true,
+      "lines": [
+        "Empleados activos: 10",
+        "Locales: Andrea Guerrero · Cristóbal Colón · Andrea Guerrero · Eguiguren · Andrea Guerrero · Tour 071131 · Andrea Guerrero · Tour 071150"
+      ]
+    },
+    {
+      "id": "link",
+      "title": "Vincula empleados a sucursales (reparto)",
+      "ok": true,
+      "lines": [
+        "Vinculados: 10 · fallos: 0",
+        "· @estilista_marco → Andrea Guerrero · Cristóbal Colón",
+        "· @recepcion_felipe → Andrea Guerrero · Eguiguren",
+        "· @depilacion_ricardo → Andrea Guerrero · Cristóbal Colón",
+        "· @tratamientos_paola → Andrea Guerrero · Eguiguren",
+        "· @estilista_diego → Andrea Guerrero · Cristóbal Colón",
+        "· @makeup_andres → Andrea Guerrero · Eguiguren",
+        "· … y 4 más"
+      ]
+    },
+    {
+      "id": "verify",
+      "title": "Verifica equipos por local",
+      "ok": true,
+      "lines": [
+        "Andrea Guerrero · Cristóbal Colón: 13 en equipo",
+        "Andrea Guerrero · Eguiguren: 11 en equipo",
+        "Andrea Guerrero · Tour 071131: 1 en equipo",
+        "Andrea Guerrero · Tour 071150: 1 en equipo"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "Andrea Guerrero termina y sale del sistema."
+      ]
+    }
+  ],
+  "id": "2026-09-07T16-50-46-552Z_owner-tour_cleft",
+  "at": "2026-09-07T16:50:46.552Z"
+}

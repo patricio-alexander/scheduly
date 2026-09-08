@@ -25,9 +25,10 @@ export function CategoryForm({
     defaultValues: defaultValues
       ? {
           name: defaultValues.name,
-          description: defaultValues.description,
+          description: defaultValues.description ?? "",
+          commissionPct: defaultValues.commissionPct ?? 0,
         }
-      : { name: "", description: "" },
+      : { name: "", description: "", commissionPct: 0 },
   });
 
   return (
@@ -57,6 +58,23 @@ export function CategoryForm({
           className="resize-none px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
           {...register("description")}
         />
+      </div>
+      <div className="flex flex-col gap-1">
+        <label htmlFor="category-commission" className="text-sm font-medium">
+          Comisión % productos (por defecto)
+        </label>
+        <input
+          id="category-commission"
+          type="number"
+          min={0}
+          max={100}
+          step={0.5}
+          className="px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground focus:outline-none focus:ring-2 focus:ring-focus"
+          {...register("commissionPct", { valueAsNumber: true })}
+        />
+        <p className="text-xs text-muted">
+          Se usa cuando el producto tiene comisión 0 (ej. ampollas 8%).
+        </p>
       </div>
     </form>
   );

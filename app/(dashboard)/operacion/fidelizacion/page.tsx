@@ -9,19 +9,20 @@ import {
   EligibleCustomersPanel,
   OffersManager,
   RewardsManager,
+  VisitFrequencyPanel,
 } from "@/src/features/loyalty";
 
-type Tab = "eligible" | "offers" | "rewards";
+type Tab = "frequency" | "eligible" | "offers" | "rewards";
 
 export default function LoyaltyHubPage() {
-  const [tab, setTab] = useState<Tab>("eligible");
+  const [tab, setTab] = useState<Tab>("frequency");
 
   return (
     <div className="mx-auto flex w-full max-w-4xl flex-col gap-6">
       <PageHeader
         icon={<CrownDiamond width={24} height={24} />}
         title="Fidelización"
-        description="Clientes listos para canjear, ofertas por período y premios"
+        description="Frecuencia de visitas, canjes, ofertas semanales y premios"
         action={
           <Link
             href={appRoutes.loyalty.customerPortal}
@@ -32,10 +33,11 @@ export default function LoyaltyHubPage() {
         }
       />
 
-      <div className="inline-flex w-fit overflow-x-auto rounded-xl border border-separator p-1">
+      <div className="inline-flex w-fit max-w-full overflow-x-auto rounded-xl border border-separator p-1">
         {(
           [
-            ["eligible", "Clientes elegibles"],
+            ["frequency", "Frecuencia"],
+            ["eligible", "Elegibles"],
             ["offers", "Ofertas"],
             ["rewards", "Premios"],
           ] as const
@@ -57,22 +59,17 @@ export default function LoyaltyHubPage() {
 
       <div className="rounded-2xl border border-separator bg-surface p-4 text-sm text-muted">
         <p>
-          Los clientes acumulan puntos al completar turnos. Con cuenta activa pueden
-          iniciar sesión en{" "}
-          <Link href={appRoutes.loyalty.customerPortal} className="font-semibold text-accent">
-            Mi cuenta
-          </Link>{" "}
-          y reclamar premios; los puntos se descuentan automáticamente.
+          Miramos qué tan seguido viene cada clienta para sugerir{" "}
+          <strong className="text-foreground">promo</strong>,{" "}
+          <strong className="text-foreground">descuento</strong> o{" "}
+          <strong className="text-foreground">regalo</strong>. También acumulan
+          puntos al completar turnos.
         </p>
-        <Link
-          href={appRoutes.loyalty.feed}
-          className="mt-3 inline-flex font-semibold text-accent hover:underline"
-        >
-          Ver feed público de novedades →
-        </Link>
       </div>
 
-      {tab === "eligible" ? (
+      {tab === "frequency" ? (
+        <VisitFrequencyPanel />
+      ) : tab === "eligible" ? (
         <EligibleCustomersPanel />
       ) : tab === "offers" ? (
         <OffersManager />

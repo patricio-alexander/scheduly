@@ -5,18 +5,32 @@ import {
   getUserPrimaryBranchId,
   parseBranchId,
 } from "@/shared/utils/branches";
-import { isBranchAdminRole, isOwnerRole } from "@/shared/utils/roles";
+import {
+  ensureAccountBranchTable,
+  listAccountsForBranch,
+} from "@/shared/utils/account-branch";
+import {
+  isBranchAdminRole,
+  isOwnerRole,
+  isPureEmployeeRole,
+  mapExternalRoleName,
+} from "@/shared/utils/roles";
 
-/** Personal de sucursal (empleados y admins locales) para filtros de agenda. */
+/** Personal de sucursal para filtros / agendar turnos a compañeros. */
 export async function GET(request: Request) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
 
-  if (!isOwnerRole(auth.user.role) && !isBranchAdminRole(auth.user.role)) {
+  const canList =
+    isOwnerRole(auth.user.role) ||
+    isBranchAdminRole(auth.user.role) ||
+    isPureEmployeeRole(auth.user.role);
+  if (!canList) {
     return NextResponse.json({ message: "No autorizado" }, { status: 403 });
   }
 
   try {
+    await ensureAccountBranchTable(prisma);
     const url = new URL(request.url);
     const requestedBranchId = parseBranchId(url.searchParams.get("branchId"));
 
@@ -31,19 +45,21 @@ export async function GET(request: Request) {
       return NextResponse.json([]);
     }
 
-    const rows = await prisma.userBranch.findMany({
-      where: { branchId },
-      include: {
-        user: {
-          select: { id: true, name: true, role: true },
-        },
-      },
-      orderBy: { userId: "asc" },
-    });
-
+    const rows = await listAccountsForBranch(prisma, branchId);
     const staff = rows
-      .map((row) => row.user)
-      .filter((u) => u.role === "employee" || u.role === "admin")
+      .filter((row) => {
+        if (!row.isActive) return false;
+        const role = mapExternalRoleName(row.roleName);
+        return role === "employee" || role === "admin";
+      })
+      .map((row) => ({
+        id: row.accountId,
+        personId: row.personId ? Number(row.personId) : null,
+        username: row.username,
+        name: [row.firstName, row.firstLastName].filter(Boolean).join(" ").trim(),
+        role: mapExternalRoleName(row.roleName),
+      }))
+      .filter((s) => s.personId)
       .sort((a, b) => a.name.localeCompare(b.name, "es"));
 
     return NextResponse.json(staff);

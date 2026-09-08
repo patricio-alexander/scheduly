@@ -17,11 +17,9 @@ export type CustomerSessionUser = {
 };
 
 function getAuthSecret() {
-  const secret =
-    process.env.AUTH_SECRET?.trim() ||
-    process.env.GESTOR_SYNC_SECRET?.trim();
+  const secret = process.env.AUTH_SECRET?.trim();
   if (!secret) {
-    throw new Error("AUTH_SECRET o GESTOR_SYNC_SECRET no está configurada");
+    throw new Error("AUTH_SECRET no está configurada");
   }
   return secret;
 }

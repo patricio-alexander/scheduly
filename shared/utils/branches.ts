@@ -3,6 +3,12 @@ import {
   isBranchAdminRole,
   isOwnerRole,
 } from "@/shared/utils/roles";
+import {
+  accountBelongsToBranch,
+  getAccountPrimaryBranch,
+  getAccountPrimaryBranchId,
+  setAccountPrimaryBranch,
+} from "@/shared/utils/account-branch";
 
 export type BranchSummary = {
   id: number;
@@ -13,9 +19,18 @@ export type BranchSummary = {
   isActive: boolean;
 };
 
-type PrismaUserBranchLookup = Pick<PrismaClient, "branch">;
+type PrismaBranchDb = Pick<
+  PrismaClient,
+  "branch" | "$queryRawUnsafe" | "$executeRawUnsafe"
+>;
 
 export type AgendaViewMode = "all" | "branch" | "mine";
+
+export type AuthUserForScope = {
+  id: number;
+  personId?: number | null;
+  role: string;
+};
 
 export function parseBranchId(value: string | null | undefined): number | null {
   if (!value || value === "all") return null;
@@ -27,11 +42,14 @@ export function branchFilterWhere(branchId: number | null) {
   return branchId ? { branchId } : {};
 }
 
-export function formatBranchLabel(name: string, isMain?: boolean): string {
+export function formatBranchLabel(
+  name: string,
+  isMain?: boolean,
+  _locationKind?: string | null,
+): string {
   return isMain ? `${name} · Casa matriz` : name;
 }
 
-/** Etiqueta corta para gráficos (usa el sufijo tras " · " si existe). */
 export function branchChartLabel(name: string, code?: string | null): string {
   const sep = name.indexOf(" · ");
   if (sep >= 0) {
@@ -65,21 +83,28 @@ export async function resolveUserBranchId(
   branchId: number | null,
 ): Promise<number | null> {
   if (branchId) return branchId;
-  if (role === "owner") return getMainBranchId(db);
+  if (isOwnerRole(role)) return getMainBranchId(db);
   return null;
 }
 
-/** Sin UserBranch en schema nuevo: dueño/admin usan sucursal pedida o matriz. */
+/** Sucursal primaria de la cuenta (AccountBranch). Fallback matriz solo para Dueño. */
 export async function getUserPrimaryBranchId(
-  db: PrismaUserBranchLookup,
-  _userId: number,
+  db: PrismaBranchDb,
+  accountId: number,
 ): Promise<number | null> {
+  const linked = await getAccountPrimaryBranchId(db, accountId);
+  if (linked) return linked;
   return getMainBranchId(db);
 }
 
+/**
+ * Dueña: todos los locales o el filtro pedido.
+ * Administrador: solo su local (bloqueado).
+ * Empleado: su local + citas propias (Person.id).
+ */
 export async function resolveDashboardScope(
-  db: PrismaUserBranchLookup,
-  user: { id: number; role: string },
+  db: PrismaBranchDb,
+  user: AuthUserForScope,
   requestedBranchId: number | null,
 ): Promise<{
   branchId: number | null;
@@ -94,25 +119,29 @@ export async function resolveDashboardScope(
     };
   }
 
+  const branchId = await getAccountPrimaryBranchId(db, user.id);
+
   if (isBranchAdminRole(user.role)) {
-    const branchId = await getUserPrimaryBranchId(db, user.id);
+    const effective = branchId ?? (await getMainBranchId(db));
     return {
-      branchId,
-      appointmentWhere: branchFilterWhere(branchId),
+      branchId: effective,
+      appointmentWhere: branchFilterWhere(effective),
       locked: true,
     };
   }
 
+  // Empleado: agenda “mía” por Person.id
+  const personId = user.personId ?? null;
   return {
-    branchId: await getUserPrimaryBranchId(db, user.id),
-    appointmentWhere: { userId: user.id },
+    branchId: branchId ?? (await getMainBranchId(db)),
+    appointmentWhere: personId ? { userId: personId } : { userId: -1 },
     locked: true,
   };
 }
 
 export async function resolveAgendaBranchFilter(
-  db: PrismaUserBranchLookup,
-  user: { id: number; role: string },
+  db: PrismaBranchDb,
+  user: AuthUserForScope,
   requestedBranchId: number | null,
   personalView = false,
 ): Promise<{
@@ -128,19 +157,22 @@ export async function resolveAgendaBranchFilter(
     };
   }
 
+  const branchId =
+    (await getAccountPrimaryBranchId(db, user.id)) ??
+    (await getMainBranchId(db));
+
   if (isBranchAdminRole(user.role)) {
-    const branchId = await getUserPrimaryBranchId(db, user.id);
     if (personalView) {
       return { branchId, locked: true, viewMode: "mine" };
     }
     return { branchId, locked: true, viewMode: "branch" };
   }
 
-  return { branchId: null, locked: true, viewMode: "mine" };
+  return { branchId, locked: true, viewMode: "mine" };
 }
 
 export async function getBranchScopeMeta(
-  db: PrismaUserBranchLookup,
+  db: Pick<PrismaClient, "branch">,
   branchId: number | null,
   locked: boolean,
 ) {
@@ -159,17 +191,20 @@ export async function getBranchScopeMeta(
 }
 
 export async function setUserPrimaryBranch(
-  _db: PrismaUserBranchLookup,
-  _userId: number,
-  _branchId: number | null | undefined,
+  db: PrismaBranchDb,
+  accountId: number,
+  branchId: number | null | undefined,
 ) {
-  // UserBranch eliminado del schema; la sucursal activa se elige en sesión/UI.
+  await setAccountPrimaryBranch(db, accountId, branchId);
 }
 
 export async function getUserBranchSummary(
-  db: PrismaUserBranchLookup,
-  _userId: number,
+  db: PrismaBranchDb,
+  accountId: number,
 ) {
+  const linked = await getAccountPrimaryBranch(db, accountId);
+  if (linked) return { id: linked.id, name: linked.name };
+
   const mainId = await getMainBranchId(db);
   if (!mainId) return null;
   return db.branch.findUnique({
@@ -179,17 +214,17 @@ export async function getUserBranchSummary(
 }
 
 export async function userBelongsToBranch(
-  _db: PrismaUserBranchLookup,
-  _userId: number,
+  db: PrismaBranchDb,
+  accountId: number,
   branchId: number | null,
 ): Promise<boolean> {
-  // Sin UserBranch: cualquier usuario puede verse en cualquier sucursal (Dueño filtra).
-  return branchId == null || branchId > 0;
+  if (branchId == null) return true;
+  return accountBelongsToBranch(db, accountId, branchId);
 }
 
 export async function resolveAgendaStaffUserId(
-  db: PrismaUserBranchLookup,
-  user: { id: number; role: string },
+  db: PrismaBranchDb,
+  user: AuthUserForScope,
   branchId: number | null,
   requestedUserId: number | null,
 ): Promise<number | null> {
@@ -202,7 +237,7 @@ export async function resolveAgendaStaffUserId(
   }
 
   if (isBranchAdminRole(user.role)) {
-    const adminBranchId = await getUserPrimaryBranchId(db, user.id);
+    const adminBranchId = await getAccountPrimaryBranchId(db, user.id);
     const allowed = await userBelongsToBranch(
       db,
       requestedUserId,
@@ -216,8 +251,8 @@ export async function resolveAgendaStaffUserId(
 
 /** Sucursal del turno al crear/editar desde la agenda interna. */
 export async function resolveAppointmentBranchId(
-  db: PrismaUserBranchLookup,
-  user: { id: number; role: string },
+  db: PrismaBranchDb,
+  user: AuthUserForScope,
   requestedBranchId: number | null,
   existingBranchId?: number | null,
 ): Promise<number | null> {
@@ -234,9 +269,9 @@ export async function resolveAppointmentBranchId(
     return getUserPrimaryBranchId(db, user.id);
   }
 
-  const primaryBranchId = await getUserPrimaryBranchId(db, user.id);
+  const primaryBranchId = await getAccountPrimaryBranchId(db, user.id);
   if (parsed != null && primaryBranchId != null && parsed !== primaryBranchId) {
     throw new Error("No puedes agendar turnos en otra sucursal");
   }
-  return primaryBranchId;
+  return primaryBranchId ?? (await getMainBranchId(db));
 }

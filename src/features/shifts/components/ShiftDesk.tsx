@@ -626,6 +626,7 @@ export function ShiftDesk() {
                               year: "numeric",
                               hour: "numeric",
                               minute: "2-digit",
+                              second: "2-digit",
                             })}
                           </td>
                           <td className="px-3 py-2">

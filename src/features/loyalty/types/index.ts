@@ -39,6 +39,8 @@ export interface LoyaltyOffer {
   isActive: boolean;
   serviceIds: unknown;
   branchIds: unknown;
+  /** 0=dom … 6=sáb; vacío/null = todos los días */
+  weekdays?: number[] | null;
 }
 
 export interface OfferFormData {
@@ -50,6 +52,7 @@ export interface OfferFormData {
   startsAt: string;
   endsAt: string;
   isActive: boolean;
+  weekdays: number[];
 }
 
 export interface CustomerAccountUser {

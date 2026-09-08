@@ -5,13 +5,13 @@ const basePath = (process.env.NEXT_PUBLIC_BASE_PATH || "/scheduly").replace(
   "",
 );
 
-const schedulyRuntime =
-  process.env.NEXT_PUBLIC_SCHEDULY_RUNTIME === "gestor" ? "gestor" : "dev";
-
 const nextConfig: NextConfig = {
   basePath,
-  env: {
-    NEXT_PUBLIC_SCHEDULY_RUNTIME: schedulyRuntime,
+  experimental: {
+    proxyClientMaxBodySize: "64mb",
+    serverActions: {
+      bodySizeLimit: "64mb",
+    },
   },
   async redirects() {
     return [
@@ -25,8 +25,10 @@ const nextConfig: NextConfig = {
       { source: "/users", destination: "/administracion/usuarios", permanent: true },
       { source: "/roles", destination: "/administracion/roles", permanent: true },
       { source: "/settings", destination: "/sistema/configuracion", permanent: true },
-      { source: "/plans", destination: "/sistema/planes", permanent: true },
-      { source: "/modules", destination: "/sistema/modulos", permanent: true },
+      { source: "/plans", destination: "/sistema/configuracion", permanent: true },
+      { source: "/modules", destination: "/sistema/configuracion", permanent: true },
+      { source: "/sistema/planes", destination: "/sistema/configuracion", permanent: true },
+      { source: "/sistema/modulos", destination: "/sistema/configuracion", permanent: true },
       { source: "/profile", destination: "/sistema/perfil", permanent: true },
       { source: "/notifications", destination: "/sistema/notificaciones", permanent: true },
     ];

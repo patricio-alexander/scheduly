@@ -157,11 +157,13 @@ export function useBackups() {
       const data = (await res.json()) as {
         message?: string;
         totalRows?: number;
+        importTables?: number;
+        sourceKind?: string;
       };
       if (!res.ok) throw new Error(data.message || "Error al importar");
       await refresh();
       toast.success(
-        `BD restaurada · ${data.totalRows ?? 0} filas desde ${file.name}`,
+        `Reemplazo OK · ${data.importTables ?? "?"} tablas · ${data.totalRows ?? 0} filas (${data.sourceKind ?? "json"})`,
       );
       return data;
     } catch (err) {

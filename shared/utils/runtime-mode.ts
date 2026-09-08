@@ -1,27 +1,19 @@
 /**
- * Runtime de Scheduly:
- * - `dev`     → desarrollo local sin Gestor (todo abierto)
- * - `gestor`  → enlazado a suscripción / entitlements del Gestor
- *
- * Scripts: `npm run dev` | `npm run schedully`
- *
- * Importante: el acceso a `process.env.NEXT_PUBLIC_SCHEDULY_RUNTIME` debe ser
- * estático para que Next lo inyecte en el cliente.
+ * Scheduly es standalone: sin vínculo al Gestor.
+ * Se mantienen estos helpers por compatibilidad con imports existentes.
  */
-export type SchedulyRuntime = "dev" | "gestor";
+export type SchedulyRuntime = "standalone";
 
 export function getSchedulyRuntime(): SchedulyRuntime {
-  // Solo "gestor" activa el gate. Cualquier otro valor (o vacío) = desarrollo.
-  const runtime = process.env.NEXT_PUBLIC_SCHEDULY_RUNTIME;
-  return runtime === "gestor" ? "gestor" : "dev";
+  return "standalone";
 }
 
-/** Desarrollo libre: sin gate ni sync con el Gestor. */
+/** Siempre true: módulos abiertos, sin gate de suscripción. */
 export function isSchedulyDevRuntime() {
-  return process.env.NEXT_PUBLIC_SCHEDULY_RUNTIME !== "gestor";
+  return true;
 }
 
-/** Modo enlazado al Gestor (suscripción / módulos). */
+/** Siempre false: ya no existe modo enlazado al Gestor. */
 export function isSchedulyGestorRuntime() {
-  return process.env.NEXT_PUBLIC_SCHEDULY_RUNTIME === "gestor";
+  return false;
 }

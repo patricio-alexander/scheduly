@@ -1,8 +1,9 @@
-/** Roles de sistema que siempre deben existir */
+/** Roles de sistema que siempre deben existir (nombres en BD). */
 export const SYSTEM_ROLES = [
-  { name: "owner", label: "Dueño" },
-  { name: "admin", label: "Encargado sucursal" },
-  { name: "employee", label: "Empleado" },
+  { name: "Dueño", label: "Dueño", appRole: "owner" as const },
+  { name: "Administrador", label: "Administrador", appRole: "admin" as const },
+  { name: "Empleado", label: "Empleado", appRole: "employee" as const },
+  { name: "Programador", label: "Programador", appRole: "programmer" as const },
 ] as const;
 
 export type SystemRoleName = (typeof SYSTEM_ROLES)[number]["name"];
@@ -18,6 +19,9 @@ export function isSystemRoleName(name: string) {
 export function roleDisplayLabel(name: string) {
   const found = SYSTEM_ROLES.find((r) => r.name === name);
   if (found) return found.label;
-  if (name === "user") return "Empleado";
+  if (name === "user" || name === "employee") return "Empleado";
+  if (name === "owner") return "Dueño";
+  if (name === "admin") return "Administrador";
+  if (name === "programmer") return "Programador";
   return name;
 }

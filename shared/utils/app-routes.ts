@@ -10,15 +10,15 @@ export const appRoutes = {
     cash: "/operacion/caja",
     shifts: "/operacion/turno",
     tasks: "/operacion/tareas",
-    posReceipts: "/operacion/comprobantes-pos",
     shiftSupervision: "/operacion/supervision-caja",
     multiCash: "/operacion/turno/multi-caja",
-    /** Scheduly propio (antes Canal digital) */
-    catalog: "/canal/catalogo",
-    stores: "/canal/locales",
+    /** Hub Comprobantes POS (facturas SRI, reimpresión caja, etc.) */
+    posReceipts: "/operacion/comprobantes-pos",
   },
-  electronicDocs: {
-    hub: "/comprobantes-electronicos",
+  /** Facturación SRI bajo Comprobantes POS (sin módulo «comprobantes electrónicos») */
+  posDocs: {
+    hub: "/operacion/comprobantes-pos",
+    reprint: "/operacion/comprobantes-pos/reimpresion",
     invoices: "/comprobantes-electronicos/facturas",
     salesNotes: "/comprobantes-electronicos/notas-venta",
     creditNotes: "/comprobantes-electronicos/notas-credito",
@@ -29,7 +29,6 @@ export const appRoutes = {
   },
   sales: {
     salesHub: "/ventas/ventas",
-    /** Alias legacy; el hub de ventas es la fuente de verdad */
     register: "/ventas/registrar-venta",
     history: "/ventas/historial",
     productSales: "/ventas/productos-vendidos",
@@ -46,8 +45,9 @@ export const appRoutes = {
     warehouses: "/inventario/bodegas",
     batches: "/inventario/lotes",
     value: "/inventario/valor",
-    /** Multistock (feature gestor); no es ítem del menú EdDeli */
+    /** Multistock; no es ítem del menú principal */
     multistock: "/inventario/multistock",
+    stores: "/administracion/sucursales",
   },
   purchases: {
     hub: "/compras",
@@ -71,16 +71,16 @@ export const appRoutes = {
     recipes: "/produccion/recetas",
     manufacturing: "/produccion/fabricacion",
   },
-  /** Rutas legacy; el menú Scheduly ya no usa el módulo Canal digital */
+  /** Rutas legacy /canal (sin módulo Canal digital en menú) */
   channel: {
     catalog: "/canal/catalogo",
     stores: "/canal/locales",
     featuredProducts: "/canal/productos-destacados",
-    compareGroups: "/canal/grupos-comparativos",
   },
   marketing: {
     promotions: "/marketing/promociones",
     news: "/marketing/noticias",
+    catalog: "/canal/catalogo",
   },
   advertising: {
     campaigns: "/publicidad",
@@ -125,32 +125,62 @@ export const appRoutes = {
     notifications: "/sistema/notificaciones",
     /** Pestaña en Configuración (solo Dueño). */
     backups: "/sistema/configuracion?tab=backups",
+    /** Logs del sistema (POST/PUT/PATCH/DELETE) */
+    logs: "/sistema/logs",
+  },
+  /** Legacy → hub Comprobantes POS */
+  legacy: {
+    electronicDocsHub: "/operacion/comprobantes-pos",
   },
 } as const;
 
-export const electronicDocsSections = [
+export const posDocsSections = [
   {
-    key: "hub",
-    href: appRoutes.electronicDocs.hub,
-    label: "Centro de comprobantes",
-    description: "Vista general de facturación electrónica",
+    key: "reprint",
+    href: appRoutes.posDocs.reprint,
+    label: "Reimpresión caja",
+    description: "Ventas de caja: reimprimir y consultar estado SRI",
   },
   {
     key: "invoices",
-    href: appRoutes.electronicDocs.invoices,
+    href: appRoutes.posDocs.invoices,
     label: "Facturas",
     description: "Emisión y consulta de facturas electrónicas",
   },
   {
+    key: "salesNotes",
+    href: appRoutes.posDocs.salesNotes,
+    label: "Notas de venta",
+    description: "Notas de venta electrónicas",
+  },
+  {
+    key: "creditNotes",
+    href: appRoutes.posDocs.creditNotes,
+    label: "Notas de crédito",
+    description: "Notas de crédito electrónicas",
+  },
+  {
+    key: "withholdings",
+    href: appRoutes.posDocs.withholdings,
+    label: "Retenciones",
+    description: "Comprobantes de retención",
+  },
+  {
+    key: "deliveryGuides",
+    href: appRoutes.posDocs.deliveryGuides,
+    label: "Guías de remisión",
+    description: "Guías de remisión electrónicas",
+  },
+  {
     key: "issued",
-    href: appRoutes.electronicDocs.issued,
+    href: appRoutes.posDocs.issued,
     label: "Emitidos",
-    description: "Historial de comprobantes emitidos",
+    description: "Historial y validez SRI de comprobantes emitidos",
   },
   {
     key: "sriSettings",
-    href: appRoutes.electronicDocs.sriSettings,
+    href: appRoutes.posDocs.sriSettings,
     label: "Configuración SRI",
-    description: "Parámetros de facturación electrónica",
+    description: "Certificado, ambiente y datos de facturación",
   },
 ] as const;

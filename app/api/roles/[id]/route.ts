@@ -30,7 +30,7 @@ export async function PUT(
       );
     }
 
-    if (isSystemRoleName(current.name)) {
+    if (isSystemRoleName(current.name ?? "")) {
       return NextResponse.json(
         { message: "No se puede renombrar un rol del sistema" },
         { status: 400 },
@@ -67,13 +67,13 @@ export async function PUT(
     const role = await prisma.role.update({
       where: { id: roleId },
       data: { name },
-      include: { _count: { select: { userRoles: true } } },
+      include: { _count: { select: { accountRoles: true } } },
     });
 
     return NextResponse.json({
       id: role.id,
       name: role.name,
-      usersCount: role._count.userRoles,
+      usersCount: role._count.accountRoles,
       system: false,
     });
   } catch (error) {
@@ -111,22 +111,18 @@ export async function DELETE(
       );
     }
 
-    if (isSystemRoleName(current.name)) {
+    if (isSystemRoleName(current.name ?? "")) {
       return NextResponse.json(
         { message: "No se puede eliminar un rol del sistema" },
         { status: 400 },
       );
     }
 
-    const usersCount = await prisma.userRole.count({ where: { roleId } });
-    const usersWithStringRole = await prisma.user.count({
-      where: { role: current.name },
-    });
-    const total = usersCount + usersWithStringRole;
-    if (total > 0) {
+    const usersCount = await prisma.accountRole.count({ where: { roleId } });
+    if (usersCount > 0) {
       return NextResponse.json(
         {
-          message: `No se puede eliminar: hay ${total} usuario(s) con este rol`,
+          message: `No se puede eliminar: hay ${usersCount} usuario(s) con este rol`,
         },
         { status: 400 },
       );

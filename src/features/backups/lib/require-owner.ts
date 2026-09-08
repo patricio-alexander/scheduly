@@ -1,16 +1,16 @@
 import { NextResponse } from "next/server";
 import { checkAuth } from "@/shared/utils/check-auth";
-import { isOwnerRole } from "@/shared/utils/roles";
+import { isOwnerRole, isProgrammerRole } from "@/shared/utils/roles";
 
-/** Solo Dueño: backups JSON (Scheduly no tiene rol Programador). */
+/** Dueño o Programador: backups JSON. */
 export async function requireOwnerForBackups() {
   const auth = await checkAuth();
   if (!auth.ok) return { ok: false as const, response: auth.response };
-  if (!isOwnerRole(auth.user.role)) {
+  if (!isOwnerRole(auth.user.role) && !isProgrammerRole(auth.user.role)) {
     return {
       ok: false as const,
       response: NextResponse.json(
-        { message: "Solo el Dueño puede gestionar backups" },
+        { message: "Solo Dueño o Programador pueden gestionar backups" },
         { status: 403 },
       ),
     };

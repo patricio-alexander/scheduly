@@ -18,6 +18,7 @@ export async function GET() {
       orderBy: { id: "desc" },
       include: {
         category: { select: { id: true, name: true } },
+        unit: { select: { id: true, name: true, abbreviation: true } },
       },
     });
     return NextResponse.json(products);
@@ -40,23 +41,45 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
+    const name = String(body.name ?? "").trim();
+    if (!name) {
+      return NextResponse.json({ message: "Nombre requerido" }, { status: 400 });
+    }
+
+    let unitId = Number(body.unitId);
+    if (!Number.isInteger(unitId) || unitId <= 0) {
+      const unit =
+        (await prisma.unit.findFirst({ orderBy: { id: "asc" } })) ??
+        (await prisma.unit.create({
+          data: { name: "Unidad", abbreviation: "u" },
+        }));
+      unitId = unit.id;
+    }
+
     const product = await prisma.product.create({
       data: {
-        name: String(body.name ?? ""),
+        name,
         price: Number(body.price ?? 0),
+        commissionPct: Number(body.commissionPct ?? 0),
         stock: Number(body.stock ?? 0),
+        minStock: Number(body.minStock ?? 0),
+        unitId,
         categoryId: parseCategoryId(body.categoryId),
+        sku:
+          body.sku != null && String(body.sku).trim()
+            ? String(body.sku).trim()
+            : undefined,
       },
       include: {
         category: { select: { id: true, name: true } },
+        unit: { select: { id: true, name: true, abbreviation: true } },
       },
     });
     return NextResponse.json(product, { status: 201 });
   } catch (error) {
     console.error("POST /api/products", error);
-    return NextResponse.json(
-      { message: "Error al crear el producto" },
-      { status: 500 },
-    );
+    const message =
+      error instanceof Error ? error.message : "Error al crear el producto";
+    return NextResponse.json({ message }, { status: 500 });
   }
 }

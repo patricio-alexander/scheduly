@@ -1,0 +1,74 @@
+{
+  "tester": "owner-tour",
+  "mode": "agenda-hours",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 1334,
+  "ok": true,
+  "summary": {
+    "passed": 6,
+    "failed": 0,
+    "total": 6,
+    "ok": true
+  },
+  "actor": {
+    "username": "Administrador",
+    "name": "Andrea Guerrero",
+    "role": "owner"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como Andrea Guerrero",
+        "Usuario: Administrador · rol: Dueña"
+      ]
+    },
+    {
+      "id": "hours-get",
+      "title": "Lee horario de agenda actual",
+      "ok": true,
+      "lines": [
+        "Rango: 9:00–18:00",
+        "Negocio: Andrea Guerrero Estética y Peluquería"
+      ]
+    },
+    {
+      "id": "hours-set",
+      "title": "Define rango de agenda (dueña)",
+      "ok": true,
+      "lines": [
+        "Nuevo rango: 10:00–16:00",
+        "Empleados deben agendar solo dentro de este horario"
+      ]
+    },
+    {
+      "id": "hours-verify",
+      "title": "Verifica horario guardado",
+      "ok": true,
+      "lines": [
+        "GET: 10:00–16:00"
+      ]
+    },
+    {
+      "id": "hours-keep",
+      "title": "Deja el rango activo para el tour empleados",
+      "ok": true,
+      "lines": [
+        "Activo: 10:00–16:00",
+        "(no se restaura; el tour de agenda lo usará)"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "Andrea Guerrero termina y sale del sistema."
+      ]
+    }
+  ],
+  "id": "2026-09-07T17-42-45-080Z_owner-tour_2tsqr",
+  "at": "2026-09-07T17:42:45.081Z"
+}

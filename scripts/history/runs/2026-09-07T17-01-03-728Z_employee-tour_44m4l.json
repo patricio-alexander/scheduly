@@ -1,0 +1,69 @@
+{
+  "tester": "employee-tour",
+  "mode": "customers",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 848,
+  "ok": true,
+  "summary": {
+    "passed": 5,
+    "failed": 0,
+    "total": 5,
+    "ok": true
+  },
+  "actor": {
+    "username": "estilista_maria",
+    "name": "María García",
+    "role": "employee",
+    "branchKey": "colon"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como María García",
+        "Rol: Empleado · local: Andrea Guerrero · Eguiguren"
+      ]
+    },
+    {
+      "id": "list-customers",
+      "title": "Ve el listado de clientes",
+      "ok": true,
+      "lines": [
+        "Cargaron 20 cliente(s)",
+        "· Ana Lucía Castillo Bravo",
+        "· Pedro Javier Ramírez Soto",
+        "· Elizabeth Guerrero Mora"
+      ]
+    },
+    {
+      "id": "create-customer",
+      "title": "Registra un cliente nuevo",
+      "ok": true,
+      "lines": [
+        "Cliente: Cliente Tour María 071201",
+        "id=100",
+        "Empleado puede dar de alta clientes"
+      ]
+    },
+    {
+      "id": "verify-customer",
+      "title": "Verifica que el cliente aparece",
+      "ok": true,
+      "lines": [
+        "Cliente visible en el listado"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "María termina y sale."
+      ]
+    }
+  ],
+  "id": "2026-09-07T17-01-03-728Z_employee-tour_44m4l",
+  "at": "2026-09-07T17:01:03.729Z"
+}

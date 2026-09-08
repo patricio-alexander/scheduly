@@ -1,0 +1,83 @@
+{
+  "tester": "owner-tour",
+  "mode": "suppliers-purchases",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 3292,
+  "ok": true,
+  "summary": {
+    "passed": 7,
+    "failed": 0,
+    "total": 7,
+    "ok": true
+  },
+  "actor": {
+    "username": "Administrador",
+    "name": "Andrea Guerrero",
+    "role": "owner"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": true,
+      "lines": [
+        "Entró como Andrea Guerrero",
+        "Usuario: Administrador · rol: Dueña"
+      ]
+    },
+    {
+      "id": "suppliers-ready",
+      "title": "Proveedores listos",
+      "ok": true,
+      "lines": [
+        "3 proveedor(es) para compras"
+      ]
+    },
+    {
+      "id": "purchase-0",
+      "title": "Compra · Andrea Guerrero · Cristóbal Colón",
+      "ok": true,
+      "lines": [
+        "PO #49 · $92.34",
+        "Proveedor #17 · recibido+pagado → gasto Finanzas"
+      ]
+    },
+    {
+      "id": "purchase-1",
+      "title": "Compra · Andrea Guerrero · Eguiguren",
+      "ok": true,
+      "lines": [
+        "PO #50 · $151.80",
+        "Proveedor #18 · recibido+pagado → gasto Finanzas"
+      ]
+    },
+    {
+      "id": "purchase-2",
+      "title": "Compra · Andrea Guerrero · Tour 071131",
+      "ok": true,
+      "lines": [
+        "PO #51 · $114.90",
+        "Proveedor #19 · recibido+pagado → gasto Finanzas"
+      ]
+    },
+    {
+      "id": "expenses-check",
+      "title": "Finanzas · gastos ledger",
+      "ok": true,
+      "lines": [
+        "6 gasto(s) en ledger",
+        "Compras OK esta corrida: 3"
+      ]
+    },
+    {
+      "id": "logout",
+      "title": "Cierra sesión",
+      "ok": true,
+      "lines": [
+        "Andrea Guerrero termina y sale del sistema."
+      ]
+    }
+  ],
+  "id": "2026-09-07T21-33-10-343Z_owner-tour_3t487",
+  "at": "2026-09-07T21:33:10.343Z"
+}

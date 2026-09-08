@@ -5,6 +5,11 @@ import { parseBranchId, resolveDashboardScope } from "@/shared/utils/branches";
 import { prisma } from "@/shared/utils/prisma";
 import { toAmount } from "@/shared/utils/money";
 import {
+  isPaidSale,
+  saleTotal,
+} from "@/shared/utils/dashboard-eddeli-metrics";
+import { saleWhereForLocation } from "@/shared/utils/pos-location";
+import {
   endOfDay,
   parseDayKey,
   round2,
@@ -29,13 +34,18 @@ export async function GET(request: Request) {
     }
 
     const requestedBranchId = parseBranchId(url.searchParams.get("branchId"));
-    await resolveDashboardScope(prisma, auth.user, requestedBranchId);
+    const scope = await resolveDashboardScope(
+      prisma,
+      auth.user,
+      requestedBranchId,
+    );
+    const branchId = scope.branchId;
 
     const day = parseDayKey(dateRaw);
     const start = startOfDay(day);
     const end = endOfDay(day);
 
-    const [incomes, expenses] = await Promise.all([
+    const [incomes, expenses, sales, appointmentPayments] = await Promise.all([
       prisma.income.findMany({
         where: {
           date: { gte: start, lte: end },
@@ -50,20 +60,83 @@ export async function GET(request: Request) {
         },
         orderBy: { date: "asc" },
       }),
+      prisma.sale.findMany({
+        where: {
+          financeIncomeId: null,
+          ...saleWhereForLocation(branchId),
+          OR: [
+            { paidAt: { gte: start, lte: end } },
+            { paidAt: null, date: { gte: start, lte: end }, status: "pagado" },
+          ],
+        },
+        select: {
+          id: true,
+          date: true,
+          paidAt: true,
+          status: true,
+          notes: true,
+          lines: {
+            select: {
+              quantity: true,
+              price: true,
+              damagedQty: true,
+              giftQty: true,
+            },
+          },
+        },
+        orderBy: { date: "asc" },
+      }),
+      prisma.appointmentPayment.findMany({
+        where: {
+          paidAt: { gte: start, lte: end },
+          ...(branchId ? { appointment: { branchId } } : {}),
+        },
+        select: {
+          id: true,
+          amount: true,
+          paidAt: true,
+          appointmentId: true,
+        },
+        orderBy: { paidAt: "asc" },
+      }),
     ]);
 
-    const incomeRows = incomes.map((row) => {
-      const isSale =
-        (row.referenceType ?? "").toLowerCase() === "order" ||
-        (row.category ?? "").toLowerCase() === "sales";
-      return {
-        id: `inc-${row.id}`,
-        type: isSale ? ("product" as const) : ("appointment" as const),
-        label: row.concept || row.category || "Ingreso",
-        amount: toAmount(row.amount),
-        at: row.date.toISOString(),
-      };
-    });
+    const incomeRows = [
+      ...incomes.map((row) => {
+        const isSale =
+          (row.referenceType ?? "").toLowerCase() === "order" ||
+          (row.category ?? "").toLowerCase() === "sales";
+        return {
+          id: `inc-${row.id}`,
+          type: isSale ? ("product" as const) : ("appointment" as const),
+          label: row.concept || row.category || "Ingreso",
+          amount: toAmount(row.amount),
+          at: row.date.toISOString(),
+        };
+      }),
+      ...sales
+        .filter((sale) => isPaidSale(sale))
+        .map((sale) => {
+          const ts = sale.paidAt ?? sale.date;
+          return {
+            id: `sale-${sale.id}`,
+            type: "product" as const,
+            label: sale.notes?.includes("[CAJA_POS]")
+              ? `Venta POS #${sale.id}`
+              : `Venta #${sale.id}`,
+            amount: saleTotal(sale),
+            at: ts.toISOString(),
+          };
+        })
+        .filter((row) => row.amount > 0),
+      ...appointmentPayments.map((pay) => ({
+        id: `apt-${pay.id}`,
+        type: "appointment" as const,
+        label: `Cobro cita #${pay.appointmentId}`,
+        amount: toAmount(pay.amount),
+        at: pay.paidAt.toISOString(),
+      })),
+    ].sort((a, b) => a.at.localeCompare(b.at));
 
     const expenseRows = expenses.map((e) => ({
       id: e.id,

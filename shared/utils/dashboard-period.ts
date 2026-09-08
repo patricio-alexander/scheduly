@@ -1,16 +1,24 @@
-export type DashboardPeriod = "today" | "week" | "month";
+export type DashboardPeriod = "today" | "week" | "month" | "all";
 
-export const dashboardPeriodOptions: DashboardPeriod[] = ["today", "week", "month"];
+export const dashboardPeriodOptions: DashboardPeriod[] = [
+  "all",
+  "month",
+  "week",
+  "today",
+];
 
 export const dashboardPeriodLabel: Record<DashboardPeriod, string> = {
+  all: "Todo",
   today: "Hoy",
   week: "Semana",
   month: "Mes",
 };
 
 export function parseDashboardPeriod(value: string | null): DashboardPeriod {
-  if (value === "today" || value === "week" || value === "month") return value;
-  return "week";
+  if (value === "today" || value === "week" || value === "month" || value === "all") {
+    return value;
+  }
+  return "all";
 }
 
 function startOfDay(date: Date): Date {
@@ -38,8 +46,13 @@ export function getDashboardPeriodRange(period: DashboardPeriod, reference = new
     return { start, end, period };
   }
 
-  const start = startOfDay(reference);
-  start.setDate(1);
+  if (period === "month") {
+    const start = startOfDay(reference);
+    start.setDate(1);
+    return { start, end, period };
+  }
+
+  const start = startOfDay(new Date(2024, 0, 1));
   return { start, end, period };
 }
 
@@ -76,6 +89,23 @@ export function getDashboardChartBuckets(
         start: startOfDay(day),
         end: endOfDay(day),
       });
+    }
+    return buckets;
+  }
+
+  if (period === "all") {
+    const range = getDashboardPeriodRange("all", reference);
+    const cursor = new Date(range.start.getFullYear(), range.start.getMonth(), 1);
+    while (cursor <= reference) {
+      const start = startOfDay(new Date(cursor.getFullYear(), cursor.getMonth(), 1));
+      const end = endOfDay(new Date(cursor.getFullYear(), cursor.getMonth() + 1, 0));
+      buckets.push({
+        key: `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, "0")}`,
+        label: cursor.toLocaleDateString("es-EC", { month: "short", year: "2-digit" }),
+        start,
+        end,
+      });
+      cursor.setMonth(cursor.getMonth() + 1);
     }
     return buckets;
   }
@@ -152,6 +182,10 @@ export function getDashboardActivityChartBuckets(
     return buckets;
   }
 
+  if (period === "all") {
+    return getDashboardChartBuckets("all", reference);
+  }
+
   const monthStart = startOfDay(reference);
   monthStart.setDate(1);
   const cursor = new Date(monthStart);
@@ -185,7 +219,8 @@ export function getDashboardActivityChartBuckets(
 export function getDashboardPeriodDescription(period: DashboardPeriod): string {
   if (period === "today") return "Hoy";
   if (period === "week") return "Últimos 7 días";
-  return "Mes en curso";
+  if (period === "month") return "Mes en curso";
+  return "Todo el histórico";
 }
 
 /** Rango del período inmediatamente anterior (misma duración relativa). */
@@ -207,6 +242,10 @@ export function getDashboardPreviousPeriodRange(
     return getDashboardPeriodRange("week", prevEnd);
   }
 
+  if (period === "all") {
+    return { start: current.start, end: current.start, period };
+  }
+
   const prevMonthEnd = new Date(current.start);
   prevMonthEnd.setDate(0);
   return getDashboardPeriodRange("month", prevMonthEnd);
@@ -215,7 +254,8 @@ export function getDashboardPreviousPeriodRange(
 export function getDashboardComparisonLabel(period: DashboardPeriod): string {
   if (period === "today") return "vs ayer";
   if (period === "week") return "vs 7 días previos";
-  return "vs mes anterior";
+  if (period === "month") return "vs mes anterior";
+  return "histórico";
 }
 
 /** Variación porcentual; null si no hay base comparable (prev=0 y current>0). */

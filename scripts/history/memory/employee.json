@@ -1,0 +1,771 @@
+{
+  "role": "employee",
+  "updatedAt": "2026-09-08T00:06:17.224Z",
+  "runs": 8,
+  "totalProbes": 318,
+  "totalPass": 244,
+  "totalFail": 74,
+  "probes": {
+    "dashboard": {
+      "probeId": "dashboard",
+      "label": "Panel",
+      "hits": 14,
+      "pass": 14,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:10.462Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "notifications": {
+      "probeId": "notifications",
+      "label": "Notificaciones",
+      "hits": 15,
+      "pass": 15,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:03.959Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "me": {
+      "probeId": "me",
+      "label": "Sesión /api/auth/me",
+      "hits": 14,
+      "pass": 14,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:08.752Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "appointments": {
+      "probeId": "appointments",
+      "label": "Agenda",
+      "hits": 14,
+      "pass": 14,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:12.034Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "appointments-mine": {
+      "probeId": "appointments-mine",
+      "label": "Mi agenda",
+      "hits": 14,
+      "pass": 14,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:12.459Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "services": {
+      "probeId": "services",
+      "label": "Servicios",
+      "hits": 24,
+      "pass": 24,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:12.830Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "settings": {
+      "probeId": "settings",
+      "label": "Settings",
+      "hits": 12,
+      "pass": 12,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:08.360Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "shifts-active": {
+      "probeId": "shifts-active",
+      "label": "Turno activo",
+      "hits": 15,
+      "pass": 15,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:13.684Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "cash": {
+      "probeId": "cash",
+      "label": "Caja",
+      "hits": 15,
+      "pass": 15,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:14.126Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "pos-sales": {
+      "probeId": "pos-sales",
+      "label": "Ventas POS",
+      "hits": 14,
+      "pass": 14,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:14.538Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "roles": {
+      "probeId": "roles",
+      "label": "Roles",
+      "hits": 9,
+      "pass": 0,
+      "fail": 9,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:01.919Z",
+      "lastNote": "FALLÓ: debía bloquear y llegó HTTP 200",
+      "confidence": 0
+    },
+    "branches": {
+      "probeId": "branches",
+      "label": "Sucursales",
+      "hits": 12,
+      "pass": 12,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:06.751Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "backups-list": {
+      "probeId": "backups-list",
+      "label": "Backups (dueña)",
+      "hits": 16,
+      "pass": 16,
+      "fail": 0,
+      "lastStatus": 403,
+      "lastAt": "2026-09-08T00:06:15.427Z",
+      "lastNote": "OK denegado HTTP 403 (sin permiso)",
+      "confidence": 1
+    },
+    "products": {
+      "probeId": "products",
+      "label": "Productos",
+      "hits": 15,
+      "pass": 15,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:10.871Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "customers": {
+      "probeId": "customers",
+      "label": "Clientes",
+      "hits": 14,
+      "pass": 14,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:09.545Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "finance-expenses": {
+      "probeId": "finance-expenses",
+      "label": "Finanzas gastos",
+      "hits": 11,
+      "pass": 0,
+      "fail": 11,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:05:54.522Z",
+      "lastNote": "FALLÓ: debía bloquear y llegó HTTP 200",
+      "confidence": 0
+    },
+    "sri": {
+      "probeId": "sri",
+      "label": "SRI config",
+      "hits": 16,
+      "pass": 16,
+      "fail": 0,
+      "lastStatus": 403,
+      "lastAt": "2026-09-08T00:06:17.047Z",
+      "lastNote": "OK denegado HTTP 403 (sin permiso)",
+      "confidence": 1
+    },
+    "system-logs": {
+      "probeId": "system-logs",
+      "label": "Logs del sistema (programador/dueña)",
+      "hits": 14,
+      "pass": 14,
+      "fail": 0,
+      "lastStatus": 403,
+      "lastAt": "2026-09-08T00:06:16.255Z",
+      "lastNote": "OK denegado HTTP 403 (sin permiso)",
+      "confidence": 1
+    },
+    "inventory-movements": {
+      "probeId": "inventory-movements",
+      "label": "Kardex movimientos",
+      "hits": 9,
+      "pass": 0,
+      "fail": 9,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:16.657Z",
+      "lastNote": "FALLÓ: debía bloquear y llegó HTTP 200",
+      "confidence": 0
+    },
+    "finance-collections": {
+      "probeId": "finance-collections",
+      "label": "Cobranzas workbench",
+      "hits": 10,
+      "pass": 0,
+      "fail": 10,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:13.268Z",
+      "lastNote": "FALLÓ: debía bloquear y llegó HTTP 200",
+      "confidence": 0
+    },
+    "purchases": {
+      "probeId": "purchases",
+      "label": "Compras",
+      "hits": 7,
+      "pass": 0,
+      "fail": 7,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:00.244Z",
+      "lastNote": "FALLÓ: debía bloquear y llegó HTTP 200",
+      "confidence": 0
+    },
+    "finance-summary": {
+      "probeId": "finance-summary",
+      "label": "Finanzas resumen",
+      "hits": 9,
+      "pass": 0,
+      "fail": 9,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:14.972Z",
+      "lastNote": "FALLÓ: debía bloquear y llegó HTTP 200",
+      "confidence": 0
+    },
+    "users": {
+      "probeId": "users",
+      "label": "Cuentas / users",
+      "hits": 6,
+      "pass": 6,
+      "fail": 0,
+      "lastStatus": 403,
+      "lastAt": "2026-09-08T00:06:07.156Z",
+      "lastNote": "OK denegado HTTP 403 (sin permiso)",
+      "confidence": 1
+    },
+    "suppliers": {
+      "probeId": "suppliers",
+      "label": "Proveedores",
+      "hits": 7,
+      "pass": 0,
+      "fail": 7,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:15.868Z",
+      "lastNote": "FALLÓ: debía bloquear y llegó HTTP 200",
+      "confidence": 0
+    },
+    "orders-calendar": {
+      "probeId": "orders-calendar",
+      "label": "Pedidos calendario",
+      "hits": 7,
+      "pass": 0,
+      "fail": 7,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:06:11.654Z",
+      "lastNote": "FALLÓ: debía bloquear y llegó HTTP 200",
+      "confidence": 0
+    },
+    "finance-incomes": {
+      "probeId": "finance-incomes",
+      "label": "Finanzas ingresos",
+      "hits": 5,
+      "pass": 0,
+      "fail": 5,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T00:05:56.890Z",
+      "lastNote": "FALLÓ: debía bloquear y llegó HTTP 200",
+      "confidence": 0
+    }
+  },
+  "uiVisited": {
+    "panel": {
+      "routeId": "panel",
+      "href": "/panel",
+      "hits": 10,
+      "lastAt": "2026-09-08T00:05:53.220Z"
+    },
+    "agenda": {
+      "routeId": "agenda",
+      "href": "/operacion/agenda",
+      "hits": 9,
+      "lastAt": "2026-09-08T00:06:12.006Z"
+    },
+    "caja": {
+      "routeId": "caja",
+      "href": "/operacion/caja",
+      "hits": 10,
+      "lastAt": "2026-09-08T00:06:13.619Z"
+    },
+    "config": {
+      "routeId": "config",
+      "href": "/sistema/configuracion",
+      "hits": 7,
+      "lastAt": "2026-09-08T00:05:57.240Z"
+    },
+    "catalogo": {
+      "routeId": "catalogo",
+      "href": "/catalogo/productos",
+      "hits": 10,
+      "lastAt": "2026-09-08T00:06:10.814Z"
+    },
+    "backups": {
+      "routeId": "backups",
+      "href": "/sistema/configuracion?tab=backups",
+      "hits": 11,
+      "lastAt": "2026-09-08T00:06:15.324Z"
+    },
+    "clientes": {
+      "routeId": "clientes",
+      "href": "/ventas/clientes",
+      "hits": 10,
+      "lastAt": "2026-09-08T00:06:02.269Z"
+    },
+    "sri": {
+      "routeId": "sri",
+      "href": "/operacion/comprobantes-pos",
+      "hits": 11,
+      "lastAt": "2026-09-08T00:06:17.008Z"
+    },
+    "logs": {
+      "routeId": "logs",
+      "href": "/sistema/logs",
+      "hits": 9,
+      "lastAt": "2026-09-08T00:06:16.221Z"
+    }
+  },
+  "comments": [
+    {
+      "at": "2026-09-08T00:05:39.765Z",
+      "kind": "fail",
+      "text": "Fallo finance-incomes (Finanzas ingresos): FALLÓ: debía bloquear y llegó HTTP 200 · /api/finance/incomes"
+    },
+    {
+      "at": "2026-09-08T00:05:40.198Z",
+      "kind": "learn",
+      "text": "Confirmado: employee no entra a Cuentas / users (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T00:05:41.998Z",
+      "kind": "observe",
+      "text": "Sucursales: vi 2 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:05:42.476Z",
+      "kind": "observe",
+      "text": "Productos: vi 47 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:05:42.893Z",
+      "kind": "observe",
+      "text": "Settings: negocio «Andrea Guerrero Estética y Peluquería»"
+    },
+    {
+      "at": "2026-09-08T00:05:43.312Z",
+      "kind": "learn",
+      "text": "Confirmado: employee no entra a Logs del sistema (programador/dueña) (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T00:05:43.780Z",
+      "kind": "observe",
+      "text": "Servicios: vi 42 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:05:45.093Z",
+      "kind": "learn",
+      "text": "Confirmado: employee no entra a SRI config (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T00:05:46.032Z",
+      "kind": "observe",
+      "text": "Clientes: vi 20 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:05:46.462Z",
+      "kind": "learn",
+      "text": "Confirmado: employee no entra a Backups (dueña) (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T00:05:47.691Z",
+      "kind": "ui",
+      "text": "Abre /operacion/comprobantes-pos · Intenta ver config SRI (dueña sí, otros no)"
+    },
+    {
+      "at": "2026-09-08T00:05:47.756Z",
+      "kind": "learn",
+      "text": "Confirmado: employee no entra a SRI config (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T00:05:48.166Z",
+      "kind": "fail",
+      "text": "Fallo finance-collections (Cobranzas workbench): FALLÓ: debía bloquear y llegó HTTP 200 · /api/orders/workbench/all"
+    },
+    {
+      "at": "2026-09-08T00:05:48.517Z",
+      "kind": "ui",
+      "text": "Abre /catalogo/productos · Mira productos y servicios"
+    },
+    {
+      "at": "2026-09-08T00:05:48.569Z",
+      "kind": "observe",
+      "text": "Productos: vi 47 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:05:48.983Z",
+      "kind": "observe",
+      "text": "Servicios: vi 42 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:05:49.915Z",
+      "kind": "fail",
+      "text": "Fallo inventory-movements (Kardex movimientos): FALLÓ: debía bloquear y llegó HTTP 200 · /api/inventory/movements?take=20"
+    },
+    {
+      "at": "2026-09-08T00:05:50.267Z",
+      "kind": "ui",
+      "text": "Abre /ventas/clientes · Lista clientes del local"
+    },
+    {
+      "at": "2026-09-08T00:05:50.296Z",
+      "kind": "observe",
+      "text": "Clientes: vi 20 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:05:50.684Z",
+      "kind": "fail",
+      "text": "Fallo purchases (Compras): FALLÓ: debía bloquear y llegó HTTP 200 · /api/purchases"
+    },
+    {
+      "at": "2026-09-08T00:05:51.035Z",
+      "kind": "ui",
+      "text": "Abre /sistema/configuracion?tab=backups · Lista backups (solo dueña)"
+    },
+    {
+      "at": "2026-09-08T00:05:51.080Z",
+      "kind": "learn",
+      "text": "Confirmado: employee no entra a Backups (dueña) (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T00:05:51.487Z",
+      "kind": "fail",
+      "text": "Fallo finance-expenses (Finanzas gastos): FALLÓ: debía bloquear y llegó HTTP 200 · /api/finance/expenses-ledger"
+    },
+    {
+      "at": "2026-09-08T00:05:51.838Z",
+      "kind": "ui",
+      "text": "Abre /operacion/caja · Chequea turno activo y caja"
+    },
+    {
+      "at": "2026-09-08T00:05:52.479Z",
+      "kind": "summary",
+      "text": "Empleado tratamientos_paola: 0.4 min · probes 54 · OK 41 · FAIL 13"
+    },
+    {
+      "at": "2026-09-08T00:05:53.220Z",
+      "kind": "observe",
+      "text": "Despierta con 7 corridas previas · 26 rutas en memoria"
+    },
+    {
+      "at": "2026-09-08T00:05:53.220Z",
+      "kind": "ui",
+      "text": "Abre /panel · Mira el resumen del negocio / día"
+    },
+    {
+      "at": "2026-09-08T00:05:54.522Z",
+      "kind": "fail",
+      "text": "Fallo finance-expenses (Finanzas gastos): FALLÓ: debía bloquear y llegó HTTP 200 · /api/finance/expenses-ledger"
+    },
+    {
+      "at": "2026-09-08T00:05:54.873Z",
+      "kind": "ui",
+      "text": "Abre /sistema/configuracion?tab=backups · Lista backups (solo dueña)"
+    },
+    {
+      "at": "2026-09-08T00:05:54.931Z",
+      "kind": "learn",
+      "text": "Confirmado: employee no entra a Backups (dueña) (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T00:05:55.318Z",
+      "kind": "fail",
+      "text": "Fallo finance-summary (Finanzas resumen): FALLÓ: debía bloquear y llegó HTTP 200 · /api/finance/ledger-summary"
+    },
+    {
+      "at": "2026-09-08T00:05:55.670Z",
+      "kind": "ui",
+      "text": "Abre /operacion/caja · Chequea turno activo y caja"
+    },
+    {
+      "at": "2026-09-08T00:05:56.890Z",
+      "kind": "fail",
+      "text": "Fallo finance-incomes (Finanzas ingresos): FALLÓ: debía bloquear y llegó HTTP 200 · /api/finance/incomes"
+    },
+    {
+      "at": "2026-09-08T00:05:57.240Z",
+      "kind": "ui",
+      "text": "Abre /sistema/configuracion · Lee settings del negocio (sin tocar aún)"
+    },
+    {
+      "at": "2026-09-08T00:05:57.306Z",
+      "kind": "observe",
+      "text": "Settings: negocio «Andrea Guerrero Estética y Peluquería»"
+    },
+    {
+      "at": "2026-09-08T00:05:57.718Z",
+      "kind": "observe",
+      "text": "Sucursales: vi 2 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:05:58.137Z",
+      "kind": "fail",
+      "text": "Fallo suppliers (Proveedores): FALLÓ: debía bloquear y llegó HTTP 200 · /api/suppliers"
+    },
+    {
+      "at": "2026-09-08T00:05:58.490Z",
+      "kind": "ui",
+      "text": "Abre /catalogo/productos · Mira productos y servicios"
+    },
+    {
+      "at": "2026-09-08T00:05:58.549Z",
+      "kind": "observe",
+      "text": "Productos: vi 47 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:05:58.968Z",
+      "kind": "observe",
+      "text": "Servicios: vi 42 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:05:59.448Z",
+      "kind": "fail",
+      "text": "Fallo inventory-movements (Kardex movimientos): FALLÓ: debía bloquear y llegó HTTP 200 · /api/inventory/movements?take=20"
+    },
+    {
+      "at": "2026-09-08T00:05:59.798Z",
+      "kind": "ui",
+      "text": "Abre /operacion/comprobantes-pos · Intenta ver config SRI (dueña sí, otros no)"
+    },
+    {
+      "at": "2026-09-08T00:05:59.838Z",
+      "kind": "learn",
+      "text": "Confirmado: employee no entra a SRI config (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T00:06:00.244Z",
+      "kind": "fail",
+      "text": "Fallo purchases (Compras): FALLÓ: debía bloquear y llegó HTTP 200 · /api/purchases"
+    },
+    {
+      "at": "2026-09-08T00:06:00.595Z",
+      "kind": "ui",
+      "text": "Abre /operacion/agenda · Revisa citas y huecos"
+    },
+    {
+      "at": "2026-09-08T00:06:01.517Z",
+      "kind": "observe",
+      "text": "Servicios: vi 42 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:06:01.919Z",
+      "kind": "fail",
+      "text": "Fallo roles (Roles): FALLÓ: debía bloquear y llegó HTTP 200 · /api/roles"
+    },
+    {
+      "at": "2026-09-08T00:06:02.269Z",
+      "kind": "ui",
+      "text": "Abre /ventas/clientes · Lista clientes del local"
+    },
+    {
+      "at": "2026-09-08T00:06:02.294Z",
+      "kind": "observe",
+      "text": "Clientes: vi 20 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:06:02.753Z",
+      "kind": "fail",
+      "text": "Fallo orders-calendar (Pedidos calendario): FALLÓ: debía bloquear y llegó HTTP 200 · /api/orders/calendar"
+    },
+    {
+      "at": "2026-09-08T00:06:03.107Z",
+      "kind": "ui",
+      "text": "Abre /sistema/logs · Mira mutaciones HTTP recientes"
+    },
+    {
+      "at": "2026-09-08T00:06:03.201Z",
+      "kind": "learn",
+      "text": "Confirmado: employee no entra a Logs del sistema (programador/dueña) (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T00:06:03.582Z",
+      "kind": "fail",
+      "text": "Fallo finance-collections (Cobranzas workbench): FALLÓ: debía bloquear y llegó HTTP 200 · /api/orders/workbench/all"
+    },
+    {
+      "at": "2026-09-08T00:06:04.351Z",
+      "kind": "observe",
+      "text": "Productos: vi 47 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:06:04.754Z",
+      "kind": "observe",
+      "text": "Servicios: vi 42 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:06:05.938Z",
+      "kind": "learn",
+      "text": "Confirmado: employee no entra a SRI config (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T00:06:06.751Z",
+      "kind": "observe",
+      "text": "Sucursales: vi 2 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:06:07.156Z",
+      "kind": "learn",
+      "text": "Confirmado: employee no entra a Cuentas / users (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T00:06:07.556Z",
+      "kind": "learn",
+      "text": "Confirmado: employee no entra a Logs del sistema (programador/dueña) (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T00:06:08.360Z",
+      "kind": "observe",
+      "text": "Settings: negocio «Andrea Guerrero Estética y Peluquería»"
+    },
+    {
+      "at": "2026-09-08T00:06:09.545Z",
+      "kind": "observe",
+      "text": "Clientes: vi 20 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:06:09.944Z",
+      "kind": "learn",
+      "text": "Confirmado: employee no entra a Backups (dueña) (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T00:06:10.814Z",
+      "kind": "ui",
+      "text": "Abre /catalogo/productos · Mira productos y servicios"
+    },
+    {
+      "at": "2026-09-08T00:06:10.871Z",
+      "kind": "observe",
+      "text": "Productos: vi 47 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:06:11.249Z",
+      "kind": "observe",
+      "text": "Servicios: vi 42 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:06:11.654Z",
+      "kind": "fail",
+      "text": "Fallo orders-calendar (Pedidos calendario): FALLÓ: debía bloquear y llegó HTTP 200 · /api/orders/calendar"
+    },
+    {
+      "at": "2026-09-08T00:06:12.006Z",
+      "kind": "ui",
+      "text": "Abre /operacion/agenda · Revisa citas y huecos"
+    },
+    {
+      "at": "2026-09-08T00:06:12.830Z",
+      "kind": "observe",
+      "text": "Servicios: vi 42 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T00:06:13.268Z",
+      "kind": "fail",
+      "text": "Fallo finance-collections (Cobranzas workbench): FALLÓ: debía bloquear y llegó HTTP 200 · /api/orders/workbench/all"
+    },
+    {
+      "at": "2026-09-08T00:06:13.619Z",
+      "kind": "ui",
+      "text": "Abre /operacion/caja · Chequea turno activo y caja"
+    },
+    {
+      "at": "2026-09-08T00:06:14.972Z",
+      "kind": "fail",
+      "text": "Fallo finance-summary (Finanzas resumen): FALLÓ: debía bloquear y llegó HTTP 200 · /api/finance/ledger-summary"
+    },
+    {
+      "at": "2026-09-08T00:06:15.324Z",
+      "kind": "ui",
+      "text": "Abre /sistema/configuracion?tab=backups · Lista backups (solo dueña)"
+    },
+    {
+      "at": "2026-09-08T00:06:15.427Z",
+      "kind": "learn",
+      "text": "Confirmado: employee no entra a Backups (dueña) (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T00:06:15.868Z",
+      "kind": "fail",
+      "text": "Fallo suppliers (Proveedores): FALLÓ: debía bloquear y llegó HTTP 200 · /api/suppliers"
+    },
+    {
+      "at": "2026-09-08T00:06:16.221Z",
+      "kind": "ui",
+      "text": "Abre /sistema/logs · Mira mutaciones HTTP recientes"
+    },
+    {
+      "at": "2026-09-08T00:06:16.255Z",
+      "kind": "learn",
+      "text": "Confirmado: employee no entra a Logs del sistema (programador/dueña) (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T00:06:16.657Z",
+      "kind": "fail",
+      "text": "Fallo inventory-movements (Kardex movimientos): FALLÓ: debía bloquear y llegó HTTP 200 · /api/inventory/movements?take=20"
+    },
+    {
+      "at": "2026-09-08T00:06:17.008Z",
+      "kind": "ui",
+      "text": "Abre /operacion/comprobantes-pos · Intenta ver config SRI (dueña sí, otros no)"
+    },
+    {
+      "at": "2026-09-08T00:06:17.047Z",
+      "kind": "learn",
+      "text": "Confirmado: employee no entra a SRI config (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T00:06:17.224Z",
+      "kind": "summary",
+      "text": "Empleado depilacion_ricardo: 0.4 min · probes 59 · OK 45 · FAIL 14"
+    }
+  ],
+  "insights": [
+    "Hueco o bug: Roles como employee → FALLÓ: debía bloquear y llegó HTTP 200",
+    "Hueco o bug: Finanzas gastos como employee → FALLÓ: debía bloquear y llegó HTTP 200",
+    "Hubo 2 fallos allow/deny como employee · revisar permisos o catálogo",
+    "Hueco o bug: Kardex movimientos como employee → FALLÓ: debía bloquear y llegó HTTP 200",
+    "Hueco o bug: Cobranzas workbench como employee → FALLÓ: debía bloquear y llegó HTTP 200",
+    "Hueco o bug: Compras como employee → FALLÓ: debía bloquear y llegó HTTP 200",
+    "Hueco o bug: Finanzas resumen como employee → FALLÓ: debía bloquear y llegó HTTP 200",
+    "Hubo 6 fallos allow/deny como employee · revisar permisos o catálogo",
+    "Hubo 3 fallos allow/deny como employee · revisar permisos o catálogo",
+    "Hueco o bug: Proveedores como employee → FALLÓ: debía bloquear y llegó HTTP 200",
+    "Hueco o bug: Pedidos calendario como employee → FALLÓ: debía bloquear y llegó HTTP 200",
+    "Hueco o bug: Finanzas ingresos como employee → FALLÓ: debía bloquear y llegó HTTP 200",
+    "Hubo 9 fallos allow/deny como employee · revisar permisos o catálogo",
+    "Hubo 13 fallos allow/deny como employee · revisar permisos o catálogo",
+    "Hubo 14 fallos allow/deny como employee · revisar permisos o catálogo"
+  ]
+}

@@ -6,6 +6,9 @@ import { isAdminRole } from "@/shared/utils/roles";
 export async function GET() {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
+  if (!isAdminRole(auth.user.role)) {
+    return NextResponse.json({ message: "No autorizado" }, { status: 403 });
+  }
 
   try {
     const suppliers = await prisma.supplier.findMany({

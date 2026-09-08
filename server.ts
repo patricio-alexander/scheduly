@@ -5,7 +5,6 @@ import next from "next";
 import { Server as IOServer } from "socket.io";
 import { setIO, TASKS_ROOM, APPOINTMENTS_ROOM } from "./shared/utils/socket";
 import { startSriAuthorizationPollWorker } from "./workers/sri-authorization-poll";
-import { getSchedulyRuntime } from "./shared/utils/runtime-mode";
 
 const dev = process.env.NODE_ENV !== "production";
 const hostname = process.env.HOSTNAME || "localhost";
@@ -14,7 +13,6 @@ const basePath = (process.env.NEXT_PUBLIC_BASE_PATH || "/scheduly").replace(
   /\/$/,
   "",
 );
-const runtime = getSchedulyRuntime();
 
 const app = next({ dev, hostname, port });
 const handle = app.getRequestHandler();
@@ -47,11 +45,7 @@ app
       console.log(
         `> Scheduly ready on http://${hostname}:${port}${basePath} (socket.io)`,
       );
-      console.log(
-        runtime === "dev"
-          ? "> Runtime: DEV (sin Gestor — módulos abiertos)"
-          : "> Runtime: GESTOR (suscripción enlazada)",
-      );
+      console.log("> Runtime: standalone (sin Gestor)");
       startSriAuthorizationPollWorker();
     });
   })

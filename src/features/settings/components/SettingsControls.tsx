@@ -1,8 +1,6 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { Switch } from "@heroui/react";
-
 /** Fila estilo EdDeli: etiqueta a la izquierda, control a la derecha. */
 export function SettingsRow({
   label,
@@ -70,12 +68,26 @@ export function SettingsSwitch({
             ? "Activado"
             : "Desactivado"}
       </span>
-      <Switch
-        isSelected={checked}
-        isDisabled={disabled}
-        onChange={onChange}
-        aria-label={checked ? "Activado" : "Desactivado"}
-      />
+      <button
+        type="button"
+        role="switch"
+        aria-checked={checked}
+        disabled={disabled}
+        onClick={() => {
+          if (!disabled) onChange(!checked);
+        }}
+        className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
+          checked
+            ? "border-accent bg-accent"
+            : "border-separator bg-surface-secondary"
+        } ${disabled ? "cursor-not-allowed opacity-50" : "cursor-pointer"}`}
+      >
+        <span
+          className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform ${
+            checked ? "left-auto right-0.5" : "left-0.5"
+          }`}
+        />
+      </button>
     </div>
   );
 }

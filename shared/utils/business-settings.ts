@@ -12,13 +12,27 @@ import {
   normalizeOperationFlags,
   type OperationFlags,
 } from "@/shared/utils/operation-flags";
+import {
+  agendaHoursFromReceiptSettings,
+  mergeAgendaHoursIntoReceiptSettings,
+  normalizeAgendaHours,
+  type AgendaHours,
+} from "@/shared/utils/agenda-hours";
+import {
+  cashRegisterModeFromReceiptSettings,
+  mergeOpsIntoReceiptSettings,
+  normalizeCashRegisterMode,
+  type CashRegisterMode,
+  DEFAULT_CASH_REGISTER_MODE,
+} from "@/shared/utils/cash-register-mode";
 
-export type { BusinessProfile, ThemeColors };
-export { DEFAULT_BUSINESS_NAME, DEFAULT_THEME_COLORS };
+export type { BusinessProfile, ThemeColors, AgendaHours, CashRegisterMode };
+export { DEFAULT_BUSINESS_NAME, DEFAULT_THEME_COLORS, DEFAULT_CASH_REGISTER_MODE };
 
 export type BusinessSettingsFull = BusinessProfile & {
   operationFlags: OperationFlags;
-};
+  cashRegisterMode: CashRegisterMode;
+} & AgendaHours;
 
 async function ensureAppSettings() {
   const existing = await prisma.appSettings.findUnique({ where: { id: 1 } });
@@ -50,6 +64,7 @@ function toProfile(
     warningColor?: string | null;
     dangerColor?: string | null;
     operationFlags?: unknown;
+    receiptDetailSettings?: string | null;
   },
   sri: {
     ruc?: string | null;
@@ -65,6 +80,10 @@ function toProfile(
     warningColor: app.warningColor ?? undefined,
     dangerColor: app.dangerColor ?? undefined,
   });
+  const hours = agendaHoursFromReceiptSettings(app.receiptDetailSettings);
+  const cashRegisterMode = cashRegisterModeFromReceiptSettings(
+    app.receiptDetailSettings,
+  );
   return {
     businessName: app.name || DEFAULT_BUSINESS_NAME,
     address: sri.matrixAddress ?? sri.establishmentAddress ?? "",
@@ -74,6 +93,8 @@ function toProfile(
     obligationAccounting: sri.accountingRequired ?? true,
     ...colors,
     operationFlags: normalizeOperationFlags(app.operationFlags),
+    ...hours,
+    cashRegisterMode,
   };
 }
 
@@ -83,6 +104,19 @@ export async function getBusinessSettings(): Promise<BusinessSettingsFull> {
     ensureSriSettings(),
   ]);
   return toProfile(app, sri);
+}
+
+export async function getAgendaHours(): Promise<AgendaHours> {
+  const settings = await getBusinessSettings();
+  return {
+    bookingStartHour: settings.bookingStartHour,
+    bookingEndHour: settings.bookingEndHour,
+  };
+}
+
+export async function getCashRegisterMode(): Promise<CashRegisterMode> {
+  const settings = await getBusinessSettings();
+  return settings.cashRegisterMode;
 }
 
 export async function updateBusinessSettings(input: {
@@ -96,10 +130,14 @@ export async function updateBusinessSettings(input: {
   warningColor?: string;
   dangerColor?: string;
   operationFlags?: OperationFlags;
+  bookingStartHour?: number;
+  bookingEndHour?: number;
+  cashRegisterMode?: CashRegisterMode;
 }): Promise<BusinessSettingsFull> {
   const businessName = input.businessName.trim() || DEFAULT_BUSINESS_NAME;
   const address = input.address.trim();
-  const current = await getBusinessSettings();
+  const currentApp = await ensureAppSettings();
+  const current = toProfile(currentApp, await ensureSriSettings());
   const colors = normalizeThemeColors({
     accentColor: input.accentColor ?? current.accentColor,
     successColor: input.successColor ?? current.successColor,
@@ -109,6 +147,25 @@ export async function updateBusinessSettings(input: {
   const operationFlags = input.operationFlags
     ? normalizeOperationFlags(input.operationFlags)
     : current.operationFlags;
+  const hours = normalizeAgendaHours({
+    bookingStartHour:
+      input.bookingStartHour !== undefined
+        ? input.bookingStartHour
+        : current.bookingStartHour,
+    bookingEndHour:
+      input.bookingEndHour !== undefined
+        ? input.bookingEndHour
+        : current.bookingEndHour,
+  });
+  const cashRegisterMode = normalizeCashRegisterMode(
+    input.cashRegisterMode !== undefined
+      ? input.cashRegisterMode
+      : current.cashRegisterMode,
+  );
+  const receiptDetailSettings = mergeOpsIntoReceiptSettings(
+    mergeAgendaHoursIntoReceiptSettings(currentApp.receiptDetailSettings, hours),
+    { cashRegisterMode },
+  );
 
   const [app, sri] = await Promise.all([
     prisma.appSettings.upsert({
@@ -119,11 +176,13 @@ export async function updateBusinessSettings(input: {
         alias: "scheduly",
         logoPath: null,
         operationFlags,
+        receiptDetailSettings,
         ...colors,
       },
       update: {
         name: businessName,
         operationFlags,
+        receiptDetailSettings,
         ...colors,
       },
     }),

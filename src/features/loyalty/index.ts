@@ -3,6 +3,7 @@ export { RewardPointsMeter, rewardPointsProgress } from "./components/RewardPoin
 export { RewardsManager } from "./components/RewardsManager";
 export { OffersManager } from "./components/OffersManager";
 export { EligibleCustomersPanel } from "./components/EligibleCustomersPanel";
+export { VisitFrequencyPanel } from "./components/VisitFrequencyPanel";
 export { CustomerLoginForm } from "./components/CustomerLoginForm";
 export { CustomerAccountPanel } from "./components/CustomerAccountPanel";
 export type {

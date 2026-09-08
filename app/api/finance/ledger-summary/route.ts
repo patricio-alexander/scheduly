@@ -2,8 +2,13 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { checkAuth } from "@/shared/utils/check-auth";
 import { toAmount } from "@/shared/utils/money";
+import { isManagementRole } from "@/shared/utils/roles";
 import { buildPendingCollectionsBreakdown } from "@/shared/utils/collections-pending";
-
+import {
+  listFinanceExpenses,
+  listFinanceIncomes,
+  sumLedgerAmounts,
+} from "@/shared/utils/finance-ledger-list";
 
 function monthKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -18,77 +23,81 @@ function monthLabel(ym: string) {
 }
 
 /**
- * Resumen financiero estilo EdDeli (ledger histórico Income − Expense + por cobrar).
+ * Resumen financiero (ledger + ventas/citas/compras operativas).
  * GET /api/finance/ledger-summary
  */
 export async function GET() {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
+  if (!isManagementRole(auth.user.role)) {
+    return NextResponse.json({ message: "No autorizado" }, { status: 403 });
+  }
 
   try {
-    const [incomes, expenses, sales, groups, payments, customers, obligations] =
-      await Promise.all([
-        prisma.income.findMany({
-          where: { status: "paid" },
-          select: { amount: true, date: true },
-        }),
-        prisma.expense.findMany({
-          where: { status: "paid" },
-          select: { amount: true, date: true },
-        }),
-        prisma.sale.findMany({
-          where: { status: { not: "cancelado" } },
-          select: {
-            id: true,
-            customerId: true,
-            date: true,
-            lines: {
-              select: {
-                id: true,
-                quantity: true,
-                price: true,
-                damagedQty: true,
-                giftQty: true,
-                paidAt: true,
-                itemGroupItems: { select: { groupId: true } },
-              },
+    const [
+      incomeRows,
+      expenseRows,
+      sales,
+      groups,
+      payments,
+      customers,
+      obligations,
+    ] = await Promise.all([
+      listFinanceIncomes(5000),
+      listFinanceExpenses(5000),
+      prisma.sale.findMany({
+        where: { status: { in: ["pendiente", "entregado", "pagado"] } },
+        select: {
+          id: true,
+          customerId: true,
+          date: true,
+          lines: {
+            select: {
+              id: true,
+              quantity: true,
+              price: true,
+              damagedQty: true,
+              giftQty: true,
+              paidAt: true,
+              itemGroupItems: { select: { groupId: true } },
             },
           },
-        }),
-        prisma.itemGroup.findMany({
-          select: {
-            id: true,
-            customerId: true,
-            concept: true,
-            status: true,
-          },
-        }),
-        prisma.financePayment.findMany({
-          select: { groupId: true, amount: true, status: true },
-        }),
-        prisma.customer.findMany({
-          select: {
-            id: true,
-            name: true,
-            firstLastName: true,
-            secondLastName: true,
-          },
-        }),
-        prisma.financialObligation.findMany({
-          where: {
-            OR: [{ status: null }, { status: { not: "closed" } }],
-          },
-          select: {
-            direction: true,
-            originalAmount: true,
-            status: true,
-            payments: { select: { amount: true, status: true } },
-          },
-        }),
-      ]);
+        },
+      }),
+      prisma.itemGroup.findMany({
+        select: {
+          id: true,
+          customerId: true,
+          concept: true,
+          status: true,
+        },
+      }),
+      prisma.financePayment.findMany({
+        select: { groupId: true, amount: true, status: true },
+      }),
+      prisma.customer.findMany({
+        select: {
+          id: true,
+          name: true,
+          firstLastName: true,
+          secondLastName: true,
+        },
+      }),
+      prisma.financialObligation.findMany({
+        where: {
+          OR: [{ status: null }, { status: { not: "closed" } }],
+        },
+        select: {
+          direction: true,
+          originalAmount: true,
+          status: true,
+          payments: { select: { amount: true, status: true } },
+        },
+      }),
+    ]);
 
-    const totalIncome = incomes.reduce((s, i) => s + toAmount(i.amount), 0);
-    const totalExpense = expenses.reduce((s, e) => s + toAmount(e.amount), 0);
+    const totalIncome = sumLedgerAmounts(incomeRows);
+    const totalExpense = sumLedgerAmounts(expenseRows);
     const balance = Number((totalIncome - totalExpense).toFixed(2));
 
     const customerRows = customers.map((c) => ({
@@ -146,15 +155,28 @@ export async function GET() {
       (balance + futureIncome + loansReceivable - debtsPayable).toFixed(2),
     );
 
-    // Márgenes del mes actual
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
-    const monthEnd = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
-    const monthIncome = incomes
-      .filter((i) => i.date >= monthStart && i.date <= monthEnd)
+    const monthEnd = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      0,
+      23,
+      59,
+      59,
+      999,
+    );
+    const monthIncome = incomeRows
+      .filter((i) => {
+        const d = new Date(i.date);
+        return d >= monthStart && d <= monthEnd;
+      })
       .reduce((s, i) => s + toAmount(i.amount), 0);
-    const monthExpense = expenses
-      .filter((e) => e.date >= monthStart && e.date <= monthEnd)
+    const monthExpense = expenseRows
+      .filter((e) => {
+        const d = new Date(e.date);
+        return d >= monthStart && d <= monthEnd;
+      })
       .reduce((s, e) => s + toAmount(e.amount), 0);
     const monthBalance = Number((monthIncome - monthExpense).toFixed(2));
     const monthMarginPct =
@@ -167,22 +189,22 @@ export async function GET() {
     const monthMarginWithPendingPct =
       monthIncome + futureIncome > 0
         ? Number(
-            ((monthBalanceWithPending / (monthIncome + futureIncome)) * 100).toFixed(
-              1,
-            ),
+            (
+              (monthBalanceWithPending / (monthIncome + futureIncome)) *
+              100
+            ).toFixed(1),
           )
         : 0;
 
-    // Mejor mes histórico
     const byMonth = new Map<string, { income: number; expense: number }>();
-    for (const i of incomes) {
-      const k = monthKey(i.date);
+    for (const i of incomeRows) {
+      const k = monthKey(new Date(i.date));
       const row = byMonth.get(k) ?? { income: 0, expense: 0 };
       row.income += toAmount(i.amount);
       byMonth.set(k, row);
     }
-    for (const e of expenses) {
-      const k = monthKey(e.date);
+    for (const e of expenseRows) {
+      const k = monthKey(new Date(e.date));
       const row = byMonth.get(k) ?? { income: 0, expense: 0 };
       row.expense += toAmount(e.amount);
       byMonth.set(k, row);
@@ -222,6 +244,8 @@ export async function GET() {
       isRecordMonth: currentKey === bestMonthKey && monthBalance > 0,
       monthLabel: monthLabel(currentKey),
       pendingByCustomer: pending.byCustomer,
+      incomeCount: incomeRows.length,
+      expenseCount: expenseRows.length,
     });
   } catch (error) {
     console.error("GET /api/finance/ledger-summary", error);
@@ -231,4 +255,3 @@ export async function GET() {
     );
   }
 }
-

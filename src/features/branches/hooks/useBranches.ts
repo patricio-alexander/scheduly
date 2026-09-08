@@ -12,6 +12,7 @@ export type BranchRecord = {
   isActive: boolean;
   isMain: boolean;
   sortOrder: number;
+  locationKind?: string | null;
 };
 
 export function useBranches() {

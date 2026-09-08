@@ -20,8 +20,16 @@ import {
   resolveDashboardScope,
 } from "@/shared/utils/branches";
 import { checkAuth } from "@/shared/utils/check-auth";
-import { isManagementRole, isOwnerRole } from "@/shared/utils/roles";
+import {
+  isManagementRole,
+  isOwnerRole,
+  isPureEmployeeRole,
+} from "@/shared/utils/roles";
 import { invalidateDashboard } from "@/shared/utils/socket";
+import { getCashRegisterMode } from "@/shared/utils/business-settings";
+import { recordLedgerIncome } from "@/shared/utils/finance-ledger";
+import { recordStockMovements } from "@/shared/utils/stock-movement-log";
+import { parseSaleCreditInstallments } from "@/shared/utils/sale-credit-installments";
 
 function parseMethod(value: unknown): PaymentMethodValue {
   const method = String(value ?? "cash");
@@ -182,7 +190,9 @@ export async function POST(request: Request) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
 
-  if (!isManagementRole(auth.user.role)) {
+  const canSell =
+    isManagementRole(auth.user.role) || isPureEmployeeRole(auth.user.role);
+  if (!canSell) {
     return NextResponse.json({ message: "No autorizado" }, { status: 403 });
   }
 
@@ -222,6 +232,30 @@ export async function POST(request: Request) {
 
     const branchId = await resolveSaleBranchId(auth.user, requestedBranchId);
 
+    const cashMode = await getCashRegisterMode();
+    const openShiftWhere =
+      cashMode === "employee_own"
+        ? { storeId: branchId, status: "open" as const, accountId: auth.user.id }
+        : { storeId: branchId, status: "open" as const };
+
+    const openShift = await prisma.cashShift.findFirst({
+      where: openShiftWhere,
+      orderBy: { id: "desc" },
+      select: { id: true, activeCashRegisterId: true },
+    });
+
+    if (!openShift) {
+      return NextResponse.json(
+        {
+          message:
+            cashMode === "employee_own"
+              ? "Debes abrir tu turno de caja antes de vender"
+              : "No hay turno de caja abierto en la sucursal",
+        },
+        { status: 400 },
+      );
+    }
+
     const customerIdRaw = body.customerId;
     const customerId =
       customerIdRaw == null || customerIdRaw === "" || customerIdRaw === "none"
@@ -244,6 +278,13 @@ export async function POST(request: Request) {
       }
     }
 
+    if (isCredit && (customerId == null || !Number.isInteger(customerId))) {
+      return NextResponse.json(
+        { message: "En venta a crédito debés elegir un cliente" },
+        { status: 400 },
+      );
+    }
+
     for (const line of lines) {
       const product = await prisma.product.findUnique({
         where: { id: line.productId },
@@ -264,6 +305,23 @@ export async function POST(request: Request) {
         lines.map(({ productId, quantity }) => ({ productId, quantity })),
       );
 
+      await recordStockMovements(
+        tx,
+        auth.user.id,
+        "salida",
+        lines.map((l) => ({
+          productId: l.productId,
+          quantity: l.quantity,
+          price: l.unitPrice,
+        })),
+        {
+          description: "Venta POS",
+          reason: "venta",
+          referenceType: "sale_pending",
+          date: body.paidAt ? new Date(String(body.paidAt)) : new Date(),
+        },
+      );
+
       const walkIn =
         customerId ??
         (
@@ -278,13 +336,10 @@ export async function POST(request: Request) {
         throw new Error("No hay clientes en la BD; crea uno antes de vender");
       }
 
-      const openShift = await tx.cashShift.findFirst({
-        where: { storeId: branchId, status: "open" },
-        orderBy: { id: "desc" },
-        select: { id: true, activeCashRegisterId: true },
-      });
+      const paidAtRaw = body.paidAt ? new Date(String(body.paidAt)) : new Date();
+      const paidAt = Number.isNaN(paidAtRaw.getTime()) ? new Date() : paidAtRaw;
 
-      return tx.sale.create({
+      const created = await tx.sale.create({
         data: {
           customerId: walkIn,
           sellerAccountId: auth.user.id,
@@ -292,10 +347,10 @@ export async function POST(request: Request) {
           paymentMethod: isCredit ? "credito" : method,
           documentType,
           notes: notes || null,
-          paidAt: isCredit ? null : new Date(),
-          date: new Date(),
-          shiftId: openShift?.id ?? null,
-          cashRegisterId: openShift?.activeCashRegisterId ?? null,
+          paidAt: isCredit ? null : paidAt,
+          date: paidAt,
+          shiftId: openShift.id,
+          cashRegisterId: openShift.activeCashRegisterId ?? null,
           lines: {
             create: lines.map((line) => ({
               productId: line.productId,
@@ -307,6 +362,21 @@ export async function POST(request: Request) {
               paidAt: isCredit ? null : new Date(),
             })),
           },
+          ...(isCredit
+            ? {
+                installments: {
+                  create: parseSaleCreditInstallments(
+                    body.installments,
+                    calcProductSaleTotal(lines),
+                  ).map((i) => ({
+                    sequence: i.sequence,
+                    dueDate: i.dueDate,
+                    amount: i.amount,
+                    notes: i.notes,
+                  })),
+                },
+              }
+            : {}),
         },
         include: {
           customer: {
@@ -325,9 +395,51 @@ export async function POST(request: Request) {
           },
         },
       });
+
+      if (!isCredit) {
+        const saleAmount = calcProductSaleTotal(lines);
+        if (saleAmount > 0) {
+          const income = await recordLedgerIncome(tx, {
+            amount: saleAmount,
+            date: paidAt,
+            concept: `Venta POS #${created.id}`,
+            category: "Venta POS",
+            createdByAccountId: auth.user.id,
+            counterpartyName: created.customer?.name ?? null,
+            referenceType: "sale",
+            referenceId: created.id,
+          });
+          if (income) {
+            await tx.sale.update({
+              where: { id: created.id },
+              data: { financeIncomeId: income.id },
+            });
+          }
+        }
+      }
+
+      return created;
     });
 
     invalidateDashboard("product-sale:created");
+
+    try {
+      const sri = await prisma.sriBillingSettings.findUnique({
+        where: { id: 1 },
+      });
+      if (
+        sri?.enabled &&
+        sri.certificateRelativePath &&
+        sri.certificatePasswordEnc
+      ) {
+        const { createInvoiceFromProductSale } = await import(
+          "@/src/features/electronic-docs/services/invoice-service"
+        );
+        await createInvoiceFromProductSale(prisma, sale.id);
+      }
+    } catch (invoiceError) {
+      console.error("Auto facturación SRI (POS)", invoiceError);
+    }
 
     const amountPaid = sale.lines.reduce(
       (sum, line) => sum + toAmount(line.quantity) * toAmount(line.price),

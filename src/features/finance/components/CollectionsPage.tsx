@@ -22,6 +22,7 @@ import {
   getBillableQty,
   lineTotal,
 } from "@/shared/utils/collections-pending";
+import { OrderItemsPackBreakdown } from "./OrderItemsPackBreakdown";
 
 type Mode = "customers" | "suppliers";
 type CustomerTab = "vista" | "pagados" | "grupos" | "detalle" | "creditos";
@@ -41,6 +42,11 @@ type CustomerItem = {
   paidAt: string | null;
   groupId: number | null;
   deliveredAt: string | null;
+  packKey?: string | null;
+  packName?: string | null;
+  lotCode?: string | null;
+  expiresAt?: string | null;
+  manufacturedAt?: string | null;
 };
 
 type CustomerOrder = {
@@ -95,9 +101,17 @@ type SupplierOrder = {
   items: Array<{
     id: number;
     name: string;
+    product?: string;
     quantity: number;
     unitPrice: number;
+    taxRate?: number;
     lineTotal: number;
+    packKey?: string | null;
+    packName?: string | null;
+    lotCode?: string | null;
+    expiresAt?: string | null;
+    manufacturedAt?: string | null;
+    packId?: number | null;
   }>;
 };
 
@@ -146,7 +160,7 @@ export function CollectionsPage() {
       orderId: number;
       customerId: number;
       customerName: string;
-      dueDate: string;
+      dueDate: string | null;
       amount: number;
       sequence: number;
     }>
@@ -160,6 +174,13 @@ export function CollectionsPage() {
     null,
   );
   const [supplierTab, setSupplierTab] = useState<SupplierTab>("vista");
+  const [supplierVistaSub, setSupplierVistaSub] = useState<VistaSub>("orders");
+  const [expandedCustomerOrders, setExpandedCustomerOrders] = useState<
+    Set<number>
+  >(() => new Set());
+  const [expandedSupplierOrders, setExpandedSupplierOrders] = useState<
+    Set<number>
+  >(() => new Set());
   const [futurePayable, setFuturePayable] = useState(0);
 
   const groupModal = useOverlayState();
@@ -190,7 +211,7 @@ export function CollectionsPage() {
         orderId: number;
         customerId: number;
         customerName: string;
-        dueDate: string;
+        dueDate: string | null;
         amount: number;
         sequence: number;
       }>;
@@ -428,6 +449,26 @@ export function CollectionsPage() {
     }
   };
 
+  const toggleCustomerOrderExpanded = (orderId: number) => {
+    setExpandedCustomerOrders((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
+    });
+  };
+
+  const toggleSupplierOrderExpanded = (orderId: number) => {
+    setExpandedSupplierOrders((prev) => {
+      const next = new Set(prev);
+      if (next.has(orderId)) next.delete(orderId);
+      else next.add(orderId);
+      return next;
+    });
+  };
+
+  const toggleSingleItem = (id: number) => toggleIds([id]);
+
   const prepareOrderGroup = (itemIds: number[], concept: string) => {
     if (!itemIds.length) {
       toast.danger("Ese pedido no tiene ítems pendientes sin grupo");
@@ -563,6 +604,77 @@ export function CollectionsPage() {
   const supplierPaidOrders = supplierOrdersFiltered.filter(
     (o) => o.remainingAmount <= 0,
   );
+
+  const supplierPendingItems = useMemo(() => {
+    const out: Array<
+      SupplierOrder["items"][number] & { orderId: number; orderDate: string }
+    > = [];
+    for (const o of supplierPendingOrders) {
+      for (const it of o.items || []) {
+        out.push({
+          ...it,
+          orderId: o.id,
+          orderDate: o.date,
+        });
+      }
+    }
+    return out;
+  }, [supplierPendingOrders]);
+
+  const supplierByProduct = useMemo(() => {
+    const map = new Map<
+      string,
+      {
+        product: string;
+        unitPrice: number;
+        qty: number;
+        total: number;
+        orderIds: number[];
+        itemIds: number[];
+      }
+    >();
+    for (const it of supplierPendingItems) {
+      const product = it.product ?? it.name ?? "(sin nombre)";
+      const unitPrice = Number(it.unitPrice ?? 0);
+      const key = `${product}\0${unitPrice}`;
+      if (!map.has(key)) {
+        map.set(key, {
+          product,
+          unitPrice,
+          qty: 0,
+          total: 0,
+          orderIds: [],
+          itemIds: [],
+        });
+      }
+      const row = map.get(key)!;
+      row.qty += Number(it.quantity ?? 0);
+      row.total = Number((row.total + Number(it.lineTotal ?? 0)).toFixed(2));
+      if (!row.orderIds.includes(it.orderId)) row.orderIds.push(it.orderId);
+      row.itemIds.push(it.id);
+    }
+    return [...map.values()].sort((a, b) =>
+      a.product.localeCompare(b.product, "es"),
+    );
+  }, [supplierPendingItems]);
+
+  const supplierByDate = useMemo(() => {
+    const map = new Map<
+      string,
+      { date: string; qty: number; total: number; itemIds: number[] }
+    >();
+    for (const it of supplierPendingItems) {
+      const d = it.orderDate?.slice(0, 10) || "—";
+      if (!map.has(d)) {
+        map.set(d, { date: d, qty: 0, total: 0, itemIds: [] });
+      }
+      const row = map.get(d)!;
+      row.qty += Number(it.quantity ?? 0);
+      row.total = Number((row.total + Number(it.lineTotal ?? 0)).toFixed(2));
+      row.itemIds.push(it.id);
+    }
+    return [...map.values()].sort((a, b) => b.date.localeCompare(a.date));
+  }, [supplierPendingItems]);
 
   const selectCustomer = (id: number) => {
     setSelectedCustomerId(id);
@@ -931,6 +1043,7 @@ export function CollectionsPage() {
                         <thead className="border-b border-separator bg-surface-secondary/50 text-muted">
                           <tr>
                             <th className="w-10 px-2 py-2" />
+                            <th className="w-8 px-1 py-2" />
                             <th className="px-2 py-2 font-extrabold">Pedido</th>
                             <th className="px-2 py-2 font-extrabold">Fecha</th>
                             <th className="px-2 py-2 font-extrabold">Crédito</th>
@@ -948,7 +1061,11 @@ export function CollectionsPage() {
                         <tbody>
                           {pendingByOrders.map((ord) => {
                             const ids = ord.items.map((it) => it.id);
+                            const expanded = expandedCustomerOrders.has(
+                              ord.orderId,
+                            );
                             return (
+                              <>
                               <tr
                                 key={ord.orderId}
                                 className="border-b border-separator/50"
@@ -965,6 +1082,31 @@ export function CollectionsPage() {
                                     }}
                                     onChange={() => toggleIds(ids)}
                                   />
+                                </td>
+                                <td className="px-1 py-1.5">
+                                  <button
+                                    type="button"
+                                    className="text-muted hover:text-foreground"
+                                    onClick={() =>
+                                      toggleCustomerOrderExpanded(ord.orderId)
+                                    }
+                                    aria-label={
+                                      expanded
+                                        ? "Ocultar productos"
+                                        : "Ver productos"
+                                    }
+                                  >
+                                    <span
+                                      className="inline-block transition-transform"
+                                      style={{
+                                        transform: expanded
+                                          ? "rotate(0deg)"
+                                          : "rotate(-90deg)",
+                                      }}
+                                    >
+                                      ▾
+                                    </span>
+                                  </button>
                                 </td>
                                 <td className="px-2 py-1.5 font-bold">
                                   #{ord.orderId}
@@ -1035,6 +1177,23 @@ export function CollectionsPage() {
                                   </div>
                                 </td>
                               </tr>
+                              {expanded ? (
+                                <tr key={`${ord.orderId}-detail`}>
+                                  <td
+                                    colSpan={8}
+                                    className="bg-surface-secondary/30 px-3 py-2"
+                                  >
+                                    <OrderItemsPackBreakdown
+                                      items={ord.items}
+                                      variant="customer"
+                                      canSelect
+                                      selectedItemIds={selectedItemIds}
+                                      onToggleItem={toggleSingleItem}
+                                    />
+                                  </td>
+                                </tr>
+                              ) : null}
+                              </>
                             );
                           })}
                         </tbody>
@@ -1339,7 +1498,9 @@ export function CollectionsPage() {
                                 #{c.orderId}
                               </td>
                               <td className="px-3 py-2">{c.sequence}</td>
-                              <td className="px-3 py-2">{c.dueDate}</td>
+                              <td className="px-3 py-2">
+                                {c.dueDate ?? "Sin fecha"}
+                              </td>
                               <td className="px-3 py-2 text-right font-bold tabular-nums text-[var(--warning)]">
                                 {formatMoney(c.amount)}
                               </td>
@@ -1444,10 +1605,200 @@ export function CollectionsPage() {
                 </button>
               ))}
             </div>
+            {supplierTab === "vista" ? (
+              <div className="flex gap-1 overflow-x-auto border-b border-separator px-3">
+                {(
+                  [
+                    ["orders", "Por pedidos"],
+                    ["product", "Por producto"],
+                    ["date", "Por fecha"],
+                  ] as const
+                ).map(([id, label]) => (
+                  <button
+                    key={id}
+                    type="button"
+                    className={`shrink-0 px-2 py-1.5 text-[11px] font-semibold ${
+                      supplierVistaSub === id
+                        ? "border-b-2 border-accent text-accent"
+                        : "text-muted hover:text-foreground"
+                    }`}
+                    onClick={() => setSupplierVistaSub(id)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <div className="overflow-x-auto p-3">
+              {supplierTab === "vista" && supplierVistaSub === "orders" ? (
               <table className="w-full min-w-[720px] text-left text-xs">
                 <thead className="border-b border-separator bg-surface-secondary/40 text-muted">
                   <tr>
+                    <th className="w-8 px-2 py-2 font-medium" />
+                    <th className="px-3 py-2 font-medium">Pedido</th>
+                    <th className="px-3 py-2 font-medium">Fecha</th>
+                    <th className="px-3 py-2 text-right font-medium">Saldo</th>
+                    <th className="px-3 py-2 text-right font-medium">Total</th>
+                    <th className="px-3 py-2 text-center font-medium">Acción</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {supplierPendingOrders.length === 0 ? (
+                    <tr>
+                      <td
+                        colSpan={6}
+                        className="px-3 py-8 text-center text-muted"
+                      >
+                        Sin pedidos pendientes
+                      </td>
+                    </tr>
+                  ) : (
+                    supplierPendingOrders.map((o) => {
+                      const expanded = expandedSupplierOrders.has(o.id);
+                      return (
+                        <>
+                          <tr key={o.id} className="border-b border-separator/50">
+                            <td className="px-2 py-2">
+                              <button
+                                type="button"
+                                className="text-muted hover:text-foreground"
+                                onClick={() => toggleSupplierOrderExpanded(o.id)}
+                                aria-label={
+                                  expanded ? "Ocultar productos" : "Ver productos"
+                                }
+                              >
+                                <span
+                                  className="inline-block transition-transform"
+                                  style={{
+                                    transform: expanded
+                                      ? "rotate(0deg)"
+                                      : "rotate(-90deg)",
+                                  }}
+                                >
+                                  ▾
+                                </span>
+                              </button>
+                            </td>
+                            <td className="px-3 py-2 font-bold">#{o.id}</td>
+                            <td className="whitespace-nowrap px-3 py-2">
+                              {formatDay(o.date)}
+                            </td>
+                            <td className="px-3 py-2 text-right font-semibold tabular-nums text-danger">
+                              {formatMoney(o.remainingAmount)}
+                            </td>
+                            <td className="px-3 py-2 text-right tabular-nums">
+                              {formatMoney(o.totalAmount)}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                onPress={() => openPaySupplier(o)}
+                              >
+                                Abonar
+                              </Button>
+                            </td>
+                          </tr>
+                          {expanded ? (
+                            <tr key={`${o.id}-detail`}>
+                              <td
+                                colSpan={6}
+                                className="bg-surface-secondary/30 px-3 py-2"
+                              >
+                                <OrderItemsPackBreakdown
+                                  items={o.items}
+                                  variant="supplier"
+                                />
+                              </td>
+                            </tr>
+                          ) : null}
+                        </>
+                      );
+                    })
+                  )}
+                </tbody>
+              </table>
+              ) : supplierTab === "vista" && supplierVistaSub === "product" ? (
+                <table className="w-full min-w-[520px] text-left text-xs">
+                  <thead className="border-b border-separator bg-surface-secondary/40 text-muted">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Producto</th>
+                      <th className="px-3 py-2 font-medium">Pedidos</th>
+                      <th className="px-3 py-2 text-right font-medium">Cant.</th>
+                      <th className="px-3 py-2 text-right font-medium">P/U</th>
+                      <th className="px-3 py-2 text-right font-medium">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {supplierByProduct.length === 0 ? (
+                      <tr>
+                        <td colSpan={5} className="px-3 py-8 text-center text-muted">
+                          Sin líneas pendientes
+                        </td>
+                      </tr>
+                    ) : (
+                      supplierByProduct.map((r) => (
+                        <tr
+                          key={`${r.product}\0${r.unitPrice}`}
+                          className="border-b border-separator/50"
+                        >
+                          <td className="px-3 py-2">{r.product}</td>
+                          <td className="px-3 py-2">
+                            {r.orderIds.map((oid) => `#${oid}`).join(", ")}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {r.qty}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {formatMoney(r.unitPrice)}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {formatMoney(r.total)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              ) : supplierTab === "vista" && supplierVistaSub === "date" ? (
+                <table className="w-full min-w-[360px] text-left text-xs">
+                  <thead className="border-b border-separator bg-surface-secondary/40 text-muted">
+                    <tr>
+                      <th className="px-3 py-2 font-medium">Fecha</th>
+                      <th className="px-3 py-2 text-right font-medium">Cant.</th>
+                      <th className="px-3 py-2 text-right font-medium">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {supplierByDate.length === 0 ? (
+                      <tr>
+                        <td colSpan={3} className="px-3 py-8 text-center text-muted">
+                          Sin ítems por fecha
+                        </td>
+                      </tr>
+                    ) : (
+                      supplierByDate.map((day) => (
+                        <tr
+                          key={day.date}
+                          className="border-b border-separator/50"
+                        >
+                          <td className="px-3 py-2 font-semibold">{day.date}</td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {day.qty}
+                          </td>
+                          <td className="px-3 py-2 text-right tabular-nums">
+                            {formatMoney(day.total)}
+                          </td>
+                        </tr>
+                      ))
+                    )}
+                  </tbody>
+                </table>
+              ) : supplierTab === "pagados" ? (
+              <table className="w-full min-w-[720px] text-left text-xs">
+                <thead className="border-b border-separator bg-surface-secondary/40 text-muted">
+                  <tr>
+                    <th className="w-8 px-2 py-2 font-medium" />
                     <th className="px-3 py-2 font-medium">Fecha</th>
                     <th className="px-3 py-2 font-medium">Nº</th>
                     <th className="px-3 py-2 text-right font-medium">Total</th>
@@ -1457,61 +1808,80 @@ export function CollectionsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {(supplierTab === "vista"
-                    ? supplierPendingOrders
-                    : supplierPaidOrders
-                  ).length === 0 ? (
+                  {supplierPaidOrders.length === 0 ? (
                     <tr>
                       <td
                         colSpan={6}
                         className="px-3 py-8 text-center text-muted"
                       >
-                        {supplierTab === "vista"
-                          ? "Sin pedidos pendientes"
-                          : "Sin pedidos saldados"}
+                        Sin pedidos saldados
                       </td>
                     </tr>
                   ) : (
-                    (supplierTab === "vista"
-                      ? supplierPendingOrders
-                      : supplierPaidOrders
-                    ).map((o) => (
-                      <tr key={o.id} className="border-b border-separator/50">
-                        <td className="whitespace-nowrap px-3 py-2">
-                          {formatDay(o.date)}
-                        </td>
-                        <td className="px-3 py-2">
-                          {o.invoiceNumber || `PO-${o.id}`}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums">
-                          {formatMoney(o.totalAmount)}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums">
-                          {formatMoney(o.paidAmount)}
-                        </td>
-                        <td className="px-3 py-2 text-right font-semibold tabular-nums text-danger">
-                          {formatMoney(o.remainingAmount)}
-                        </td>
-                        <td className="px-3 py-2 text-center">
-                          {o.remainingAmount > 0 ? (
-                            <Button
-                              size="sm"
-                              variant="danger"
-                              onPress={() => openPaySupplier(o)}
-                            >
-                              Abonar
-                            </Button>
-                          ) : (
-                            <span className="text-[10px] text-success">
-                              Liquidado
-                            </span>
-                          )}
-                        </td>
-                      </tr>
-                    ))
+                    supplierPaidOrders.map((o) => {
+                      const expanded = expandedSupplierOrders.has(o.id);
+                      return (
+                        <>
+                          <tr key={o.id} className="border-b border-separator/50">
+                            <td className="px-2 py-2">
+                              <button
+                                type="button"
+                                className="text-muted hover:text-foreground"
+                                onClick={() => toggleSupplierOrderExpanded(o.id)}
+                              >
+                                <span
+                                  className="inline-block transition-transform"
+                                  style={{
+                                    transform: expanded
+                                      ? "rotate(0deg)"
+                                      : "rotate(-90deg)",
+                                  }}
+                                >
+                                  ▾
+                                </span>
+                              </button>
+                            </td>
+                            <td className="whitespace-nowrap px-3 py-2">
+                              {formatDay(o.date)}
+                            </td>
+                            <td className="px-3 py-2">
+                              {o.invoiceNumber || `PO-${o.id}`}
+                            </td>
+                            <td className="px-3 py-2 text-right tabular-nums">
+                              {formatMoney(o.totalAmount)}
+                            </td>
+                            <td className="px-3 py-2 text-right tabular-nums">
+                              {formatMoney(o.paidAmount)}
+                            </td>
+                            <td className="px-3 py-2 text-right font-semibold tabular-nums text-success">
+                              {formatMoney(o.remainingAmount)}
+                            </td>
+                            <td className="px-3 py-2 text-center">
+                              <span className="text-[10px] text-success">
+                                Liquidado
+                              </span>
+                            </td>
+                          </tr>
+                          {expanded ? (
+                            <tr key={`${o.id}-paid-detail`}>
+                              <td
+                                colSpan={7}
+                                className="bg-surface-secondary/30 px-3 py-2"
+                              >
+                                <OrderItemsPackBreakdown
+                                  items={o.items}
+                                  variant="supplier"
+                                />
+                              </td>
+                            </tr>
+                          ) : null}
+                        </>
+                      );
+                    })
                   )}
                 </tbody>
               </table>
+              ) : null}
             </div>
           </section>
         </div>

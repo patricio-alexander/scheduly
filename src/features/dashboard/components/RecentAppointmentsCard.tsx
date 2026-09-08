@@ -18,6 +18,7 @@ function formatDateTime(iso: string) {
     time: d.toLocaleTimeString("es-CL", {
       hour: "2-digit",
       minute: "2-digit",
+      second: "2-digit",
     }),
   };
 }
@@ -26,13 +27,16 @@ type RecentAppointmentsCardProps = {
   appointments: DashboardRecentAppointment[];
   periodDescription?: string;
   className?: string;
+  posMode?: boolean;
 };
 
 export function RecentAppointmentsCard({
   appointments,
   periodDescription,
   className = "",
+  posMode = false,
 }: RecentAppointmentsCardProps) {
+  const listHref = posMode ? appRoutes.sales.orders : appRoutes.operation.agenda;
   return (
     <div
       className={`flex max-h-[24rem] min-w-0 flex-col overflow-hidden rounded-2xl border border-separator bg-surface md:max-h-[28rem] lg:max-h-[32rem] ${className}`}
@@ -40,17 +44,19 @@ export function RecentAppointmentsCard({
     >
       <div className="flex shrink-0 items-center justify-between gap-3 border-b border-separator px-4 py-3.5 md:px-5">
         <div className="min-w-0">
-          <h2 className="text-base font-semibold">Últimos turnos</h2>
+          <h2 className="text-base font-semibold">
+            {posMode ? "Últimos pedidos" : "Últimos turnos"}
+          </h2>
           <p className="text-xs text-muted">
             Actividad reciente
             {periodDescription ? ` · ${periodDescription}` : ""}
           </p>
         </div>
         <Link
-          href={appRoutes.operation.agenda}
+          href={listHref}
           className="inline-flex shrink-0 items-center gap-1 text-xs font-semibold text-accent hover:underline"
         >
-          Ver agenda
+          {posMode ? "Ver pedidos" : "Ver agenda"}
           <ArrowRight width={12} height={12} />
         </Link>
       </div>
@@ -62,12 +68,14 @@ export function RecentAppointmentsCard({
             height={28}
             className="mb-2 text-muted opacity-40"
           />
-          <p className="text-sm font-medium">Sin turnos recientes</p>
+          <p className="text-sm font-medium">
+            {posMode ? "Sin pedidos recientes" : "Sin turnos recientes"}
+          </p>
           <Link
-            href={appRoutes.operation.agenda}
+            href={listHref}
             className="mt-2 text-xs font-semibold text-accent hover:underline"
           >
-            Crear turno
+            {posMode ? "Crear pedido" : "Crear turno"}
           </Link>
         </div>
       ) : (
@@ -77,7 +85,11 @@ export function RecentAppointmentsCard({
             return (
               <li key={apt.id}>
                 <Link
-                  href={`${appRoutes.operation.agenda}?appointmentId=${apt.id}`}
+                  href={
+                    posMode
+                      ? `${appRoutes.sales.orders}?orderId=${apt.id}`
+                      : `${appRoutes.operation.agenda}?appointmentId=${apt.id}`
+                  }
                   className="flex min-w-0 items-center gap-2.5 px-4 py-2.5 transition-colors hover:bg-surface-secondary/50 md:gap-3 md:px-5"
                 >
                   <div

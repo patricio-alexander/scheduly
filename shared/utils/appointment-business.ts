@@ -1,4 +1,5 @@
 import { deductBranchStock, incrementBranchStock } from "@/shared/utils/branch-stock";
+import { recordStockMovements } from "@/shared/utils/stock-movement-log";
 import type { PrismaClient } from "@/generated/prisma/client";
 import { lineTotal, toAmount } from "@/shared/utils/money";
 import { paymentMethodOptions, type PaymentMethodValue } from "@/shared/utils/payment-methods";
@@ -79,7 +80,7 @@ export async function validateProductStock(
 
     let reserved = 0;
     if (excludeAppointmentId) {
-      const existing = await tx.appointmentsProducts.findUnique({
+      const existing = await tx.appointmentProduct.findUnique({
         where: {
           appointmentId_productId: {
             appointmentId: excludeAppointmentId,
@@ -93,9 +94,10 @@ export async function validateProductStock(
     let available: number;
     if (branchId) {
       const row = await tx.branchStock.findUnique({
-        where: { branchId_productId: { branchId, productId } },
+        where: { storeId_productId: { storeId: branchId, productId } },
       });
-      available = (row?.stock ?? 0) + reserved;
+      // storeId = Branch.id · quantity es el stock por local
+      available = (row?.quantity ?? product.stock ?? 0) + reserved;
     } else {
       available = product.stock + reserved;
     }
@@ -106,7 +108,11 @@ export async function validateProductStock(
   }
 }
 
-export async function deductStockForAppointment(tx: Tx, appointmentId: number) {
+export async function deductStockForAppointment(
+  tx: Tx,
+  appointmentId: number,
+  createdByAccountId?: number | null,
+) {
   const appointment = await tx.appointment.findUnique({
     where: { id: appointmentId },
     include: { products: true },
@@ -150,6 +156,33 @@ export async function deductStockForAppointment(tx: Tx, appointmentId: number) {
     }
   }
 
+  let movementCreatorId = createdByAccountId ?? null;
+  if (!movementCreatorId) {
+    const account = await tx.account.findFirst({
+      where: { userId: appointment.userId, isActive: true },
+      select: { id: true },
+    });
+    movementCreatorId = account?.id ?? null;
+  }
+  if (movementCreatorId) {
+    await recordStockMovements(
+      tx,
+      movementCreatorId,
+      "salida",
+      appointment.products.map((p) => ({
+        productId: p.productId,
+        quantity: p.quantity,
+      })),
+      {
+        description: `Uso en cita #${appointmentId}`,
+        reason: "cita",
+        referenceType: "appointment",
+        referenceId: appointmentId,
+        date: appointment.appointmentDate,
+      },
+    );
+  }
+
   await tx.appointment.update({
     where: { id: appointmentId },
     data: { stockDeducted: true },
@@ -157,9 +190,13 @@ export async function deductStockForAppointment(tx: Tx, appointmentId: number) {
 
   if (lowStockProducts.length === 0) return;
 
-  const admins = await tx.user.findMany({
-    where: { role: "admin" },
-    select: { id: true },
+  const admins = await tx.account.findMany({
+    where: {
+      isActive: true,
+      userId: { not: null },
+      roles: { some: { role: { name: "admin" } } },
+    },
+    select: { userId: true },
   });
 
   for (const product of lowStockProducts) {
@@ -173,12 +210,15 @@ export async function deductStockForAppointment(tx: Tx, appointmentId: number) {
         : `"${product.name}" tiene solo ${product.stock} unidad(es) (mínimo ${LOW_STOCK_THRESHOLD}).`;
 
     for (const admin of admins) {
+      const personId = admin.userId;
+      if (!personId) continue;
+
       const existing = await tx.notification.findFirst({
         where: {
-          userId: admin.id,
-          type: "warning",
+          userId: personId,
+          type: "alert",
           title,
-          read: false,
+          seen: false,
         },
         select: { id: true },
       });
@@ -186,10 +226,10 @@ export async function deductStockForAppointment(tx: Tx, appointmentId: number) {
 
       await tx.notification.create({
         data: {
-          userId: admin.id,
+          userId: personId,
           title,
           message,
-          type: "warning",
+          type: "alert",
         },
       });
     }
@@ -245,8 +285,8 @@ export async function deleteAppointmentRecord(tx: Tx, appointmentId: number) {
   }
 
   await tx.payment.deleteMany({ where: { appointmentId } });
-  await tx.appointmentsServices.deleteMany({ where: { appointmentId } });
-  await tx.appointmentsProducts.deleteMany({ where: { appointmentId } });
+  await tx.appointmentService.deleteMany({ where: { appointmentId } });
+  await tx.appointmentProduct.deleteMany({ where: { appointmentId } });
   await tx.appointment.delete({ where: { id: appointmentId } });
 }
 

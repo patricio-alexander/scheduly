@@ -3,6 +3,14 @@ import { prisma } from "@/shared/utils/prisma";
 import { checkAuth } from "@/shared/utils/check-auth";
 import { isManagementRole } from "@/shared/utils/roles";
 
+function parseWeekdays(value: unknown): number[] | null {
+  if (!Array.isArray(value)) return null;
+  const days = value
+    .map((d) => Number(d))
+    .filter((d) => Number.isInteger(d) && d >= 0 && d <= 6);
+  return days.length ? [...new Set(days)].sort() : [];
+}
+
 function parsePromotionBody(body: Record<string, unknown>) {
   const name = String(body.name ?? "").trim();
   if (!name) throw new Error("Nombre requerido");
@@ -18,6 +26,7 @@ function parsePromotionBody(body: Record<string, unknown>) {
     isActive: body.isActive !== false,
     serviceIds: Array.isArray(body.serviceIds) ? body.serviceIds : [],
     branchIds: Array.isArray(body.branchIds) ? body.branchIds : [],
+    weekdays: parseWeekdays(body.weekdays),
   };
 }
 

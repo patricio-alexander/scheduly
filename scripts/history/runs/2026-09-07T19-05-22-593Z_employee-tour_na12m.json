@@ -1,0 +1,872 @@
+{
+  "tester": "employee-tour",
+  "mode": "schedule-all-parallel",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 8171,
+  "ok": true,
+  "summary": {
+    "passed": 80,
+    "failed": 0,
+    "total": 80
+  },
+  "subjects": [
+    {
+      "username": "estilista_maria",
+      "name": "María García",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como María García",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": true,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "14:00 → María García · Alisado permanente + prod · ~$106.50 · id=34",
+            "10:00 → Andrés Muñoz · Ampolla reparadora (sesión) + prod · ~$38.50 · id=44",
+            "13:00 → Camila Rojas · Babylights + prod · ~$85.40 · id=54"
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 5",
+            "De este tour visibles en mine: 1/3",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 3"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "María termina agenda de «Andrea Guerrero · Eguiguren»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_juan",
+      "name": "Juan Pérez",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Juan Pérez",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": true,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "12:00 → Juan Pérez · Alisado permanente + prod · ~$106.50 · id=38",
+            "13:00 → Andrés Muñoz · Ampolla reparadora (sesión) + prod · ~$38.50 · id=49",
+            "10:00 → Camila Rojas · Babylights + prod · ~$85.40 · id=59"
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 4",
+            "De este tour visibles en mine: 1/3",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 3"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Juan termina agenda de «Andrea Guerrero · Cristóbal Colón»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "colorista_camila",
+      "name": "Camila Rojas",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Camila Rojas",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": true,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "12:00 → Camila Rojas · Alisado permanente + prod · ~$106.50 · id=36",
+            "10:00 → Andrés Muñoz · Ampolla reparadora (sesión) + prod · ~$38.50 · id=47",
+            "13:00 → Diego Salinas · Babylights + prod · ~$85.40 · id=63"
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 13",
+            "De este tour visibles en mine: 1/3",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 3"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Camila termina agenda de «Andrea Guerrero · Eguiguren»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "unas_natalia",
+      "name": "Natalia Ortiz",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Natalia Ortiz",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": true,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "12:00 → Natalia Ortiz · Alisado permanente + prod · ~$106.50 · id=37",
+            "11:00 → Andrés Muñoz · Ampolla reparadora (sesión) + prod · ~$38.50 · id=45",
+            "13:00 → Camila Rojas · Babylights + prod · ~$85.40 · id=55"
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 4",
+            "De este tour visibles en mine: 1/3",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 3"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Natalia termina agenda de «Andrea Guerrero · Cristóbal Colón»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "makeup_andres",
+      "name": "Andrés Muñoz",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Andrés Muñoz",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": true,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "15:00 → Andrés Muñoz · Alisado permanente + prod · ~$106.50 · id=35",
+            "12:00 → Camila Rojas · Ampolla reparadora (sesión) + prod · ~$38.50 · id=48",
+            "14:00 → Diego Salinas · Babylights + prod · ~$85.40 · id=62"
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 13",
+            "De este tour visibles en mine: 1/3",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 3"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Andrés termina agenda de «Andrea Guerrero · Eguiguren»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_diego",
+      "name": "Diego Salinas",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Diego Salinas",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": true,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "10:00 → Diego Salinas · Alisado permanente + prod · ~$106.50 · id=39",
+            "14:00 → Andrés Muñoz · Ampolla reparadora (sesión) + prod · ~$38.50 · id=53",
+            "12:00 → Camila Rojas · Babylights + prod · ~$85.40 · id=61"
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 6",
+            "De este tour visibles en mine: 1/3",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 3"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Diego termina agenda de «Andrea Guerrero · Cristóbal Colón»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "tratamientos_paola",
+      "name": "Paola Herrera",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Paola Herrera",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": true,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "11:00 → Paola Herrera · Alisado permanente + prod · ~$106.50 · id=41",
+            "13:00 → Andrés Muñoz · Ampolla reparadora (sesión) + prod · ~$38.50 · id=52",
+            "14:00 → Camila Rojas · Babylights + prod · ~$85.40 · id=58"
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 4",
+            "De este tour visibles en mine: 1/3",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 3"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Paola termina agenda de «Andrea Guerrero · Eguiguren»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "depilacion_ricardo",
+      "name": "Ricardo Vélez",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Ricardo Vélez",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": true,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "13:00 → Ricardo Vélez · Alisado permanente + prod · ~$106.50 · id=43",
+            "15:00 → Andrés Muñoz · Ampolla reparadora (sesión) + prod · ~$38.50 · id=51",
+            "14:00 → Camila Rojas · Babylights + prod · ~$85.40 · id=57"
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 4",
+            "De este tour visibles en mine: 1/3",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 3"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Ricardo termina agenda de «Andrea Guerrero · Cristóbal Colón»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "recepcion_felipe",
+      "name": "Felipe López",
+      "role": "employee",
+      "branchKey": "colon",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Felipe López",
+            "Sucursal: Andrea Guerrero · Eguiguren"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": true,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "10:00 → Felipe López · Alisado permanente + prod · ~$106.50 · id=40",
+            "12:00 → Andrés Muñoz · Ampolla reparadora (sesión) + prod · ~$38.50 · id=50",
+            "14:00 → Camila Rojas · Babylights + prod · ~$85.40 · id=60"
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 4",
+            "De este tour visibles en mine: 1/3",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 3"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Felipe termina agenda de «Andrea Guerrero · Eguiguren»."
+          ]
+        }
+      ]
+    },
+    {
+      "username": "estilista_marco",
+      "name": "Marco Espinosa",
+      "role": "employee",
+      "branchKey": "eguiguren",
+      "ok": true,
+      "passed": 8,
+      "failed": 0,
+      "total": 8,
+      "scenes": [
+        {
+          "id": "login",
+          "title": "Ingreso al sistema",
+          "ok": true,
+          "lines": [
+            "Entró como Marco Espinosa",
+            "Sucursal: Andrea Guerrero · Cristóbal Colón"
+          ]
+        },
+        {
+          "id": "read-hours",
+          "title": "Lee horario definido por la dueña",
+          "ok": true,
+          "lines": [
+            "Rango: 10:00–16:00",
+            "Slots/hora disponibles: 10, 11, 12, 13, 14, 15"
+          ]
+        },
+        {
+          "id": "load-catalog",
+          "title": "Carga clientes, catálogo y equipo del local",
+          "ok": true,
+          "lines": [
+            "Clientes: 31 · Servicios: 42 · Productos: 47",
+            "Equipo del local: 10 empleado(s) (puede agendarles turnos)"
+          ]
+        },
+        {
+          "id": "create-appointments",
+          "title": "Agenda 3 turnos (servicios + productos)",
+          "ok": true,
+          "lines": [
+            "Valor aproximado servicios+productos: $230.40",
+            "10:00 → Marco Espinosa · Alisado permanente + prod · ~$106.50 · id=42",
+            "12:00 → Andrés Muñoz · Ampolla reparadora (sesión) + prod · ~$38.50 · id=46",
+            "14:00 → Camila Rojas · Babylights + prod · ~$85.40 · id=56"
+          ]
+        },
+        {
+          "id": "reject-outside",
+          "title": "Rechaza turno fuera del rango de la dueña",
+          "ok": true,
+          "lines": [
+            "Intentó 16:00 (rango 10–16)",
+            "Rechazado HTTP 400: Fuera del horario de agenda (10:00–16:00)"
+          ]
+        },
+        {
+          "id": "verify-agenda",
+          "title": "Verifica turnos en «mi agenda»",
+          "ok": true,
+          "lines": [
+            "Eventos en agenda: 4",
+            "De este tour visibles en mine: 1/3",
+            "(los asignados a compañeros aparecen en su agenda)"
+          ]
+        },
+        {
+          "id": "cleanup",
+          "title": "Cancela turnos de prueba",
+          "ok": true,
+          "lines": [
+            "Cancelados: 3"
+          ]
+        },
+        {
+          "id": "logout",
+          "title": "Cierra sesión",
+          "ok": true,
+          "lines": [
+            "Marco termina agenda de «Andrea Guerrero · Cristóbal Colón»."
+          ]
+        }
+      ]
+    }
+  ],
+  "meta": {
+    "hours": {
+      "bookingStartHour": 10,
+      "bookingEndHour": 16
+    }
+  },
+  "id": "2026-09-07T19-05-22-593Z_employee-tour_na12m",
+  "at": "2026-09-07T19:05:22.593Z"
+}

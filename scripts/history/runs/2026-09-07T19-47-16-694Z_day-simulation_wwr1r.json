@@ -1,0 +1,465 @@
+{
+  "tester": "day-simulation",
+  "mode": "september-1-2026",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 33376,
+  "ok": false,
+  "summary": {
+    "passed": 44,
+    "failed": 5,
+    "total": 49,
+    "ok": false
+  },
+  "scenes": [
+    {
+      "id": "owner-login",
+      "title": "Dueña ingresa",
+      "ok": true,
+      "lines": [
+        "Andrea Guerrero · configura el día"
+      ]
+    },
+    {
+      "id": "owner-config",
+      "title": "Dueña configura horario + modo caja",
+      "ok": true,
+      "lines": [
+        "Agenda: 10:00–18:00",
+        "Caja: employee_own (cada empleado su turno)"
+      ]
+    },
+    {
+      "id": "book-estilista_maria",
+      "title": "31 ago · María agenda para el 1 sep",
+      "ok": false,
+      "lines": [
+        "HTTP 500 Stock insuficiente para \"Guantes nitrilo caja\" (disponible: 0)"
+      ]
+    },
+    {
+      "id": "book-estilista_juan",
+      "title": "31 ago · Juan agenda para el 1 sep",
+      "ok": true,
+      "lines": [
+        "11:00 · Camila Guerrero · Ampolla reparadora (sesión)",
+        "id=124 · Andrea Guerrero · Cristóbal Colón"
+      ]
+    },
+    {
+      "id": "book-colorista_camila",
+      "title": "31 ago · Camila agenda para el 1 sep",
+      "ok": true,
+      "lines": [
+        "12:00 · Mateo Vega · Babylights",
+        "id=125 · Andrea Guerrero · Eguiguren"
+      ]
+    },
+    {
+      "id": "book-unas_natalia",
+      "title": "31 ago · Natalia agenda para el 1 sep",
+      "ok": true,
+      "lines": [
+        "13:00 · Lucía Mora · Botox capilar",
+        "id=126 · Andrea Guerrero · Cristóbal Colón"
+      ]
+    },
+    {
+      "id": "book-makeup_andres",
+      "title": "31 ago · Andrés agenda para el 1 sep",
+      "ok": true,
+      "lines": [
+        "14:00 · Andrés Palacios · Brushing y acabado",
+        "id=127 · Andrea Guerrero · Eguiguren"
+      ]
+    },
+    {
+      "id": "book-estilista_diego",
+      "title": "31 ago · Diego agenda para el 1 sep",
+      "ok": true,
+      "lines": [
+        "15:00 · Valeria Burneo · Combo corte + blowout + hidratación",
+        "id=128 · Andrea Guerrero · Cristóbal Colón"
+      ]
+    },
+    {
+      "id": "book-tratamientos_paola",
+      "title": "31 ago · Paola agenda para el 1 sep",
+      "ok": true,
+      "lines": [
+        "16:00 · Diego Guerrero · Combo mamá (corte + manicura)",
+        "id=129 · Andrea Guerrero · Eguiguren"
+      ]
+    },
+    {
+      "id": "book-depilacion_ricardo",
+      "title": "31 ago · Ricardo agenda para el 1 sep",
+      "ok": true,
+      "lines": [
+        "10:00 · Sofía Vega · Combo novia (peinado + maquillaje)",
+        "id=130 · Andrea Guerrero · Cristóbal Colón"
+      ]
+    },
+    {
+      "id": "book-recepcion_felipe",
+      "title": "31 ago · Felipe agenda para el 1 sep",
+      "ok": true,
+      "lines": [
+        "11:00 · Pedro Mora · Corte + brushing",
+        "id=131 · Andrea Guerrero · Eguiguren"
+      ]
+    },
+    {
+      "id": "book-estilista_marco",
+      "title": "31 ago · Marco agenda para el 1 sep",
+      "ok": true,
+      "lines": [
+        "12:00 · Carla Palacios · Corte caballeros",
+        "id=132 · Andrea Guerrero · Cristóbal Colón"
+      ]
+    },
+    {
+      "id": "admin-open-admin_colon",
+      "title": "1 sep · Admin Karla abre caja",
+      "ok": true,
+      "lines": [
+        "Turno #104 · fondo $50",
+        "Local: Andrea Guerrero · Cristóbal Colón",
+        "Abierto ahora"
+      ]
+    },
+    {
+      "id": "admin-open-admin_eguiguren",
+      "title": "1 sep · Admin Paola abre caja",
+      "ok": true,
+      "lines": [
+        "Turno #105 · fondo $50",
+        "Local: Andrea Guerrero · Eguiguren",
+        "Abierto ahora"
+      ]
+    },
+    {
+      "id": "admin-open-admin_loja",
+      "title": "1 sep · Admin Verónica abre caja",
+      "ok": true,
+      "lines": [
+        "Turno #106 · fondo $50",
+        "Local: Andrea Guerrero · Cristóbal Colón",
+        "Abierto ahora"
+      ]
+    },
+    {
+      "id": "emp-open-estilista_maria",
+      "title": "1 sep · María abre su caja",
+      "ok": true,
+      "lines": [
+        "Turno #107 · fondo $50",
+        "Abierto ahora"
+      ]
+    },
+    {
+      "id": "emp-open-estilista_juan",
+      "title": "1 sep · Juan abre su caja",
+      "ok": true,
+      "lines": [
+        "Turno #108 · fondo $50",
+        "Abierto ahora"
+      ]
+    },
+    {
+      "id": "emp-open-colorista_camila",
+      "title": "1 sep · Camila abre su caja",
+      "ok": true,
+      "lines": [
+        "Turno #109 · fondo $50",
+        "Abierto ahora"
+      ]
+    },
+    {
+      "id": "emp-open-unas_natalia",
+      "title": "1 sep · Natalia abre su caja",
+      "ok": true,
+      "lines": [
+        "Turno #110 · fondo $50",
+        "Abierto ahora"
+      ]
+    },
+    {
+      "id": "emp-open-makeup_andres",
+      "title": "1 sep · Andrés abre su caja",
+      "ok": true,
+      "lines": [
+        "Turno #111 · fondo $50",
+        "Abierto ahora"
+      ]
+    },
+    {
+      "id": "emp-open-estilista_diego",
+      "title": "1 sep · Diego abre su caja",
+      "ok": true,
+      "lines": [
+        "Turno #112 · fondo $50",
+        "Abierto ahora"
+      ]
+    },
+    {
+      "id": "emp-open-tratamientos_paola",
+      "title": "1 sep · Paola abre su caja",
+      "ok": true,
+      "lines": [
+        "Turno #113 · fondo $50",
+        "Abierto ahora"
+      ]
+    },
+    {
+      "id": "emp-open-depilacion_ricardo",
+      "title": "1 sep · Ricardo abre su caja",
+      "ok": true,
+      "lines": [
+        "Turno #114 · fondo $50",
+        "Abierto ahora"
+      ]
+    },
+    {
+      "id": "emp-open-recepcion_felipe",
+      "title": "1 sep · Felipe abre su caja",
+      "ok": true,
+      "lines": [
+        "Turno #115 · fondo $50",
+        "Abierto ahora"
+      ]
+    },
+    {
+      "id": "emp-open-estilista_marco",
+      "title": "1 sep · Marco abre su caja",
+      "ok": true,
+      "lines": [
+        "Turno #116 · fondo $50",
+        "Abierto ahora"
+      ]
+    },
+    {
+      "id": "run-estilista_maria",
+      "title": "1 sep · María cobra citas + POS",
+      "ok": false,
+      "lines": [
+        "Citas cobradas: 0/0",
+        "POS: HTTP 400 Stock insuficiente de \"Guantes nitrilo caja\" en la sucursal"
+      ]
+    },
+    {
+      "id": "run-estilista_juan",
+      "title": "1 sep · Juan cobra citas + POS",
+      "ok": true,
+      "lines": [
+        "Citas cobradas: 1/1",
+        "Venta POS: Guantes nitrilo caja"
+      ]
+    },
+    {
+      "id": "run-colorista_camila",
+      "title": "1 sep · Camila cobra citas + POS",
+      "ok": false,
+      "lines": [
+        "Citas cobradas: 1/1",
+        "POS: HTTP 400 Stock insuficiente de \"Guantes nitrilo caja\" en la sucursal"
+      ]
+    },
+    {
+      "id": "run-unas_natalia",
+      "title": "1 sep · Natalia cobra citas + POS",
+      "ok": true,
+      "lines": [
+        "Citas cobradas: 1/1",
+        "Venta POS: Guantes nitrilo caja"
+      ]
+    },
+    {
+      "id": "run-makeup_andres",
+      "title": "1 sep · Andrés cobra citas + POS",
+      "ok": false,
+      "lines": [
+        "Citas cobradas: 1/1",
+        "POS: HTTP 400 Stock insuficiente de \"Guantes nitrilo caja\" en la sucursal"
+      ]
+    },
+    {
+      "id": "run-estilista_diego",
+      "title": "1 sep · Diego cobra citas + POS",
+      "ok": true,
+      "lines": [
+        "Citas cobradas: 1/1",
+        "Venta POS: Guantes nitrilo caja"
+      ]
+    },
+    {
+      "id": "run-tratamientos_paola",
+      "title": "1 sep · Paola cobra citas + POS",
+      "ok": false,
+      "lines": [
+        "Citas cobradas: 1/1",
+        "POS: HTTP 400 Stock insuficiente de \"Guantes nitrilo caja\" en la sucursal"
+      ]
+    },
+    {
+      "id": "run-depilacion_ricardo",
+      "title": "1 sep · Ricardo cobra citas + POS",
+      "ok": true,
+      "lines": [
+        "Citas cobradas: 1/1",
+        "Venta POS: Guantes nitrilo caja"
+      ]
+    },
+    {
+      "id": "run-recepcion_felipe",
+      "title": "1 sep · Felipe cobra citas + POS",
+      "ok": true,
+      "lines": [
+        "Citas cobradas: 1/1",
+        "Venta POS: Capa de corte profesional"
+      ]
+    },
+    {
+      "id": "run-estilista_marco",
+      "title": "1 sep · Marco cobra citas + POS",
+      "ok": true,
+      "lines": [
+        "Citas cobradas: 1/1",
+        "Venta POS: Capa de corte profesional"
+      ]
+    },
+    {
+      "id": "emp-close-estilista_maria",
+      "title": "Cierre caja empleado · estilista_maria",
+      "ok": true,
+      "lines": [
+        "Esperado $50",
+        "Diferencia $0"
+      ]
+    },
+    {
+      "id": "emp-close-estilista_juan",
+      "title": "Cierre caja empleado · estilista_juan",
+      "ok": true,
+      "lines": [
+        "Esperado $86.5",
+        "Diferencia $0"
+      ]
+    },
+    {
+      "id": "emp-close-colorista_camila",
+      "title": "Cierre caja empleado · colorista_camila",
+      "ok": true,
+      "lines": [
+        "Esperado $129.5",
+        "Diferencia $0"
+      ]
+    },
+    {
+      "id": "emp-close-unas_natalia",
+      "title": "Cierre caja empleado · unas_natalia",
+      "ok": true,
+      "lines": [
+        "Esperado $118.4",
+        "Diferencia $0"
+      ]
+    },
+    {
+      "id": "emp-close-makeup_andres",
+      "title": "Cierre caja empleado · makeup_andres",
+      "ok": true,
+      "lines": [
+        "Esperado $76.5",
+        "Diferencia $0"
+      ]
+    },
+    {
+      "id": "emp-close-estilista_diego",
+      "title": "Cierre caja empleado · estilista_diego",
+      "ok": true,
+      "lines": [
+        "Esperado $108.4",
+        "Diferencia $0"
+      ]
+    },
+    {
+      "id": "emp-close-tratamientos_paola",
+      "title": "Cierre caja empleado · tratamientos_paola",
+      "ok": true,
+      "lines": [
+        "Esperado $81.5",
+        "Diferencia $0"
+      ]
+    },
+    {
+      "id": "emp-close-depilacion_ricardo",
+      "title": "Cierre caja empleado · depilacion_ricardo",
+      "ok": true,
+      "lines": [
+        "Esperado $137.4",
+        "Diferencia $0"
+      ]
+    },
+    {
+      "id": "emp-close-recepcion_felipe",
+      "title": "Cierre caja empleado · recepcion_felipe",
+      "ok": true,
+      "lines": [
+        "Esperado $90.5",
+        "Diferencia $0"
+      ]
+    },
+    {
+      "id": "emp-close-estilista_marco",
+      "title": "Cierre caja empleado · estilista_marco",
+      "ok": true,
+      "lines": [
+        "Esperado $81.9",
+        "Diferencia $0"
+      ]
+    },
+    {
+      "id": "admin-close-admin_colon",
+      "title": "Admin revisa ingresos y cierra · admin_colon",
+      "ok": true,
+      "lines": [
+        "Reporte diario 2026-09-01 OK",
+        "Caja admin cerrada"
+      ]
+    },
+    {
+      "id": "admin-close-admin_eguiguren",
+      "title": "Admin revisa ingresos y cierra · admin_eguiguren",
+      "ok": true,
+      "lines": [
+        "Reporte diario 2026-09-01 OK",
+        "Caja admin cerrada"
+      ]
+    },
+    {
+      "id": "admin-close-admin_loja",
+      "title": "Admin revisa ingresos y cierra · admin_loja",
+      "ok": true,
+      "lines": [
+        "Reporte diario 2026-09-01 OK",
+        "Caja admin cerrada"
+      ]
+    },
+    {
+      "id": "owner-supervise",
+      "title": "Dueña supervisa cajas de todas las sucursales",
+      "ok": true,
+      "lines": [
+        "Reporte diario 2026-09-01 cargado",
+        "Eventos en agenda general: 69",
+        "Supervisión OK (solo lectura)"
+      ]
+    }
+  ],
+  "meta": {
+    "bookDay": "2026-08-31",
+    "opsDay": "2026-09-01",
+    "cashRegisterMode": "employee_own"
+  },
+  "id": "2026-09-07T19-47-16-694Z_day-simulation_wwr1r",
+  "at": "2026-09-07T19:47:16.694Z"
+}

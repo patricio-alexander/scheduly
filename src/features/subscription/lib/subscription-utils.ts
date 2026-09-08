@@ -4,7 +4,12 @@ import { appRoutes } from "@/shared/utils/app-routes";
 
 /** Mapeo de rutas de la app a keys de módulos del entitlement */
 export const routeModuleKeys: Array<{ prefix: string; moduleKey: string }> = [
-  { prefix: "/comprobantes-electronicos", moduleKey: "electronicDocs" },
+  { prefix: "/operacion/comprobantes-pos", moduleKey: "operation" },
+  { prefix: "/comprobantes-electronicos", moduleKey: "operation" },
+  { prefix: "/canal/catalogo", moduleKey: "marketing" },
+  { prefix: "/canal/productos-destacados", moduleKey: "marketing" },
+  { prefix: "/canal/locales", moduleKey: "inventory" },
+  { prefix: "/administracion/sucursales", moduleKey: "inventory" },
   { prefix: "/operacion", moduleKey: "operation" },
   { prefix: "/ventas", moduleKey: "sales" },
   { prefix: "/compras", moduleKey: "sales" },
@@ -34,7 +39,7 @@ export const routeModuleKeys: Array<{ prefix: string; moduleKey: string }> = [
   { prefix: "/notifications", moduleKey: "system" },
 ];
 
-/** Aliases de keys de módulo que puede enviar el gestor */
+/** Aliases históricos de keys de módulo (compatibilidad local) */
 const moduleKeyAliases: Record<string, string[]> = {
   admin: ["admin", "administracion", "administration"],
   finance: ["finance", "finanzas", "admin"],

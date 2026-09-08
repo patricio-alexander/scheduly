@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { requireOwnerForBackups } from "@/src/features/backups/lib/require-owner";
 import { importBackupFromJson } from "@/src/features/backups/lib/import-database";
+import { analyzeBackupJson } from "@/src/features/backups/lib/eddeli-map";
 
-export const maxDuration = 180;
+export const maxDuration = 300;
 
 /**
  * Restaura la BD desde un JSON (reemplazo total).
@@ -42,11 +43,16 @@ export async function POST(request: Request) {
       }
     }
 
+    const preview = analyzeBackupJson(raw);
     const summary = await importBackupFromJson(raw);
 
     return NextResponse.json({
       ok: true,
-      message: "Base de datos restaurada desde el JSON",
+      message: "Base de datos restaurada (reemplazo total, no sincroniza)",
+      mode: "replace",
+      sourceKind: preview.sourceKind,
+      sourceTables: preview.sourceTables,
+      importTables: preview.importTables,
       totalRows: summary.totalRows,
       counts: summary.counts,
     });

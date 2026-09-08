@@ -1,7 +1,7 @@
 import { APP_MODULE_CATALOG } from "@/shared/utils/app-modules-catalog";
 import type { SubscriptionState } from "@/src/features/subscription/types";
 
-/** Entitlement “todo activo” para `npm run dev` (sin Gestor). */
+/** Entitlement “todo activo” para Scheduly standalone. */
 export function buildDevOpenSubscriptionState(): SubscriptionState {
   const byKey = new Map<
     string,

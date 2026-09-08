@@ -35,13 +35,14 @@ export type TableProProps<T> = {
   columns: TableProColumn<T>[];
   rows: T[];
   getRowId: (row: T) => string | number;
-  /** Slot arriba del buscador (título, acciones). */
   header?: ReactNode;
-  /** Filtros extra entre buscador y tabla (ej. select de categoría). */
+  heading?: ReactNode;
+  headingSlot?: ReactNode;
+  headingTitle?: ReactNode;
+  header?: ReactNode;
   toolbar?: ReactNode;
   showSearch?: boolean;
   searchPlaceholder?: string;
-  /** Búsqueda controlada (opcional). */
   searchValue?: string;
   onSearchChange?: (value: string) => void;
   showPagination?: boolean;
@@ -53,11 +54,16 @@ export type TableProProps<T> = {
   className?: string;
   tableClassName?: string;
   maxHeight?: string;
+  maxHeightPx?: string;
+  maxHeightLimit?: string;
+  maxHeight?: string;
   rowClassName?: (row: T) => string | undefined;
   onRowClick?: (row: T) => void;
-  /** Ref callback por fila (scroll/highlight). */
   rowRef?: (row: T, el: HTMLTableRowElement | null) => void;
-  /** Id de fila expandida (panel debajo). */
+  expandedRowId?: string | number | null;
+  renderExpanded?: (row: T) => ReactNode;
+  expandedRowKey?: string | number | null;
+  expandedContent?: (row: T) => ReactNode;
   expandedRowId?: string | number | null;
   renderExpanded?: (row: T) => ReactNode;
 };
@@ -112,6 +118,10 @@ export function TablePro<T>({
   rows,
   getRowId,
   header,
+  heading,
+  headingSlot,
+  headingTitle,
+  header: headerFromPos,
   toolbar,
   showSearch = true,
   searchPlaceholder = "Buscar…",
@@ -119,19 +129,32 @@ export function TablePro<T>({
   onSearchChange,
   showPagination = true,
   rowsPerPageOptions = [10, 25, 50, 100],
-  defaultRowsPerPage = 25,
+  defaultRowsPerPage = 10,
   loading = false,
   emptyMessage = "No hay datos",
   dense = false,
   className = "",
   tableClassName = "",
   maxHeight = "calc(100vh - 260px)",
+  maxHeightPx,
+  maxHeightLimit,
+  maxHeight: maxHeightFromPos,
   rowClassName,
   onRowClick,
   rowRef,
   expandedRowId = null,
   renderExpanded,
+  expandedRowKey = null,
+  expandedContent,
+  expandedRowId: expandedFromPos = null,
+  renderExpanded: renderFromPos,
 }: TableProProps<T>) {
+  const headerSlot =
+    headingTitle ?? headingSlot ?? heading ?? header ?? headerFromPos;
+  const tableMaxHeight =
+    maxHeightPx ?? maxHeightLimit ?? maxHeightFromPos ?? maxHeight;
+  const expandedId = expandedRowKey ?? expandedFromPos ?? expandedRowId;
+  const expandRender = expandedContent ?? renderFromPos ?? renderExpanded;
   const controlledSearch = searchValue !== undefined;
   const [internalSearch, setInternalSearch] = useState("");
   const search = controlledSearch ? searchValue : internalSearch;
@@ -211,7 +234,7 @@ export function TablePro<T>({
       className={`overflow-hidden rounded-2xl border border-separator bg-surface ${className}`}
     >
       <div className="flex flex-col gap-2.5 p-3 sm:p-4">
-        {header}
+        {headerSlot}
 
         {showSearch ? (
           <SearchField
@@ -235,7 +258,7 @@ export function TablePro<T>({
 
         <div
           className="relative overflow-auto rounded-lg border border-separator"
-          style={{ maxHeight }}
+          style={{ maxHeight: tableMaxHeight }}
         >
           <table
             className={`w-full min-w-[640px] border-collapse text-left ${fontSize} ${tableClassName}`}
@@ -264,23 +287,29 @@ export function TablePro<T>({
                               ? "w-full justify-center"
                               : ""
                           } ${active ? "text-foreground" : "hover:text-foreground"}`}
+                          title="Ordenar de menor a mayor / mayor a menor"
                           onClick={() => handleSort(column.id)}
                           disabled={loading}
                         >
-                          {column.label}
-                          {active ? (
-                            orderDir === "asc" ? (
-                              <ArrowChevronUp width={12} height={12} />
+                          <span>{column.label}</span>
+                          <span
+                            className="inline-flex text-foreground"
+                            aria-hidden
+                          >
+                            {active ? (
+                              orderDir === "asc" ? (
+                                <ArrowChevronUp width={14} height={14} />
+                              ) : (
+                                <ArrowChevronDown width={14} height={14} />
+                              )
                             ) : (
-                              <ArrowChevronDown width={12} height={12} />
-                            )
-                          ) : (
-                            <ArrowUpArrowDown
-                              width={12}
-                              height={12}
-                              className="opacity-35"
-                            />
-                          )}
+                              <ArrowUpArrowDown
+                                width={14}
+                                height={14}
+                                className="opacity-55"
+                              />
+                            )}
+                          </span>
                         </button>
                       ) : (
                         column.label
@@ -313,9 +342,9 @@ export function TablePro<T>({
                 pageRows.map((row) => {
                   const id = getRowId(row);
                   const expanded =
-                    renderExpanded != null &&
-                    expandedRowId != null &&
-                    String(expandedRowId) === String(id);
+                    expandRender != null &&
+                    expandedId != null &&
+                    String(expandedId) === String(id);
                   return (
                     <Fragment key={String(id)}>
                       <tr
@@ -356,7 +385,7 @@ export function TablePro<T>({
                             colSpan={columns.length}
                             className={`${cellPad} py-2`}
                           >
-                            {renderExpanded(row)}
+                            {expandRender(row)}
                           </td>
                         </tr>
                       ) : null}
@@ -396,7 +425,7 @@ export function TablePro<T>({
               </label>
             </div>
 
-            {filtered.length > pageSize ? (
+            {showPagination ? (
               <Pagination size="sm">
                 <Pagination.Content>
                   <Pagination.Item>

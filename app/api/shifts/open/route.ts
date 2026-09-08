@@ -3,6 +3,12 @@ import { prisma } from "@/shared/utils/prisma";
 import { checkAuth } from "@/shared/utils/check-auth";
 import { resolveCashFromBody } from "@/shared/utils/turno-cash";
 import { buildActiveShiftPayload } from "@/shared/utils/shift-service";
+import { getUserPrimaryBranchId } from "@/shared/utils/branches";
+import { getCashRegisterMode } from "@/shared/utils/business-settings";
+import {
+  isOwnerRole,
+  isPureEmployeeRole,
+} from "@/shared/utils/roles";
 
 export async function POST(request: Request) {
   const auth = await checkAuth();
@@ -13,6 +19,17 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { message: "La cuenta no tiene persona asociada" },
         { status: 400 },
+      );
+    }
+
+    const cashMode = await getCashRegisterMode();
+    if (cashMode === "branch_shared" && isPureEmployeeRole(auth.user.role)) {
+      return NextResponse.json(
+        {
+          message:
+            "Modo caja compartida: solo el administrador abre el turno del local",
+        },
+        { status: 403 },
       );
     }
 
@@ -48,12 +65,17 @@ export async function POST(request: Request) {
     }
 
     if (!storeId) {
-      const branch = await prisma.branch.findFirst({
-        where: { isActive: true },
-        orderBy: [{ position: "asc" }, { id: "asc" }],
-        select: { id: true },
-      });
-      storeId = branch?.id ?? null;
+      if (!isOwnerRole(auth.user.role)) {
+        storeId = await getUserPrimaryBranchId(prisma, auth.user.id);
+      }
+      if (!storeId) {
+        const branch = await prisma.branch.findFirst({
+          where: { isActive: true },
+          orderBy: [{ position: "asc" }, { id: "asc" }],
+          select: { id: true },
+        });
+        storeId = branch?.id ?? null;
+      }
     }
 
     if (!storeId) {
@@ -72,7 +94,10 @@ export async function POST(request: Request) {
       },
     });
     if (!branch) {
-      return NextResponse.json({ message: "Sucursal no encontrada" }, { status: 400 });
+      return NextResponse.json(
+        { message: "Sucursal no encontrada" },
+        { status: 404 },
+      );
     }
 
     let cashRegisterId =
@@ -104,8 +129,12 @@ export async function POST(request: Request) {
       cashRegisterId = created.id;
     }
 
-    const openedAtRaw = body.openedAt ? new Date(String(body.openedAt)) : new Date();
-    const openedAt = Number.isNaN(openedAtRaw.getTime()) ? new Date() : openedAtRaw;
+    const openedAtRaw = body.openedAt
+      ? new Date(String(body.openedAt))
+      : new Date();
+    const openedAt = Number.isNaN(openedAtRaw.getTime())
+      ? new Date()
+      : openedAtRaw;
     const notes = String(body.notes ?? "").trim() || null;
 
     const shift = await prisma.cashShift.create({

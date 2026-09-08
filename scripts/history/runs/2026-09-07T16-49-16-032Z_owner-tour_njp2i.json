@@ -1,0 +1,30 @@
+{
+  "tester": "owner-tour",
+  "mode": "create-branch-account-login-fail",
+  "baseUrl": "http://localhost:3005/scheduly",
+  "durationMs": 394,
+  "ok": false,
+  "summary": {
+    "passed": 0,
+    "failed": 1,
+    "total": 1,
+    "ok": false
+  },
+  "actor": {
+    "username": "Administrador",
+    "name": "Andrea Guerrero",
+    "role": "owner"
+  },
+  "scenes": [
+    {
+      "id": "login",
+      "title": "Ingreso al sistema",
+      "ok": false,
+      "lines": [
+        "Se esperaba Dueña, llegó: employee"
+      ]
+    }
+  ],
+  "id": "2026-09-07T16-49-16-032Z_owner-tour_njp2i",
+  "at": "2026-09-07T16:49:16.033Z"
+}

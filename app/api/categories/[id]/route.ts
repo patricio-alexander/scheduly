@@ -62,7 +62,11 @@ export async function PUT(
 
     const category = await prisma.category.update({
       where: { id: Number(id) },
-      data: { name, description },
+      data: {
+        name,
+        description,
+        commissionPct: Number(body.commissionPct ?? 0),
+      },
     });
     return NextResponse.json(category);
   } catch (error) {
