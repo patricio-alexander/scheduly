@@ -11,6 +11,17 @@ import { PageHeader } from "@/shared/components/ui";
 import { isAdminRole } from "@/shared/utils/roles";
 import Plus from "@gravity-ui/icons/Plus";
 import Gear from "@gravity-ui/icons/Gear";
+import {
+  EntityCreateHelpButton,
+  EntityCreateTutorialProvider,
+  useEntityCreateTourDemo,
+  ENTITY_CREATE_DEMOS,
+} from "@/src/features/tutorials";
+import {
+  ENTITY_MODAL_DIALOG_CLASS,
+  ENTITY_MODAL_BODY_CLASS,
+  ENTITY_MODAL_HEADER_CLASS,
+} from "@/shared/components/entity-modal";
 
 export default function ServicesPage() {
   const { user } = useAuth();
@@ -19,8 +30,6 @@ export default function ServicesPage() {
   const [editing, setEditing] = useState<Service | null>(null);
   const [pending, setPending] = useState(false);
   const modal = useOverlayState();
-
-  if (!user) return null;
 
   const openCreate = useCallback(() => {
     setEditing(null);
@@ -40,8 +49,30 @@ export default function ServicesPage() {
     setEditing(null);
   }, [modal]);
 
+  const {
+    displayItems,
+    isTourDemo,
+    prepareTour,
+    cleanupTour,
+    commitDemoCreate,
+    tourActive,
+  } = useEntityCreateTourDemo<Service>({
+    moduleId: "services",
+    items: services,
+    openCreate,
+    closeModal,
+    buildDemoItem: () => ({
+      id: -9001,
+      name: ENTITY_CREATE_DEMOS.services.name,
+      price: ENTITY_CREATE_DEMOS.services.price,
+      durationMinutes: ENTITY_CREATE_DEMOS.services.durationMinutes,
+      commissionPct: ENTITY_CREATE_DEMOS.services.commissionPct,
+    }),
+  });
+
   const handleSubmit = useCallback(
     async (data: ServiceFormData) => {
+      if (isTourDemo() && commitDemoCreate()) return;
       setPending(true);
       try {
         if (editing) {
@@ -57,7 +88,7 @@ export default function ServicesPage() {
         setPending(false);
       }
     },
-    [editing, closeModal, refetch],
+    [editing, closeModal, refetch, isTourDemo, commitDemoCreate],
   );
 
   const handleDelete = useCallback(
@@ -74,75 +105,106 @@ export default function ServicesPage() {
     [refetch],
   );
 
+  if (!user) return null;
+
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        icon={<Gear width={24} height={24} />}
-        title="Servicios"
-        description="Define nombre, precio, duración y comisión del empleado"
-        action={
-          isAdmin ? (
-            <Button variant="primary" onPress={openCreate}>
-              <Plus width={16} height={16} />
-              Agregar servicio
-            </Button>
-          ) : undefined
-        }
-      />
-
-      <ServiceList
-        services={services}
-        onEdit={isAdmin ? openEdit : () => undefined}
-        onDelete={isAdmin ? handleDelete : async () => undefined}
-        onAdd={isAdmin ? openCreate : undefined}
-        loading={loading}
-        canEdit={isAdmin}
-      />
-
-      {isAdmin ? (
-      <Modal state={modal}>
-        <Modal.Backdrop>
-          <Modal.Container placement="center">
-            <Modal.Dialog>
-              <Modal.CloseTrigger />
-              <Modal.Header>
-                <Modal.Icon>
-                  <Gear width={20} height={20} />
-                </Modal.Icon>
-                <Modal.Heading>
-                  {editing ? "Editar servicio" : "Nuevo servicio"}
-                </Modal.Heading>
-              </Modal.Header>
-              <Modal.Body>
-                <ServiceForm
-                  key={editing?.id ?? "new"}
-                  defaultValues={editing ?? undefined}
-                  onSubmit={handleSubmit}
-                  formId="service-form"
-                />
-              </Modal.Body>
-              <Modal.Footer>
-                <Button variant="secondary" onPress={closeModal}>
-                  Cancelar
-                </Button>
+    <EntityCreateTutorialProvider
+      moduleId="services"
+      prepareTour={prepareTour}
+      cleanupTour={cleanupTour}
+      openCreateForm={openCreate}
+      resetFormTour={closeModal}
+      enabled={isAdmin}
+    >
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          icon={<Gear width={24} height={24} />}
+          title="Servicios"
+          description="Define nombre, precio, duración y comisión del empleado"
+          action={
+            isAdmin ? (
+              <div className="flex items-center gap-2">
+                <EntityCreateHelpButton title="Tutorial: Servicios" />
                 <Button
                   variant="primary"
-                  isDisabled={pending}
-                  form="service-form"
-                  type="submit"
+                  onPress={openCreate}
+                  data-tour="services-create"
                 >
-                  {pending
-                    ? "Guardando..."
-                    : editing
-                      ? "Actualizar"
-                      : "Guardar"}
+                  <Plus width={16} height={16} />
+                  Agregar servicio
                 </Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
-      ) : null}
-    </div>
+              </div>
+            ) : undefined
+          }
+        />
+
+        <div
+          data-tour={
+            displayItems.length === 0 ? "services-empty" : "services-list"
+          }
+        >
+          <ServiceList
+            services={displayItems}
+            onEdit={isAdmin ? openEdit : () => undefined}
+            onDelete={isAdmin ? handleDelete : async () => undefined}
+            onAdd={isAdmin ? openCreate : undefined}
+            loading={loading && !tourActive}
+            canEdit={isAdmin}
+          />
+        </div>
+
+        {isAdmin ? (
+          <Modal state={modal}>
+            <Modal.Backdrop>
+              <Modal.Container placement="center">
+                <Modal.Dialog className={ENTITY_MODAL_DIALOG_CLASS}>
+                  <Modal.CloseTrigger />
+                  <Modal.Header className={ENTITY_MODAL_HEADER_CLASS}>
+                    <Modal.Icon>
+                      <Gear width={20} height={20} />
+                    </Modal.Icon>
+                    <Modal.Heading>
+                      {editing ? "Editar servicio" : "Nuevo servicio"}
+                    </Modal.Heading>
+                    <div className="ml-auto">
+                      <EntityCreateHelpButton
+                        inModal
+                        title="Tutorial: cómo registrar un servicio"
+                      />
+                    </div>
+                  </Modal.Header>
+                  <Modal.Body className={ENTITY_MODAL_BODY_CLASS}>
+                    <ServiceForm
+                      key={editing?.id ?? "new"}
+                      defaultValues={editing ?? undefined}
+                      onSubmit={handleSubmit}
+                      formId="service-form"
+                    />
+                  </Modal.Body>
+                  <Modal.Footer>
+                    <Button variant="secondary" onPress={closeModal}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="primary"
+                      isDisabled={pending}
+                      form="service-form"
+                      type="submit"
+                      data-tour="services-form-submit"
+                    >
+                      {pending
+                        ? "Guardando..."
+                        : editing
+                          ? "Actualizar"
+                          : "Guardar"}
+                    </Button>
+                  </Modal.Footer>
+                </Modal.Dialog>
+              </Modal.Container>
+            </Modal.Backdrop>
+          </Modal>
+        ) : null}
+      </div>
+    </EntityCreateTutorialProvider>
   );
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Button, Label, toast } from "@heroui/react";
 import Buildings from "@gravity-ui/icons/House";
 import MapPin from "@gravity-ui/icons/MapPin";
@@ -18,6 +18,25 @@ import {
   type ThemeColors,
 } from "@/shared/utils/business-profile";
 import type { BusinessSettings } from "../types";
+
+type FormSnapshot = {
+  businessName: string;
+  address: string;
+  ruc: string;
+  tradeName: string;
+  obligationAccounting: boolean;
+  logoPath: string | null;
+  colors: ThemeColors;
+};
+
+function colorsEqual(a: ThemeColors, b: ThemeColors) {
+  return (
+    a.accentColor === b.accentColor &&
+    a.successColor === b.successColor &&
+    a.warningColor === b.warningColor &&
+    a.dangerColor === b.dangerColor
+  );
+}
 
 function logoSrc(logoPath: string | null) {
   if (!logoPath) return null;
@@ -104,9 +123,35 @@ export function BusinessSettingsForm() {
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [removeLogo, setRemoveLogo] = useState(false);
   const [colors, setColors] = useState<ThemeColors>(DEFAULT_THEME_COLORS);
+  const [baseline, setBaseline] = useState<FormSnapshot | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const persistedColorsRef = useRef<ThemeColors>(DEFAULT_THEME_COLORS);
   const colorsReadyRef = useRef(false);
+
+  const dirty = useMemo(() => {
+    if (!baseline || loading) return false;
+    if (logoFile || removeLogo) return true;
+    if (businessName !== baseline.businessName) return true;
+    if (address !== baseline.address) return true;
+    if (ruc !== baseline.ruc) return true;
+    if (tradeName !== baseline.tradeName) return true;
+    if (obligationAccounting !== baseline.obligationAccounting) return true;
+    if (logoPath !== baseline.logoPath) return true;
+    if (!colorsEqual(colors, baseline.colors)) return true;
+    return false;
+  }, [
+    baseline,
+    loading,
+    logoFile,
+    removeLogo,
+    businessName,
+    address,
+    ruc,
+    tradeName,
+    obligationAccounting,
+    logoPath,
+    colors,
+  ]);
 
   useEffect(() => {
     let cancelled = false;
@@ -118,16 +163,31 @@ export function BusinessSettingsForm() {
           | BusinessSettings
           | null;
         if (!cancelled && res.ok && json) {
-          setBusinessName(json.businessName || DEFAULT_BUSINESS_NAME);
-          setAddress(json.address || "");
-          setRuc(json.ruc || "");
-          setTradeName(json.tradeName || "");
-          setObligationAccounting(json.obligationAccounting ?? true);
-          setLogoPath(json.logoPath);
+          const name = json.businessName || DEFAULT_BUSINESS_NAME;
+          const addr = json.address || "";
+          const nextRuc = json.ruc || "";
+          const nextTrade = json.tradeName || "";
+          const nextOblig = json.obligationAccounting ?? true;
+          const nextLogo = json.logoPath;
           const loaded = normalizeThemeColors(json);
+          setBusinessName(name);
+          setAddress(addr);
+          setRuc(nextRuc);
+          setTradeName(nextTrade);
+          setObligationAccounting(nextOblig);
+          setLogoPath(nextLogo);
           setColors(loaded);
           persistedColorsRef.current = loaded;
           colorsReadyRef.current = true;
+          setBaseline({
+            businessName: name,
+            address: addr,
+            ruc: nextRuc,
+            tradeName: nextTrade,
+            obligationAccounting: nextOblig,
+            logoPath: nextLogo,
+            colors: loaded,
+          });
         }
       } catch {
         if (!cancelled) toast.danger("No se pudo cargar la configuración");
@@ -180,6 +240,9 @@ export function BusinessSettingsForm() {
           if (!json) return;
           const saved = normalizeThemeColors(json);
           persistedColorsRef.current = saved;
+          setBaseline((prev) =>
+            prev ? { ...prev, colors: saved } : prev,
+          );
         } catch {
           // ignore; el usuario puede guardar manualmente
         }
@@ -218,6 +281,7 @@ export function BusinessSettingsForm() {
 
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!dirty || pending) return;
     if (!businessName.trim()) {
       toast.danger("El nombre del negocio es obligatorio");
       return;
@@ -261,6 +325,15 @@ export function BusinessSettingsForm() {
       broadcastThemeColorsLocally(nextColors);
       setLogoFile(null);
       setRemoveLogo(false);
+      setBaseline({
+        businessName: json.businessName,
+        address: json.address ?? "",
+        ruc: json.ruc ?? "",
+        tradeName: json.tradeName ?? "",
+        obligationAccounting: json.obligationAccounting ?? true,
+        logoPath: json.logoPath,
+        colors: nextColors,
+      });
       toast.success("Configuración guardada");
     } catch (err) {
       toast.danger(err instanceof Error ? err.message : "Error al guardar");
@@ -464,9 +537,18 @@ export function BusinessSettingsForm() {
         </div>
       </div>
 
-      <Button type="submit" variant="primary" isDisabled={pending}>
-        {pending ? "Guardando..." : "Guardar cambios"}
-      </Button>
+      <div
+        className="sticky bottom-4 z-10 flex justify-end"
+        data-tour="settings-marca-save"
+      >
+        <Button
+          type="submit"
+          variant="primary"
+          isDisabled={!dirty || pending}
+        >
+          {pending ? "Guardando…" : "Guardar configuración"}
+        </Button>
+      </div>
     </form>
   );
 }

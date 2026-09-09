@@ -99,9 +99,15 @@ export async function PUT(
       );
     }
 
-    if (!resolvedBranchId) {
+    const actorIsOwner = isOwnerRole(auth.user.role);
+    // Admin de sucursal: requiere local. Dueña: el vínculo se gestiona en Sucursales.
+    if (
+      !actorIsOwner &&
+      isBranchAdminRole(auth.user.role) &&
+      !resolvedBranchId
+    ) {
       return NextResponse.json(
-        { message: "Selecciona una sucursal para la cuenta" },
+        { message: "Sin sucursal asignada" },
         { status: 400 },
       );
     }
@@ -165,12 +171,13 @@ export async function PUT(
         });
       }
 
+      // Solo admin de sucursal mantiene el vínculo forzado a su local.
+      // La Dueña asigna locales desde Sucursales → Gestionar equipo.
       if (
-        isOwnerRole(auth.user.role) &&
-        (body.branchId !== undefined || isOwnerRole(primaryRole))
+        isBranchAdminRole(auth.user.role) &&
+        !isOwnerRole(auth.user.role) &&
+        resolvedBranchId
       ) {
-        await setUserPrimaryBranch(tx, accountId, resolvedBranchId);
-      } else if (isBranchAdminRole(auth.user.role) && resolvedBranchId) {
         await setUserPrimaryBranch(tx, accountId, resolvedBranchId);
       }
 

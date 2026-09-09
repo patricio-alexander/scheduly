@@ -1,6 +1,6 @@
 import { appRoutes } from "@/shared/utils/app-routes";
 
-export const ONBOARDING_VERSION = 2;
+export const ONBOARDING_VERSION = 3;
 export const ONBOARDING_STORAGE_PREFIX = "scheduly-onboarding";
 
 export type OnboardingStep = {
@@ -12,6 +12,10 @@ export type OnboardingStep = {
   /** Ruta opcional (solo para tour global entre secciones) */
   href?: string;
   expandModule?: string;
+  /** Tiempo en pantalla antes de auto-avanzar (ms). */
+  dwellMs?: number;
+  /** Mueve un puntero simulado y hace clic en el target (p. ej. abrir acordeón). */
+  pointerClick?: boolean;
 };
 
 export type ModuleTour = {
@@ -50,11 +54,11 @@ export const moduleTours: ModuleTour[] = [
         target: "dash-kpis",
       },
       {
-        id: "dash-activity",
-        title: "Actividad del período",
+        id: "dash-finance",
+        title: "Resumen financiero",
         description:
-          "Gráfico de cuántos turnos hubo por día u hora. Sirve para ver picos de demanda.",
-        target: "dash-activity",
+          "Tarjetas de ingresos y flujo del período para ver la salud del negocio de un vistazo.",
+        target: "dash-finance-hero",
       },
       {
         id: "dash-status",
@@ -69,6 +73,13 @@ export const moduleTours: ModuleTour[] = [
         description:
           "Lista compacta de actividad reciente. Haz clic en un turno para ir a la agenda.",
         target: "dash-recent",
+      },
+      {
+        id: "dash-top",
+        title: "Top empleados",
+        description:
+          "Quién más aportó en el período: útil para reconocer rendimiento.",
+        target: "dash-top-employees",
       },
     ],
   },
@@ -124,7 +135,12 @@ export const moduleTours: ModuleTour[] = [
   {
     id: "sales",
     label: "Ventas",
-    match: ["/ventas/ventas"],
+    match: [
+      "/ventas/ventas",
+      "/ventas/historial",
+      "/ventas/registrar-venta",
+      "/ventas/productos-vendidos",
+    ],
     steps: [
       {
         id: "sales-summary",
@@ -214,39 +230,15 @@ export const moduleTours: ModuleTour[] = [
   },
 ];
 
-/** Tour global corto (menú) — se usa en la bienvenida inicial */
+/** Preferir `getShellTourSteps(role)` al iniciar el tour. */
 export const onboardingSteps: OnboardingStep[] = [
   {
-    id: "nav-dashboard",
-    title: "Panel",
-    description: "Resumen del negocio. Al entrar a cada sección podrás ver una guía de sus botones.",
-    href: appRoutes.dashboard,
-    target: "nav-dashboard",
-    expandModule: "operation",
-  },
-  {
-    id: "nav-agenda",
-    title: "Operación",
-    description: "Agenda de turnos, servicios y tablero de tareas del equipo.",
-    href: appRoutes.operation.agenda,
-    target: "nav-agenda",
-    expandModule: "operation",
-  },
-  {
-    id: "nav-sales",
-    title: "Ventas y Compras",
-    description: "Ventas, compras, clientes y proveedores.",
-    href: appRoutes.sales.salesHub,
-    target: "nav-sales",
-    expandModule: "sales",
-  },
-  {
-    id: "nav-inventory",
-    title: "Inventario",
-    description: "Productos, stock y categorías.",
-    href: appRoutes.inventory.products,
-    target: "nav-inventory",
-    expandModule: "inventory",
+    id: "nav-inicio",
+    title: "Inicio",
+    description: "Portada del negocio al entrar al sistema.",
+    href: appRoutes.inicio,
+    target: "nav-inicio",
+    expandModule: "all",
   },
 ];
 

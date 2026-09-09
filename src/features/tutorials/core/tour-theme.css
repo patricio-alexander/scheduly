@@ -1,0 +1,188 @@
+/**
+ * Tema del popover de driver.js alineado a tokens Scheduly.
+ */
+.driver-popover.scheduly-tour-popover {
+  background-color: var(--surface, #fff) !important;
+  color: var(--foreground, #1a1a1a) !important;
+  border: 1px solid var(--separator, #e5e5e5) !important;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.28) !important;
+  border-radius: 14px !important;
+  max-width: min(300px, calc(100vw - 2rem)) !important;
+  /* Por encima del modal y siempre clicable */
+  z-index: 2147483000 !important;
+  pointer-events: auto !important;
+}
+
+.driver-popover.scheduly-tour-popover .driver-popover-title {
+  font-weight: 700;
+  color: var(--foreground, #1a1a1a);
+  padding-right: 1.5rem;
+}
+
+.driver-popover.scheduly-tour-popover .driver-popover-description {
+  color: var(--muted, #6b6b6b);
+  line-height: 1.45;
+}
+
+.driver-popover.scheduly-tour-popover .driver-popover-close-btn {
+  color: var(--muted, #6b6b6b);
+  pointer-events: auto !important;
+  cursor: pointer !important;
+}
+
+/* Footer: progreso centrado arriba, iconos abajo */
+.driver-popover.scheduly-tour-popover .driver-popover-footer {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 10px !important;
+  margin-top: 12px !important;
+}
+
+.driver-popover.scheduly-tour-popover .driver-popover-progress-text {
+  order: -1;
+  width: 100% !important;
+  text-align: center !important;
+  color: var(--muted, #6b6b6b) !important;
+  font-size: 12px !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.driver-popover.scheduly-tour-popover .driver-popover-navigation-btns,
+.driver-popover.scheduly-tour-popover .driver-popover-footer-buttons {
+  display: flex !important;
+  flex-wrap: nowrap !important;
+  justify-content: center !important;
+  align-items: center !important;
+  gap: 8px !important;
+  width: 100% !important;
+  flex-grow: 0 !important;
+  pointer-events: auto !important;
+}
+
+.driver-popover.scheduly-tour-popover .driver-popover-navigation-btns button + button {
+  margin-left: 0 !important;
+}
+
+.driver-popover.scheduly-tour-popover .driver-popover-footer-btn,
+.driver-popover.scheduly-tour-popover .scheduly-tour-pause-btn {
+  all: unset;
+  box-sizing: border-box !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  width: 2.35rem !important;
+  height: 2.35rem !important;
+  min-width: 2.35rem !important;
+  padding: 0 !important;
+  border-radius: 10px !important;
+  border: 1px solid var(--separator, #ddd) !important;
+  background: var(--surface, #fff) !important;
+  color: var(--foreground, #1a1a1a) !important;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+  line-height: 0 !important;
+}
+
+.driver-popover.scheduly-tour-popover .driver-popover-footer-btn:hover,
+.driver-popover.scheduly-tour-popover .scheduly-tour-pause-btn:hover {
+  background: color-mix(in srgb, var(--accent, #d4af37) 14%, transparent) !important;
+  border-color: color-mix(in srgb, var(--accent, #d4af37) 55%, var(--separator, #ddd)) !important;
+}
+
+.driver-popover.scheduly-tour-popover .driver-popover-next-btn,
+.driver-popover.scheduly-tour-popover .driver-popover-done-btn {
+  background: var(--accent, #d4af37) !important;
+  border-color: var(--accent, #d4af37) !important;
+  color: var(--accent-foreground, #0a0804) !important;
+}
+
+.driver-popover.scheduly-tour-popover .driver-popover-next-btn:hover,
+.driver-popover.scheduly-tour-popover .driver-popover-done-btn:hover {
+  filter: brightness(1.05);
+}
+
+.driver-popover.scheduly-tour-popover .scheduly-tour-pause-btn[aria-pressed="true"] {
+  background: color-mix(in srgb, var(--accent, #d4af37) 22%, transparent) !important;
+  border-color: var(--accent, #d4af37) !important;
+}
+
+.driver-popover.scheduly-tour-popover .scheduly-tour-btn-icon {
+  display: block;
+  width: 16px;
+  height: 16px;
+  pointer-events: none;
+}
+
+/* Listas flotantes del form durante demos del tour */
+.driver-active .scheduly-tour-float-open,
+.driver-active .scheduly-tour-float-open * {
+  pointer-events: auto !important;
+}
+
+.driver-popover.scheduly-tour-popover .driver-popover-arrow-side-left {
+  border-left-color: var(--surface, #fff) !important;
+}
+.driver-popover.scheduly-tour-popover .driver-popover-arrow-side-right {
+  border-right-color: var(--surface, #fff) !important;
+}
+.driver-popover.scheduly-tour-popover .driver-popover-arrow-side-top {
+  border-top-color: var(--surface, #fff) !important;
+}
+.driver-popover.scheduly-tour-popover .driver-popover-arrow-side-bottom {
+  border-bottom-color: var(--surface, #fff) !important;
+}
+
+/*
+ * Puntero del tour.
+ * La onda de click (ripple) es `.scheduly-tour-pointer__ping` al añadir
+ * `is-pressing` desde pointer.press() en run-tour.ts.
+ * Futuros tutoriales: no omitir press(); es la simulación visual del click.
+ */
+.scheduly-tour-pointer {
+  position: fixed;
+  left: 0;
+  top: 0;
+  z-index: 2147482000;
+  pointer-events: none !important;
+  opacity: 0;
+  transition:
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    opacity 0.2s ease;
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.45));
+}
+
+.scheduly-tour-pointer.is-visible {
+  opacity: 1;
+}
+
+.scheduly-tour-pointer.is-pressing .scheduly-tour-pointer__ping {
+  opacity: 1;
+  animation: scheduly-tour-ping 0.45s ease-out;
+}
+
+.scheduly-tour-pointer__ping {
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--accent, #d4af37) 45%, transparent);
+  opacity: 0;
+  transform: translate(-40%, -40%);
+  pointer-events: none;
+}
+
+@keyframes scheduly-tour-ping {
+  0% {
+    opacity: 0.7;
+    transform: translate(-40%, -40%) scale(0.6);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-40%, -40%) scale(1.8);
+  }
+}

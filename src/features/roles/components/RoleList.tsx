@@ -20,6 +20,8 @@ interface Props {
   onAdd?: () => void;
   loading?: boolean;
   canDelete?: boolean;
+  /** Si false, no muestra lápiz de editar (p. ej. Programador solo lectura). */
+  canEdit?: boolean;
 }
 
 export function RoleList({
@@ -29,6 +31,7 @@ export function RoleList({
   onAdd,
   loading,
   canDelete = true,
+  canEdit = true,
 }: Props) {
   const columns = useMemo<TableProColumn<Role>[]>(
     () => [
@@ -56,7 +59,7 @@ export function RoleList({
         sortable: false,
         render: (role) => (
           <div className="flex gap-1">
-            {!role.system ? (
+            {canEdit && !role.system ? (
               <Button
                 isIconOnly
                 size="sm"
@@ -76,14 +79,14 @@ export function RoleList({
                 <TrashBin width={16} height={16} />
               </Button>
             ) : null}
-            {role.system ? (
+            {role.system || (!canEdit && !canDelete) ? (
               <span className="px-2 text-xs text-muted">—</span>
             ) : null}
           </div>
         ),
       },
     ],
-    [canDelete, onDelete, onEdit],
+    [canDelete, canEdit, onDelete, onEdit],
   );
 
   if (loading) {

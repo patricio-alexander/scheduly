@@ -14,10 +14,10 @@ import CircleQuestion from "@gravity-ui/icons/CircleQuestion";
 import Bell from "@gravity-ui/icons/Bell";
 import Person from "@gravity-ui/icons/Person";
 import Gear from "@gravity-ui/icons/Gear";
-import Puzzle from "@gravity-ui/icons/Puzzle";
 import ArrowsRotateRight from "@gravity-ui/icons/ArrowsRotateRight";
 import { ChangeRoleDialog, useAuth } from "@/src/features/auth";
 import { useOnboarding } from "@/src/features/onboarding";
+import { START_MODULE_TOUR_EVENT } from "@/src/features/tutorials";
 import { apiUrl } from "@/shared/utils/api";
 import { appRoutes } from "@/shared/utils/app-routes";
 import {
@@ -29,7 +29,6 @@ import {
 } from "@/shared/utils/roles";
 import { branchDisplayLabel } from "@/shared/utils/auth-user";
 import { APP_BRAND_NAME } from "@/shared/utils/business-profile";
-import { quickAccessItems } from "@/shared/components/nav-config";
 
 const STORAGE_KEY = "scheduly-sidebar-collapsed";
 
@@ -42,10 +41,20 @@ export function AppHeader({ collapsed, onToggleCollapsed }: AppHeaderProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { user, logout } = useAuth();
-  const { startTour, startModuleTour, activeModule } = useOnboarding();
+  const { startTour } = useOnboarding();
   const { setTheme, resolvedTheme } = useTheme();
   const [unreadCount, setUnreadCount] = useState(0);
   const [openChangeRol, setOpenChangeRol] = useState(false);
+
+  const startPageGuide = () => {
+    // Inicio: mapa del shell (menú / notificaciones / perfil)
+    if (pathname === appRoutes.inicio || pathname === "/") {
+      startTour();
+      return;
+    }
+    // Resto de pantallas (incl. Configuración): driver.js del módulo
+    window.dispatchEvent(new CustomEvent(START_MODULE_TOUR_EVENT));
+  };
 
   useEffect(() => {
     if (!user) return;
@@ -71,7 +80,6 @@ export function AppHeader({ collapsed, onToggleCollapsed }: AppHeaderProps) {
 
   const isOwner = isOwnerRole(user?.role);
   const isManagement = isManagementRole(user?.role);
-  const isProgrammer = isProgrammerRole(user?.role);
   const initials = user?.name
     ?.split(" ")
     .map((n) => n[0])
@@ -79,14 +87,11 @@ export function AppHeader({ collapsed, onToggleCollapsed }: AppHeaderProps) {
     .slice(0, 2)
     .toUpperCase();
   const userBranchLabel = branchDisplayLabel(user?.branch, user?.role);
+  const hasLinkedBranch = Boolean(user?.branch?.id);
+  const branchNeedsLink =
+    !isOwnerRole(user?.role) && !isProgrammerRole(user?.role);
   const themeLabel = resolvedTheme === "dark" ? "Modo claro" : "Modo oscuro";
   const hasMultipleRoles = (user?.roles?.length ?? 0) > 1;
-
-  const visibleQuick = isProgrammer
-    ? []
-    : quickAccessItems.filter(
-        (item) => !item.adminOnly || isManagement || isOwner,
-      );
 
   const menuItems = useMemo(() => {
     const items: Array<{
@@ -97,9 +102,6 @@ export function AppHeader({ collapsed, onToggleCollapsed }: AppHeaderProps) {
     }> = [{ id: "profile", label: "Perfil", icon: Person }];
     if (isOwner || isManagement) {
       items.push({ id: "settings", label: "Configuración", icon: Gear });
-    }
-    if (isOwner) {
-      items.push({ id: "modules", label: "Módulos", icon: Puzzle });
     }
     if (hasMultipleRoles) {
       items.push({
@@ -125,15 +127,19 @@ export function AppHeader({ collapsed, onToggleCollapsed }: AppHeaderProps) {
       case "settings":
         router.push(appRoutes.system.settings);
         break;
-      case "modules":
-        router.push(appRoutes.system.modules);
-        break;
       case "change-role":
         setOpenChangeRol(true);
         break;
       case "logout":
-        logout();
-        router.push(appRoutes.login);
+        void (async () => {
+          try {
+            await logout();
+          } catch {
+            // igual forzamos salida
+          }
+          // Navegación dura: aplica Set-Cookie y evita estado React viejo
+          window.location.assign(apiUrl(appRoutes.login));
+        })();
         break;
       default:
         break;
@@ -159,11 +165,8 @@ export function AppHeader({ collapsed, onToggleCollapsed }: AppHeaderProps) {
       <button
         type="button"
         className="flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 text-left hover:bg-surface-secondary"
-        onClick={() =>
-          router.push(
-            isProgrammer ? appRoutes.system.logs : appRoutes.dashboard,
-          )
-        }
+        data-onboarding="shell-brand"
+        onClick={() => router.push(appRoutes.inicio)}
       >
         <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
           <Calendar width={18} height={18} />
@@ -178,26 +181,45 @@ export function AppHeader({ collapsed, onToggleCollapsed }: AppHeaderProps) {
         </span>
       </button>
 
-      <nav className="ml-1 flex min-w-0 flex-1 items-center gap-1 overflow-x-auto">
-        {visibleQuick.map((item) => {
-          const Icon = item.icon;
-          const active =
-            pathname === item.href || pathname.startsWith(`${item.href}/`);
-          return (
-            <Button
-              key={item.href}
-              size="sm"
-              variant={active ? "secondary" : "ghost"}
-              className={`relative shrink-0 ${active ? "font-semibold" : ""}`}
-              data-onboarding={item.tourId}
-              onPress={() => router.push(item.href)}
-            >
-              <Icon width={16} height={16} />
-              <span className="hidden md:inline">{item.label}</span>
-            </Button>
-          );
-        })}
-      </nav>
+      <div className="ml-2 min-w-0 flex-1">
+        {user ? (
+          <div
+            className={`inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium leading-none ${
+              hasLinkedBranch
+                ? "border-success/35 bg-success/10 text-success"
+                : branchNeedsLink
+                  ? "border-danger/35 bg-danger/10 text-danger"
+                  : "border-separator bg-surface-secondary text-muted"
+            }`}
+            title={
+              hasLinkedBranch
+                ? `Sucursal vinculada: ${userBranchLabel}`
+                : branchNeedsLink
+                  ? "Sin sucursal vinculada: solo verás datos de tu local cuando te asignen una"
+                  : "Dueño / Programador: acceso global (sin filtro de sucursal)"
+            }
+            data-onboarding="header-branch"
+          >
+            <span
+              className={`h-2 w-2 shrink-0 rounded-full ${
+                hasLinkedBranch
+                  ? "bg-success"
+                  : branchNeedsLink
+                    ? "bg-danger"
+                    : "bg-muted"
+              }`}
+              aria-hidden
+            />
+            <span className="truncate">
+              {hasLinkedBranch
+                ? userBranchLabel
+                : branchNeedsLink
+                  ? "Sin sucursal"
+                  : "Todas las sucursales"}
+            </span>
+          </div>
+        ) : null}
+      </div>
 
       <div className="flex shrink-0 items-center gap-1">
         <Button
@@ -206,9 +228,7 @@ export function AppHeader({ collapsed, onToggleCollapsed }: AppHeaderProps) {
           variant="ghost"
           aria-label="Guía de uso"
           data-onboarding="onboarding-help"
-          onPress={() =>
-            activeModule ? startModuleTour(activeModule.id) : startTour()
-          }
+          onPress={startPageGuide}
         >
           <CircleQuestion width={16} height={16} />
         </Button>
@@ -252,6 +272,7 @@ export function AppHeader({ collapsed, onToggleCollapsed }: AppHeaderProps) {
               <Dropdown.Trigger
                 id="user-menu-button"
                 aria-label="Menú de usuario"
+                data-onboarding="nav-user-menu"
                 className="flex max-w-[220px] items-center gap-2 rounded-lg px-2 py-1.5 text-left outline-none hover:bg-surface-secondary data-[pressed]:bg-surface-secondary"
               >
                 <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[10px] font-bold text-accent">
@@ -269,7 +290,6 @@ export function AppHeader({ collapsed, onToggleCollapsed }: AppHeaderProps) {
                     }`}
                   >
                     {roleLabel(user.role)}
-                    {userBranchLabel ? ` · ${userBranchLabel}` : ""}
                   </span>
                 </span>
               </Dropdown.Trigger>

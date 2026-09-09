@@ -1,13 +1,10 @@
 import { NextResponse } from "next/server";
-import {
-  clearAuthCookie,
-  clearAuthCookieLegacyBasePath,
-} from "@/shared/utils/check-auth";
+import { applyClearAuthCookies } from "@/shared/utils/check-auth";
 
 export async function POST() {
-  const response = NextResponse.json({ ok: true });
-  response.cookies.set(clearAuthCookie());
-  const legacy = clearAuthCookieLegacyBasePath();
-  if (legacy) response.cookies.set(legacy);
+  const response = NextResponse.json({ ok: true, cleared: true });
+  applyClearAuthCookies(response);
+  // Evita caches intermedias que reutilicen Set-Cookie
+  response.headers.set("Cache-Control", "no-store");
   return response;
 }

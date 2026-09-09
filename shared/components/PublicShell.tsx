@@ -31,7 +31,14 @@ export function PublicShell({
   active = "home",
 }: {
   children: ReactNode;
-  active?: "home" | "booking" | "feed" | "account";
+  active?:
+    | "home"
+    | "booking"
+    | "feed"
+    | "account"
+    | "myTurn"
+    | "catalog"
+    | "promos";
 }) {
   const router = useRouter();
   const { customer, logout } = useCustomerAuth();
@@ -145,6 +152,24 @@ export function PublicShell({
               className={navClass(active === "booking")}
             >
               Reservar
+            </Link>
+            <Link
+              href={appRoutes.loyalty.myTurn}
+              className={navClass(active === "myTurn")}
+            >
+              Mi turno
+            </Link>
+            <Link
+              href={appRoutes.loyalty.publicCatalog}
+              className={navClass(active === "catalog")}
+            >
+              Catálogo
+            </Link>
+            <Link
+              href={appRoutes.loyalty.promos}
+              className={navClass(active === "promos")}
+            >
+              Promos
             </Link>
             <Link
               href={appRoutes.loyalty.feed}

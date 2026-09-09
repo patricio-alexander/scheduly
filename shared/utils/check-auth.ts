@@ -71,7 +71,43 @@ export function buildAuthCookie(accountId: number) {
   };
 }
 
-/** Limpia cookie en "/" y en basePath (por si quedó una sesión vieja). */
+/** Variantes de path/secure por si quedó una cookie vieja que no coincide. */
+function clearCookieVariants() {
+  const base = (process.env.NEXT_PUBLIC_BASE_PATH?.trim() || "/scheduly").replace(
+    /\/$/,
+    "",
+  );
+  const paths = Array.from(new Set(["/", base].filter(Boolean)));
+  const secureFlags =
+    process.env.NODE_ENV === "production" ? [true, false] : [false, true];
+  const out: Array<{
+    name: string;
+    value: string;
+    httpOnly: boolean;
+    secure: boolean;
+    sameSite: "lax";
+    path: string;
+    maxAge: number;
+    expires: Date;
+  }> = [];
+  for (const path of paths) {
+    for (const secure of secureFlags) {
+      out.push({
+        name: AUTH_COOKIE,
+        value: "",
+        httpOnly: true,
+        secure,
+        sameSite: "lax",
+        path,
+        maxAge: 0,
+        expires: new Date(0),
+      });
+    }
+  }
+  return out;
+}
+
+/** Limpia cookie en "/" (y basePath legacy). */
 export function clearAuthCookie() {
   return {
     name: AUTH_COOKIE,
@@ -81,6 +117,7 @@ export function clearAuthCookie() {
     sameSite: "lax" as const,
     path: cookiePath(),
     maxAge: 0,
+    expires: new Date(0),
   };
 }
 
@@ -98,7 +135,21 @@ export function clearAuthCookieLegacyBasePath() {
     sameSite: "lax" as const,
     path: base,
     maxAge: 0,
+    expires: new Date(0),
   };
+}
+
+/** Aplica todos los clears posibles a la respuesta de logout/login. */
+export function applyClearAuthCookies(response: NextResponse) {
+  for (const spec of clearCookieVariants()) {
+    response.cookies.set(spec);
+  }
+  try {
+    response.cookies.delete(AUTH_COOKIE);
+  } catch {
+    /* ignore */
+  }
+  return response;
 }
 
 function personName(person: {

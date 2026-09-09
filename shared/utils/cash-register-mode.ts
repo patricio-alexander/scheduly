@@ -35,6 +35,8 @@ export function mergeOpsIntoReceiptSettings(
     bookingStartHour?: number;
     bookingEndHour?: number;
     cashRegisterMode?: CashRegisterMode;
+    payrollWeekStartDay?: number;
+    payrollAllowBranchAdmin?: boolean;
   },
 ): string {
   const blob = parseReceiptDetailSettings(raw);
@@ -48,6 +50,12 @@ export function mergeOpsIntoReceiptSettings(
       : {}),
     ...(ops.cashRegisterMode !== undefined
       ? { cashRegisterMode: ops.cashRegisterMode }
+      : {}),
+    ...(ops.payrollWeekStartDay !== undefined
+      ? { payrollWeekStartDay: ops.payrollWeekStartDay }
+      : {}),
+    ...(ops.payrollAllowBranchAdmin !== undefined
+      ? { payrollAllowBranchAdmin: ops.payrollAllowBranchAdmin }
       : {}),
   });
 }

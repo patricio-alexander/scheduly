@@ -10,6 +10,7 @@ import {
   isEmployeeRole,
   isManagementRole,
   isOwnerRole,
+  isPureEmployeeRole,
   isProgrammerAllowedPath,
   isProgrammerRole,
 } from "@/shared/utils/roles";
@@ -20,15 +21,15 @@ function isEmployeeBlockedPath(pathname: string) {
   if (pathname.startsWith(appRoutes.loyalty.hub)) return true;
   if (pathname.startsWith(appRoutes.sales.history)) return true;
   if (pathname.startsWith(appRoutes.sales.register)) return true;
+  if (pathname.startsWith(appRoutes.sales.orders)) return true;
+  if (pathname.startsWith(appRoutes.sales.salesHub)) return true;
   if (pathname.startsWith(appRoutes.inventory.categories)) return true;
   if (pathname.startsWith("/compras")) return true;
   if (pathname.startsWith("/finanzas")) return true;
   if (pathname.startsWith("/administracion/sucursales")) return true;
   if (pathname.startsWith("/canal")) return true;
-  if (pathname.startsWith("/produccion")) return true;
   if (pathname.startsWith("/marketing")) return true;
   if (pathname.startsWith("/publicidad")) return true;
-  if (pathname.startsWith("/diseno-promocional")) return true;
   if (pathname.startsWith("/comprobantes-electronicos")) return true;
   if (pathname.startsWith("/administracion")) return true;
   if (pathname.startsWith("/sistema")) {
@@ -41,9 +42,18 @@ function isEmployeeBlockedPath(pathname: string) {
 }
 
 function isOwnerOnlyPath(pathname: string) {
-  if (pathname.startsWith(appRoutes.purchases.suppliers)) return true;
+  // Proveedores: admin de sucursal también opera (alineado a menú adminOnly).
   if (pathname.startsWith("/comprobantes-electronicos")) return true;
-  if (pathname.startsWith("/administracion")) return true;
+  // Admin de sucursal puede gestionar cuentas (empleados de su local).
+  if (pathname.startsWith("/administracion")) {
+    if (
+      pathname === appRoutes.admin.accounts ||
+      pathname.startsWith(`${appRoutes.admin.accounts}/`)
+    ) {
+      return false;
+    }
+    return true;
+  }
   if (pathname.startsWith(appRoutes.sales.history)) return true;
   if (pathname.startsWith("/sistema")) {
     return (
@@ -70,8 +80,16 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
     if (loading || !user) return;
     if (isProgrammerRole(user.role)) {
       if (!isProgrammerAllowedPath(pathname)) {
-        router.replace(appRoutes.system.logs);
+        router.replace(appRoutes.inicio);
       }
+      return;
+    }
+    // Mi liquidación: solo empleado operativo
+    if (
+      pathname.startsWith(appRoutes.employee.myPayroll) &&
+      !isPureEmployeeRole(user.role)
+    ) {
+      router.replace(appRoutes.inicio);
       return;
     }
     if (isEmployeeRole(user.role) && isEmployeeBlockedPath(pathname)) {
@@ -83,7 +101,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       !isOwnerRole(user.role) &&
       isOwnerOnlyPath(pathname)
     ) {
-      router.replace(appRoutes.dashboard);
+      router.replace(appRoutes.inicio);
     }
   }, [user, loading, pathname, router]);
 
@@ -94,6 +112,13 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
   if (!user) return null;
 
   if (isProgrammerRole(user.role) && !isProgrammerAllowedPath(pathname)) {
+    return null;
+  }
+
+  if (
+    pathname.startsWith(appRoutes.employee.myPayroll) &&
+    !isPureEmployeeRole(user.role)
+  ) {
     return null;
   }
 

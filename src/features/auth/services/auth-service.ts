@@ -21,10 +21,15 @@ export async function loginUser(
 }
 
 export async function logoutUser(): Promise<void> {
-  await fetch(apiUrl("/api/auth/logout"), {
+  const res = await fetch(apiUrl("/api/auth/logout"), {
     method: "POST",
     credentials: "include",
-  }).catch(() => undefined);
+    cache: "no-store",
+    headers: { "Cache-Control": "no-store" },
+  });
+  if (!res.ok) {
+    throw new Error("No se pudo cerrar la sesión en el servidor");
+  }
 }
 
 export async function changeUserRole(roleId: number): Promise<AuthUser> {

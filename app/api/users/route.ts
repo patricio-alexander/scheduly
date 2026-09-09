@@ -7,7 +7,7 @@ import {
   resolveUserBranchId,
   setUserPrimaryBranch,
 } from "@/shared/utils/branches";
-import { isBranchAdminRole, isOwnerRole } from "@/shared/utils/roles";
+import { isBranchAdminRole, isOwnerRole, isProgrammerRole } from "@/shared/utils/roles";
 import {
   resolveRoleIdByName,
   resolveRoleIds,
@@ -15,6 +15,7 @@ import {
   splitPersonName,
 } from "@/shared/utils/account-serialize";
 import {
+  canAccessAccountsModule,
   canManageBranchStaff,
   getManagerBranchId,
   listManagedAccountIds,
@@ -50,7 +51,7 @@ async function branchForResponse(accountId: number) {
 export async function GET(request: Request) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
-  if (!canManageBranchStaff(auth.user.role)) {
+  if (!canAccessAccountsModule(auth.user.role)) {
     return NextResponse.json({ message: "No autorizado" }, { status: 403 });
   }
 
@@ -59,7 +60,10 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url);
     const includeInactive = searchParams.get("includeInactive") === "1";
 
-    const managed = await listManagedAccountIds(auth.user);
+    // Programador: ve todas las cuentas (arranque / bootstrap)
+    const managed = isProgrammerRole(auth.user.role)
+      ? ("all" as const)
+      : await listManagedAccountIds(auth.user);
     const where =
       managed === "all"
         ? includeInactive
@@ -79,10 +83,11 @@ export async function GET(request: Request) {
       orderBy: { id: "desc" },
     });
 
-    // Admin: solo empleados (no otros admins / dueña)
-    const filtered = isOwnerRole(auth.user.role)
-      ? accounts
-      : accounts.filter((a) => {
+    // Admin: solo empleados (no otros admins / dueña). Programador: todas.
+    const filtered =
+      isOwnerRole(auth.user.role) || isProgrammerRole(auth.user.role)
+        ? accounts
+        : accounts.filter((a) => {
           const primary = a.roles[0]?.role?.name ?? "";
           return (
             primary.toLowerCase() === "empleado" ||
@@ -119,7 +124,13 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
-  if (!canManageBranchStaff(auth.user.role)) {
+
+  const actorIsOwner = isOwnerRole(auth.user.role);
+  const actorIsProgrammer = isProgrammerRole(auth.user.role);
+  const canStaff = canManageBranchStaff(auth.user.role);
+
+  // Programador: solo bootstrap de la primera Dueña (sim desde cero).
+  if (!canStaff && !actorIsProgrammer) {
     return NextResponse.json({ message: "No autorizado" }, { status: 403 });
   }
 
@@ -127,6 +138,24 @@ export async function POST(request: Request) {
     const body = (await request.json()) as Record<string, unknown>;
     let roles = parseRoles(body);
     let branchId = parseBranchIdFromBody(body);
+
+    if (actorIsProgrammer && !canStaff) {
+      const ownerLink = await prisma.accountRole.findFirst({
+        where: { role: { name: "Dueño" } },
+        select: { id: true },
+      });
+      if (ownerLink) {
+        return NextResponse.json(
+          {
+            message:
+              "Ya existe una Dueña. El Programador solo crea la primera cuenta Dueña.",
+          },
+          { status: 403 },
+        );
+      }
+      roles = ["Dueño"];
+      branchId = null;
+    }
 
     if (isBranchAdminRole(auth.user.role) && !isOwnerRole(auth.user.role)) {
       roles = rolesAllowedForBranchAdmin(roles);
@@ -164,7 +193,10 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    if (!resolvedBranchId) {
+
+    // Dueña / Programador bootstrap: puede crear sin local.
+    // Admin de sucursal: siempre requiere su local.
+    if (!resolvedBranchId && !actorIsOwner && !(actorIsProgrammer && !canStaff)) {
       return NextResponse.json(
         { message: "Selecciona una sucursal para la cuenta" },
         { status: 400 },
@@ -216,7 +248,9 @@ export async function POST(request: Request) {
         });
       }
 
-      await setUserPrimaryBranch(tx, created.id, resolvedBranchId);
+      if (resolvedBranchId) {
+        await setUserPrimaryBranch(tx, created.id, resolvedBranchId);
+      }
 
       return tx.account.findUniqueOrThrow({
         where: { id: created.id },

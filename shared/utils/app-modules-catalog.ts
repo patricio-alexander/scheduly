@@ -28,12 +28,18 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
     id: "acceso",
     entitlementKey: "operation",
     label: "Acceso rápido",
-    summary: "Panel y notificaciones al iniciar sesión.",
+    summary: "Inicio del negocio y panel de métricas.",
     sections: [
+      {
+        name: "Inicio",
+        path: appRoutes.inicio,
+        description: "Portada del negocio (misma vista pública, sin Ingresar).",
+      },
       {
         name: "Panel",
         path: appRoutes.dashboard,
-        description: "Resumen del negocio: finanzas, citas, clientes e inventario.",
+        description:
+          "Resumen operativo: finanzas, citas, clientes e inventario.",
       },
       {
         name: "Notificaciones",
@@ -188,10 +194,9 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
         description: "Lotes con fechas de vencimiento.",
       },
       {
-        name: "Valor de inventario",
+        name: "Inventario valorizado",
         path: appRoutes.inventory.value,
-        status: "planned",
-        description: "Valor a costo y a precio de venta.",
+        description: "Stock de productos a costo y a precio de venta.",
       },
     ],
   },
@@ -199,19 +204,13 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
     id: "marketing",
     entitlementKey: "marketing",
     label: "Marketing",
-    summary: "Promociones, noticias y catálogo público.",
+    summary: "Promociones y catálogo público.",
     status: "planned",
     sections: [
       {
         name: "Promociones",
         path: appRoutes.marketing.promotions,
         description: "Promos del negocio.",
-      },
-      {
-        name: "Noticias",
-        path: appRoutes.marketing.news,
-        status: "planned",
-        description: "Noticias y novedades.",
       },
       {
         name: "Catálogo config",

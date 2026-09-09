@@ -2,6 +2,10 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  ENTITY_FIELD_CLASS,
+  ENTITY_FORM_CLASS,
+} from "@/shared/components/entity-modal";
 import { customerSchema, type CustomerFormData } from "../lib/customer-schema";
 import type { Customer } from "../types";
 
@@ -11,7 +15,11 @@ interface Props {
   formId?: string;
 }
 
-export function CustomerForm({ defaultValues, onSubmit, formId = "customer-form" }: Props) {
+export function CustomerForm({
+  defaultValues,
+  onSubmit,
+  formId = "customer-form",
+}: Props) {
   const {
     register,
     handleSubmit,
@@ -32,56 +40,87 @@ export function CustomerForm({ defaultValues, onSubmit, formId = "customer-form"
   });
 
   return (
-    <form id={formId} onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
-      <div className="flex flex-col gap-1">
-        <label htmlFor="name" className="text-sm font-medium">Nombre</label>
-        <input
-          id="name"
-          placeholder="Nombre"
-          className="px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
-          {...register("name")}
-        />
-        {errors.name && <p className="text-danger text-sm">{String(errors.name.message ?? "")}</p>}
+    <form
+      id={formId}
+      onSubmit={handleSubmit(onSubmit)}
+      className={ENTITY_FORM_CLASS}
+    >
+      <div className="grid gap-2.5 sm:grid-cols-2">
+        <div className="flex flex-col gap-0.5" data-tour="customers-form-name">
+          <label htmlFor="name" className="font-medium">
+            Nombre
+          </label>
+          <input
+            id="name"
+            placeholder="Nombre"
+            className={ENTITY_FIELD_CLASS}
+            {...register("name")}
+          />
+          {errors.name && (
+            <p className="text-danger">{String(errors.name.message ?? "")}</p>
+          )}
+        </div>
+        <div
+          className="flex flex-col gap-0.5"
+          data-tour="customers-form-lastnames"
+        >
+          <label htmlFor="lastnames" className="font-medium">
+            Apellidos
+          </label>
+          <input
+            id="lastnames"
+            placeholder="Apellidos"
+            className={ENTITY_FIELD_CLASS}
+            {...register("lastnames")}
+          />
+          {errors.lastnames && (
+            <p className="text-danger">
+              {String(errors.lastnames.message ?? "")}
+            </p>
+          )}
+        </div>
       </div>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="lastnames" className="text-sm font-medium">Apellidos</label>
-        <input
-          id="lastnames"
-          placeholder="Apellidos"
-          className="px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
-          {...register("lastnames")}
-        />
-        {errors.lastnames && <p className="text-danger text-sm">{String(errors.lastnames.message ?? "")}</p>}
+
+      <div className="grid gap-2.5 sm:grid-cols-2">
+        <div className="flex flex-col gap-0.5" data-tour="customers-form-phone">
+          <label htmlFor="phone" className="font-medium">
+            Teléfono
+          </label>
+          <input
+            id="phone"
+            placeholder="+56 9 1234 5678"
+            className={ENTITY_FIELD_CLASS}
+            {...register("phone")}
+          />
+          {errors.phone && (
+            <p className="text-danger">{String(errors.phone.message ?? "")}</p>
+          )}
+        </div>
+        <div className="flex flex-col gap-0.5" data-tour="customers-form-email">
+          <label htmlFor="email" className="font-medium">
+            Correo
+          </label>
+          <input
+            id="email"
+            type="email"
+            placeholder="cliente@correo.com"
+            className={ENTITY_FIELD_CLASS}
+            {...register("email")}
+          />
+          {errors.email && (
+            <p className="text-danger">{String(errors.email.message ?? "")}</p>
+          )}
+        </div>
       </div>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="phone" className="text-sm font-medium">Teléfono</label>
-        <input
-          id="phone"
-          placeholder="+56 9 1234 5678"
-          className="px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
-          {...register("phone")}
-        />
-        {errors.phone && <p className="text-danger text-sm">{String(errors.phone.message ?? "")}</p>}
-      </div>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="email" className="text-sm font-medium">Correo electrónico</label>
-        <input
-          id="email"
-          type="email"
-          placeholder="cliente@correo.com"
-          className="px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
-          {...register("email")}
-        />
-        {errors.email && <p className="text-danger text-sm">{String(errors.email.message ?? "")}</p>}
-      </div>
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="identificationType" className="text-sm font-medium">
+
+      <div className="grid gap-2.5 sm:grid-cols-2">
+        <div className="flex flex-col gap-0.5">
+          <label htmlFor="identificationType" className="font-medium">
             Tipo ID (SRI)
           </label>
           <select
             id="identificationType"
-            className="px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground focus:outline-none focus:ring-2 focus:ring-focus"
+            className={ENTITY_FIELD_CLASS}
             {...register("identificationType")}
           >
             <option value="">Sin identificación</option>
@@ -91,24 +130,27 @@ export function CustomerForm({ defaultValues, onSubmit, formId = "customer-form"
             <option value="07">Consumidor final</option>
           </select>
         </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="identification" className="text-sm font-medium">
+        <div className="flex flex-col gap-0.5">
+          <label htmlFor="identification" className="font-medium">
             Identificación
           </label>
           <input
             id="identification"
             placeholder="1724589630"
-            className="px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
+            className={ENTITY_FIELD_CLASS}
             {...register("identification")}
           />
         </div>
       </div>
-      <div className="flex flex-col gap-1">
-        <label htmlFor="address" className="text-sm font-medium">Dirección</label>
+
+      <div className="flex flex-col gap-0.5">
+        <label htmlFor="address" className="font-medium">
+          Dirección
+        </label>
         <input
           id="address"
           placeholder="Dirección para facturación"
-          className="px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
+          className={ENTITY_FIELD_CLASS}
           {...register("address")}
         />
       </div>

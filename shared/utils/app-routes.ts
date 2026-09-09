@@ -1,5 +1,8 @@
 /** Rutas de Scheduly (menú propio; no enlazado 1:1 con las otras apps). */
 export const appRoutes = {
+  /** Portada del staff (misma landing pública, sin Ingresar) */
+  inicio: "/inicio",
+  /** Resumen operativo / métricas */
   dashboard: "/panel",
   home: "/",
   booking: "/reservar",
@@ -65,32 +68,24 @@ export const appRoutes = {
     expenses: "/finanzas/gastos",
     payroll: "/finanzas/sueldos",
     payrollHistory: "/finanzas/sueldos/historial",
+    paymentMedia: "/finanzas/medios-pago",
+    cashClose: "/finanzas/cuadre-caja",
+    payrollWeek: "/finanzas/liquidacion",
   },
-  production: {
-    ingredients: "/produccion/insumos",
-    recipes: "/produccion/recetas",
-    manufacturing: "/produccion/fabricacion",
+  marketing: {
+    promotions: "/marketing/promociones",
+    catalog: "/canal/catalogo",
   },
-  /** Rutas legacy /canal (sin módulo Canal digital en menú) */
+  /** Rutas legacy /canal */
   channel: {
     catalog: "/canal/catalogo",
     stores: "/canal/locales",
     featuredProducts: "/canal/productos-destacados",
   },
-  marketing: {
-    promotions: "/marketing/promociones",
-    news: "/marketing/noticias",
-    catalog: "/canal/catalogo",
-  },
   advertising: {
     campaigns: "/publicidad",
     devices: "/publicidad/dispositivos",
     player: "/publicidad/reproductor",
-  },
-  promoDesign: {
-    editor: "/diseno-promocional/editor",
-    preview: "/diseno-promocional/vista",
-    templates: "/diseno-promocional/plantillas",
   },
   branches: {
     list: "/administracion/sucursales",
@@ -98,12 +93,19 @@ export const appRoutes = {
   },
   employee: {
     myDay: "/empleado/mi-dia",
+    myPayroll: "/empleado/mi-liquidacion",
   },
   loyalty: {
     hub: "/operacion/fidelizacion",
     feed: "/novedades",
     customerPortal: "/mi-cuenta",
     customerLogin: "/mi-cuenta",
+    /** Consulta pública de turno (cédula/correo + clave) */
+    myTurn: "/mi-turno",
+    /** Catálogo de productos para el visitante */
+    publicCatalog: "/catalogo",
+    /** Promociones públicas */
+    promos: "/promos",
   },
   promotions: {
     /** Legacy → marketing.promotions */
@@ -118,8 +120,6 @@ export const appRoutes = {
   },
   system: {
     settings: "/sistema/configuracion",
-    plans: "/sistema/planes",
-    modules: "/sistema/modulos",
     profile: "/sistema/perfil",
     donations: "/sistema/donaciones",
     notifications: "/sistema/notificaciones",
@@ -127,6 +127,8 @@ export const appRoutes = {
     backups: "/sistema/configuracion?tab=backups",
     /** Logs del sistema (POST/PUT/PATCH/DELETE) */
     logs: "/sistema/logs",
+    /** Tutoriales / playbooks (Programador) */
+    tutorials: "/sistema/tutoriales",
   },
   /** Legacy → hub Comprobantes POS */
   legacy: {

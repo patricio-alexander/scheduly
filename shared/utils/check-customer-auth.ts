@@ -91,7 +91,8 @@ async function serializeCustomerSession(
       select: {
         id: true,
         name: true,
-        lastnames: true,
+        firstLastName: true,
+        secondLastName: true,
         email: true,
         phone: true,
         password: true,
@@ -112,12 +113,17 @@ async function serializeCustomerSession(
       settings?.goldThreshold ?? 300,
     );
 
+  const lastnames = [customer.firstLastName, customer.secondLastName]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
   return {
     id: customer.id,
     name: customer.name,
-    lastnames: customer.lastnames,
-    email: customer.email,
-    phone: customer.phone,
+    lastnames,
+    email: customer.email ?? "",
+    phone: customer.phone ?? "",
     points,
     tier,
   };

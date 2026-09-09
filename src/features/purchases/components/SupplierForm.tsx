@@ -2,6 +2,10 @@
 
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  ENTITY_FIELD_CLASS,
+  ENTITY_FORM_CLASS,
+} from "@/shared/components/entity-modal";
 import { supplierSchema, type SupplierFormData } from "../lib/purchase-schema";
 import type { Supplier } from "../types";
 
@@ -37,75 +41,75 @@ export function SupplierForm({
     <form
       id={formId}
       onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col gap-4"
+      className={ENTITY_FORM_CLASS}
     >
-      <div className="flex flex-col gap-1">
-        <label htmlFor="supplier-name" className="text-sm font-medium">
+      <div className="flex flex-col gap-0.5" data-tour="suppliers-form-name">
+        <label htmlFor="supplier-name" className="font-medium">
           Nombre
         </label>
         <input
           id="supplier-name"
           placeholder="Distribuidora ABC"
-          className="rounded-xl border border-separator bg-field-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-focus"
+          className={ENTITY_FIELD_CLASS}
           {...register("name")}
         />
         {errors.name ? (
-          <p className="text-sm text-danger">{String(errors.name.message)}</p>
+          <p className="text-danger">{String(errors.name.message)}</p>
         ) : null}
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-1">
-          <label htmlFor="supplier-phone" className="text-sm font-medium">
+      <div className="grid gap-2.5 sm:grid-cols-2">
+        <div className="flex flex-col gap-0.5" data-tour="suppliers-form-phone">
+          <label htmlFor="supplier-phone" className="font-medium">
             Teléfono
           </label>
           <input
             id="supplier-phone"
             placeholder="09XXXXXXXX"
-            className="rounded-xl border border-separator bg-field-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-focus"
+            className={ENTITY_FIELD_CLASS}
             {...register("phone")}
           />
         </div>
-        <div className="flex flex-col gap-1">
-          <label htmlFor="supplier-email" className="text-sm font-medium">
+        <div className="flex flex-col gap-0.5" data-tour="suppliers-form-email">
+          <label htmlFor="supplier-email" className="font-medium">
             Correo
           </label>
           <input
             id="supplier-email"
             type="email"
             placeholder="contacto@proveedor.com"
-            className="rounded-xl border border-separator bg-field-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-focus"
+            className={ENTITY_FIELD_CLASS}
             {...register("email")}
           />
           {errors.email ? (
-            <p className="text-sm text-danger">{String(errors.email.message)}</p>
+            <p className="text-danger">{String(errors.email.message)}</p>
           ) : null}
         </div>
       </div>
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="supplier-taxId" className="text-sm font-medium">
-          RUC / identificación
-        </label>
-        <input
-          id="supplier-taxId"
-          placeholder="179XXXXXXXX001"
-          className="rounded-xl border border-separator bg-field-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-focus"
-          {...register("taxId")}
-        />
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="supplier-address" className="text-sm font-medium">
-          Dirección
-        </label>
-        <textarea
-          id="supplier-address"
-          rows={2}
-          placeholder="Dirección del proveedor"
-          className="rounded-xl border border-separator bg-field-background px-3 py-2 focus:outline-none focus:ring-2 focus:ring-focus"
-          {...register("address")}
-        />
+      <div className="grid gap-2.5 sm:grid-cols-2">
+        <div className="flex flex-col gap-0.5">
+          <label htmlFor="supplier-taxId" className="font-medium">
+            RUC / ID
+          </label>
+          <input
+            id="supplier-taxId"
+            placeholder="179XXXXXXXX001"
+            className={ENTITY_FIELD_CLASS}
+            {...register("taxId")}
+          />
+        </div>
+        <div className="flex flex-col gap-0.5">
+          <label htmlFor="supplier-address" className="font-medium">
+            Dirección
+          </label>
+          <input
+            id="supplier-address"
+            placeholder="Dirección del proveedor"
+            className={ENTITY_FIELD_CLASS}
+            {...register("address")}
+          />
+        </div>
       </div>
     </form>
   );

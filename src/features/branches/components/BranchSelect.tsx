@@ -1,7 +1,7 @@
 "use client";
 
-import { ComboBox, Input, ListBox } from "@heroui/react";
 import { SelectField } from "@/shared/components/SelectField";
+import { SearchableSelect } from "@/shared/components/SearchableSelect";
 import type { BranchRecord } from "../hooks/useBranches";
 
 type BranchSelectProps = {
@@ -48,6 +48,8 @@ type ProductComboBoxProps = {
   products: Array<{ id: number; name: string }>;
   className?: string;
   isDisabled?: boolean;
+  label?: string;
+  placeholder?: string;
 };
 
 export function ProductComboBox({
@@ -56,33 +58,22 @@ export function ProductComboBox({
   products,
   className = "w-full",
   isDisabled = false,
+  label,
+  placeholder = "Buscar producto…",
 }: ProductComboBoxProps) {
   return (
-    <ComboBox
+    <SearchableSelect
+      label={label}
       className={className}
+      placeholder={placeholder}
       selectedKey={value > 0 ? String(value) : null}
       onSelectionChange={(key) => onChange(key != null ? Number(key) : 0)}
-      variant="secondary"
+      options={products.map((product) => ({
+        id: String(product.id),
+        label: product.name,
+      }))}
       isDisabled={isDisabled}
-    >
-      <ComboBox.InputGroup>
-        <Input placeholder="Buscar producto..." />
-        <ComboBox.Trigger />
-      </ComboBox.InputGroup>
-      <ComboBox.Popover>
-        <ListBox>
-          {products.map((product) => (
-            <ListBox.Item
-              key={product.id}
-              id={String(product.id)}
-              textValue={product.name}
-            >
-              {product.name}
-              <ListBox.ItemIndicator />
-            </ListBox.Item>
-          ))}
-        </ListBox>
-      </ComboBox.Popover>
-    </ComboBox>
+      emptyMessage="Sin productos"
+    />
   );
 }

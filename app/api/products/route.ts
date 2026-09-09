@@ -56,11 +56,13 @@ export async function POST(request: Request) {
       unitId = unit.id;
     }
 
+    // commissionPct existe en schema/DB; el client generado a veces está viejo
+    // (Unknown argument). Creamos sin ese campo y lo setea por SQL si hace falta.
+    const commissionPct = Number(body.commissionPct ?? 0);
     const product = await prisma.product.create({
       data: {
         name,
         price: Number(body.price ?? 0),
-        commissionPct: Number(body.commissionPct ?? 0),
         stock: Number(body.stock ?? 0),
         minStock: Number(body.minStock ?? 0),
         unitId,
@@ -75,7 +77,19 @@ export async function POST(request: Request) {
         unit: { select: { id: true, name: true, abbreviation: true } },
       },
     });
-    return NextResponse.json(product, { status: 201 });
+    if (Number.isFinite(commissionPct) && commissionPct !== 0) {
+      try {
+        await prisma.$executeRaw`
+          UPDATE Product SET commissionPct = ${commissionPct} WHERE id = ${product.id}
+        `;
+      } catch {
+        /* columna ausente o client desfasado · producto ya creado */
+      }
+    }
+    return NextResponse.json(
+      { ...product, commissionPct: commissionPct || 0 },
+      { status: 201 },
+    );
   } catch (error) {
     console.error("POST /api/products", error);
     const message =

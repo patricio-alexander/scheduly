@@ -41,6 +41,11 @@ const METHOD_VERB: Record<string, string> = {
 const EXPLICIT: Array<{ method: string; pattern: RegExp; action: string }> = [
   { method: "POST", pattern: /\/api\/auth\/login\/?$/, action: "Login" },
   { method: "POST", pattern: /\/api\/auth\/logout\/?$/, action: "Logout" },
+  {
+    method: "POST",
+    pattern: /\/api\/users\/?$/,
+    action: "Crear cuenta",
+  },
   { method: "POST", pattern: /\/api\/shifts\/open\/?$/, action: "Abrir turno" },
   { method: "POST", pattern: /\/api\/shifts\/\d+\/close\/?$/, action: "Cerrar turno" },
   {

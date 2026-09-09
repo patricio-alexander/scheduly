@@ -32,18 +32,23 @@ export async function POST(
       select: {
         id: true,
         name: true,
-        lastnames: true,
+        firstLastName: true,
         email: true,
         phone: true,
       },
     });
 
     return NextResponse.json({
-      ...customer,
+      id: customer.id,
+      name: customer.name,
+      lastnames: customer.firstLastName ?? "",
+      email: customer.email,
+      phone: customer.phone,
       hasPortalAccess: true,
       message: "Cuenta de cliente activada",
     });
-  } catch {
+  } catch (error) {
+    console.error("POST /api/customers/[id]/account", error);
     return NextResponse.json(
       { message: "Error al activar la cuenta" },
       { status: 500 },

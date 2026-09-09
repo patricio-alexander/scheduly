@@ -22,12 +22,12 @@ import Megaphone from "@gravity-ui/icons/Megaphone";
 import CircleDollar from "@gravity-ui/icons/CircleDollar";
 import ArrowRightFromSquare from "@gravity-ui/icons/ArrowRightFromSquare";
 import Database from "@gravity-ui/icons/Database";
-import CircleInfo from "@gravity-ui/icons/CircleInfo";
 import Gift from "@gravity-ui/icons/Gift";
 import LayoutHeaderCells from "@gravity-ui/icons/LayoutHeaderCells";
 import Car from "@gravity-ui/icons/Car";
 import HandCoins from "@gravity-ui/icons/CreditCard";
 import Receipt from "@gravity-ui/icons/Receipt";
+import DisplayPulse from "@gravity-ui/icons/DisplayPulse";
 
 export type IconComponent = ComponentType<
   SVGProps<SVGSVGElement> & { width?: number; height?: number }
@@ -44,6 +44,8 @@ export type NavItem = {
   ownerOnly?: boolean;
   branchAdminOnly?: boolean;
   employeeExperienceOnly?: boolean;
+  /** Solo empleado puro (p. ej. Mi liquidación) */
+  employeeOnly?: boolean;
   /** Solo rol Programador (logs / tester) */
   programmerOnly?: boolean;
   tourId?: string;
@@ -63,16 +65,32 @@ export type NavModule = {
   items: NavItem[];
 };
 
-export const quickAccessItems: NavItem[] = [
-  {
-    href: appRoutes.dashboard,
-    label: "Panel",
-    icon: House,
-    tourId: "nav-dashboard",
-  },
-];
+export const quickAccessItems: NavItem[] = [];
 
 export const navModules: NavModule[] = [
+  {
+    id: "home",
+    label: "Inicio",
+    icon: House,
+    entitlementKey: "operation",
+    /** Visible para todos los roles, incluido Programador */
+    flat: true,
+    items: [
+      {
+        href: appRoutes.inicio,
+        label: "Inicio",
+        icon: House,
+        tourId: "nav-inicio",
+      },
+      {
+        href: appRoutes.dashboard,
+        label: "Panel",
+        icon: LayoutHeaderCells,
+        tourId: "nav-dashboard",
+        /** Programador también puede abrir el resumen */
+      },
+    ],
+  },
   {
     id: "operation",
     label: "Operación",
@@ -116,6 +134,12 @@ export const navModules: NavModule[] = [
         label: "Tareas",
         icon: ListCheck,
         tourId: "nav-tasks",
+      },
+      {
+        href: appRoutes.employee.myPayroll,
+        label: "Mi liquidación",
+        icon: CircleDollar,
+        employeeOnly: true,
       },
       {
         href: appRoutes.operation.posReceipts,
@@ -202,6 +226,24 @@ export const navModules: NavModule[] = [
         adminOnly: true,
       },
       {
+        href: appRoutes.finance.payrollWeek,
+        label: "Liquidación semanal",
+        icon: CircleDollar,
+        ownerOnly: true,
+      },
+      {
+        href: appRoutes.finance.cashClose,
+        label: "Cuadre de caja",
+        icon: Receipt,
+        adminOnly: true,
+      },
+      {
+        href: appRoutes.finance.paymentMedia,
+        label: "Medios de pago",
+        icon: HandCoins,
+        adminOnly: true,
+      },
+      {
         href: appRoutes.finance.recurringExpenses,
         label: "Gastos recurrentes",
         icon: Receipt,
@@ -259,7 +301,7 @@ export const navModules: NavModule[] = [
       },
       {
         href: appRoutes.inventory.value,
-        label: "Valor de inventario",
+        label: "Inventario valorizado",
         icon: CircleDollar,
         adminOnly: true,
       },
@@ -279,12 +321,6 @@ export const navModules: NavModule[] = [
         adminOnly: true,
       },
       {
-        href: appRoutes.marketing.news,
-        label: "Noticias",
-        icon: Megaphone,
-        adminOnly: true,
-      },
-      {
         href: appRoutes.marketing.catalog,
         label: "Catálogo config",
         icon: LayoutHeaderCells,
@@ -298,13 +334,13 @@ export const navModules: NavModule[] = [
     label: "Administración",
     icon: Shield,
     entitlementKey: "admin",
-    ownerOnly: true,
+    adminOnly: true,
     items: [
       {
         href: appRoutes.admin.accounts,
         label: "Cuentas",
         icon: Person,
-        ownerOnly: true,
+        adminOnly: true,
       },
       {
         href: appRoutes.admin.roles,
@@ -339,6 +375,13 @@ export const navModules: NavModule[] = [
         icon: ListCheck,
         ownerOnly: true,
       },
+      {
+        href: appRoutes.system.tutorials,
+        label: "Tutoriales",
+        icon: DisplayPulse,
+        ownerOnly: true,
+        tourId: "nav-system-tutorials",
+      },
       { href: appRoutes.system.profile, label: "Perfil", icon: Person },
       {
         href: appRoutes.system.donations,
@@ -362,35 +405,54 @@ export const navModules: NavModule[] = [
         label: "Perfil",
         icon: Person,
         programmerOnly: true,
+        tourId: "nav-dev-profile",
       },
       {
         href: appRoutes.system.logs,
         label: "Logs",
         icon: ListCheck,
         programmerOnly: true,
+        tourId: "nav-dev-logs",
+      },
+      {
+        href: appRoutes.admin.roles,
+        label: "Roles",
+        icon: Shield,
+        programmerOnly: true,
+        tourId: "nav-dev-roles",
+      },
+      {
+        href: appRoutes.admin.users,
+        label: "Usuarios",
+        icon: Person,
+        programmerOnly: true,
+        tourId: "nav-dev-users",
+      },
+      {
+        href: appRoutes.admin.accounts,
+        label: "Cuentas",
+        icon: Person,
+        programmerOnly: true,
+        tourId: "nav-dev-accounts",
+      },
+      {
+        href: appRoutes.system.tutorials,
+        label: "Tutoriales",
+        icon: DisplayPulse,
+        programmerOnly: true,
+        tourId: "nav-dev-tutorials",
       },
       {
         href: appRoutes.system.settings,
         label: "Configuración",
         icon: Gear,
         programmerOnly: true,
+        tourId: "nav-dev-settings",
       },
       {
         href: appRoutes.system.donations,
         label: "Donaciones",
         icon: Gift,
-        programmerOnly: true,
-      },
-      {
-        href: appRoutes.system.plans,
-        label: "Info",
-        icon: CircleInfo,
-        programmerOnly: true,
-      },
-      {
-        href: appRoutes.system.modules,
-        label: "Módulos",
-        icon: Layers,
         programmerOnly: true,
       },
       {

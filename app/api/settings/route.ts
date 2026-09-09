@@ -130,6 +130,14 @@ export async function PUT(request: Request) {
         body.cashRegisterMode !== undefined
           ? (String(body.cashRegisterMode) as import("@/shared/utils/cash-register-mode").CashRegisterMode)
           : current.cashRegisterMode,
+      payrollWeekStartDay:
+        body.payrollWeekStartDay !== undefined
+          ? Number(body.payrollWeekStartDay)
+          : current.payrollWeekStartDay,
+      payrollAllowBranchAdmin:
+        body.payrollAllowBranchAdmin !== undefined
+          ? Boolean(body.payrollAllowBranchAdmin)
+          : current.payrollAllowBranchAdmin,
     });
     emitThemeColorsUpdated(normalizeThemeColors(settings));
     return NextResponse.json(settings);

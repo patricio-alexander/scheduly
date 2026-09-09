@@ -1,7 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
-import { checkAuth } from "@/shared/utils/check-auth";
+import { checkAuth, AUTH_COOKIE, verifySessionToken } from "@/shared/utils/check-auth";
 import { resolveLogAction } from "@/shared/utils/log-action-catalog";
+import {
+  clientIpFromHeaders,
+  formatLogClock,
+  formatLogSystem,
+  parseBrowserLabel,
+} from "@/shared/utils/log-client-meta";
 import { isOwnerRole, isProgrammerRole, roleLabel } from "@/shared/utils/roles";
 import { writeSystemLog } from "@/shared/utils/system-log";
 
@@ -11,6 +17,47 @@ function canViewLogs(role: string) {
 
 function canDeleteLogs(role: string) {
   return isProgrammerRole(role);
+}
+
+function cookieValue(cookieHeader: string | null, name: string): string | null {
+  if (!cookieHeader) return null;
+  for (const part of cookieHeader.split(";")) {
+    const [k, ...rest] = part.trim().split("=");
+    if (k === name) return rest.join("=") || null;
+  }
+  return null;
+}
+
+/** Quién actuó (lookup liviano por cookie de sesión). */
+async function resolveActorLabel(request: Request): Promise<string | null> {
+  try {
+    const token = cookieValue(request.headers.get("cookie"), AUTH_COOKIE);
+    if (!token) return null;
+    const accountId = verifySessionToken(token);
+    if (!accountId) return null;
+    const account = await prisma.account.findUnique({
+      where: { id: accountId },
+      select: {
+        username: true,
+        person: { select: { firstName: true, firstLastName: true } },
+        roles: {
+          include: { role: true },
+          orderBy: { id: "asc" },
+          take: 1,
+        },
+      },
+    });
+    if (!account) return null;
+    const rol = roleLabel(account.roles[0]?.role?.name ?? "usuario");
+    const name = [account.person?.firstName, account.person?.firstLastName]
+      .filter(Boolean)
+      .join(" ")
+      .trim();
+    const who = name || account.username || `#${accountId}`;
+    return `El ${rol} ${who}`;
+  } catch {
+    return null;
+  }
 }
 
 /** GET · listado SystemLog (Programador / Dueño). */
@@ -24,8 +71,8 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const take = Math.min(
-      5000,
-      Math.max(50, Number(url.searchParams.get("limit") ?? 2000) || 2000),
+      1000,
+      Math.max(20, Number(url.searchParams.get("limit") ?? 200) || 200),
     );
     const method = (url.searchParams.get("method") ?? "").toUpperCase();
 
@@ -39,15 +86,25 @@ export async function GET(request: Request) {
     });
 
     return NextResponse.json(
-      rows.map((r) => ({
-        id: r.id,
-        httpMethod: r.httpMethod,
-        action: r.action,
-        endPoint: r.endPoint,
-        description: r.description,
-        system: r.system,
-        date: r.date.toISOString(),
-      })),
+      rows.map((r) => {
+        const system = r.system ?? "";
+        const ip = system.match(/^IP\s+([^·]+)/i)?.[1]?.trim() || null;
+        const uaIdx = system.search(/\s·\sUA\s/i);
+        const beforeUa = uaIdx >= 0 ? system.slice(0, uaIdx) : system;
+        const browser =
+          beforeUa.replace(/^IP\s+[^·]+·\s*/i, "").trim() || null;
+        return {
+          id: r.id,
+          httpMethod: r.httpMethod,
+          action: r.action,
+          endPoint: r.endPoint,
+          description: r.description,
+          system: r.system,
+          date: r.date.toISOString(),
+          ip,
+          browser,
+        };
+      }),
     );
   } catch (error) {
     console.error("GET /api/system/logs", error);
@@ -65,7 +122,6 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const ingest = request.headers.get("x-scheduly-log-ingest");
   if (ingest !== "1") {
-    // Alta manual solo dueña/programador (poco usado)
     const auth = await checkAuth();
     if (!auth.ok) return auth.response;
     if (!canViewLogs(auth.user.role)) {
@@ -76,30 +132,73 @@ export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Record<string, unknown>;
     const httpMethod = String(body.httpMethod ?? "POST").toUpperCase();
-    const endPoint = String(body.endPoint ?? "");
+    const endPoint = String(body.endPoint ?? "").slice(0, 500);
     if (!endPoint || ["GET", "OPTIONS", "HEAD"].includes(httpMethod)) {
       return NextResponse.json({ ok: true, skipped: true });
     }
 
-    const action =
+    const now = new Date();
+    const action = (
       String(body.action ?? "").trim() ||
-      resolveLogAction(httpMethod, endPoint);
-    const system = body.system != null ? String(body.system) : null;
+      resolveLogAction(httpMethod, endPoint)
+    ).slice(0, 200);
+
+    const userAgent =
+      String(body.userAgent ?? request.headers.get("user-agent") ?? "").slice(
+        0,
+        400,
+      ) || null;
+    const ip =
+      String(body.ip ?? "").trim() ||
+      clientIpFromHeaders(request.headers);
+    const browser = parseBrowserLabel(userAgent);
+    const referer = String(body.referer ?? "").slice(0, 240);
+
+    const system =
+      body.system != null && String(body.system) !== "middleware"
+        ? String(body.system).slice(0, 500)
+        : formatLogSystem({ ip, browser, userAgent });
 
     let description =
-      body.description != null ? String(body.description) : null;
+      body.description != null
+        ? String(body.description).slice(0, 800)
+        : null;
 
     if (!description) {
-      if (action === "Login") {
-        description = "Intento de inicio de sesión";
+      const clock = formatLogClock(now);
+      const actor = await resolveActorLabel(request);
+      const isSimulador =
+        /Scheduly-Simulador/i.test(userAgent || "") ||
+        request.headers.get("x-scheduly-client") === "simulador" ||
+        String(body.client ?? "").toLowerCase() === "simulador";
+      const flowHint = (
+        request.headers.get("x-scheduly-flow") ||
+        (userAgent || "").match(/flow\/([^\s);]+)/i)?.[1] ||
+        ""
+      ).trim();
+
+      if (isSimulador) {
+        const who = flowHint
+          ? `Simulador · ${flowHint}`
+          : "Simulador Archify";
+        const via = actor ? ` · vía ${actor.replace(/^El\s+/i, "")}` : "";
+        description = `[${clock}] ${who} realizó: ${action} · ${httpMethod} ${endPoint}${via}`;
+      } else if (action === "Login") {
+        description = `[${clock}] Intento de inicio de sesión · ${browser} · IP ${ip}`;
+      } else if (actor) {
+        description = `[${clock}] ${actor} realizó: ${action} · ${httpMethod} ${endPoint}${
+          referer ? ` · desde ${referer}` : ""
+        }`;
+      } else if (ingest === "1") {
+        description = `[${clock}] Acción API: ${action} · ${httpMethod} ${endPoint} · ${browser} · IP ${ip}`;
       } else {
         const auth = await checkAuth();
         if (auth.ok) {
           const who = auth.user.name || auth.user.username || `#${auth.user.id}`;
           const rol = roleLabel(auth.user.role);
-          description = `El ${rol} ${who} realizó: ${action}`;
+          description = `[${clock}] El ${rol} ${who} realizó: ${action}`;
         } else {
-          description = `Acción sin sesión: ${action}`;
+          description = `[${clock}] Acción sin sesión: ${action} · IP ${ip}`;
         }
       }
     }
@@ -108,8 +207,9 @@ export async function POST(request: Request) {
       httpMethod,
       endPoint,
       action,
-      description,
+      description: description.slice(0, 800),
       system,
+      date: now,
     });
 
     return NextResponse.json({ ok: true }, { status: 201 });

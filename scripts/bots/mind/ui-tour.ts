@@ -83,6 +83,14 @@ export const UI_TOUR: UiTourStop[] = [
     roles: ["owner", "admin"],
   },
   {
+    id: "inventario-valor",
+    href: "/inventario/valor",
+    label: "Inventario valorizado",
+    intent: "Revisa valor a costo y a venta de productos",
+    probeIds: ["products", "inventory-value"],
+    roles: ["owner", "admin"],
+  },
+  {
     id: "cuentas",
     href: "/administracion/cuentas",
     label: "Cuentas",

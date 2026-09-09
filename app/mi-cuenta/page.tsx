@@ -28,7 +28,12 @@ export default function CustomerLoginPage() {
         <header>
           <h1 className="text-2xl font-bold tracking-tight">Mi cuenta</h1>
           <p className="mt-1 text-sm text-muted">
-            Inicia sesión para ver tus puntos, canjear premios y reservar turnos
+            Inicia sesión (correo o cédula + clave) para puntos y premios. Para
+            solo ver tu cita usa{" "}
+            <Link href={appRoutes.loyalty.myTurn} className="text-accent hover:underline">
+              Mi turno
+            </Link>
+            .
           </p>
         </header>
 

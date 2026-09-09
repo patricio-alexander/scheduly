@@ -153,6 +153,12 @@ export const API_PROBES: ApiProbe[] = [
     expect: { owner: "allow", admin: "allow", employee: "deny" },
   },
   {
+    id: "inventory-value",
+    label: "Inventario valorizado",
+    path: "/api/inventory/value-summary",
+    expect: { owner: "allow", admin: "allow", employee: "deny" },
+  },
+  {
     id: "orders-calendar",
     label: "Pedidos calendario",
     path: "/api/orders/calendar",

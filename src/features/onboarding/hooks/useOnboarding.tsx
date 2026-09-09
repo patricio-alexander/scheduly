@@ -22,6 +22,7 @@ import {
   type ModuleTour,
   type OnboardingStep,
 } from "../lib/steps";
+import { getShellTourSteps } from "../lib/shell-tour";
 
 type Phase =
   | "loading"
@@ -101,38 +102,21 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
     setStepIndex(0);
   }, [user]);
 
+  // Los tours por pantalla los maneja ModuleTutorialOrchestrator (driver.js).
+  // Aquí solo queda el welcome + mapa del shell en Inicio.
   useEffect(() => {
     if (!user) return;
     const current = phaseRef.current;
-    if (
-      current === "welcome" ||
-      current === "tour" ||
-      current === "module-tour" ||
-      current === "loading"
-    ) {
-      return;
-    }
-
-    const mod = findModuleTour(pathname);
-    if (!mod) {
+    if (current === "module-prompt") {
       setPromptModule(null);
-      if (current === "module-prompt") setPhase("idle");
-      return;
+      setPhase("idle");
     }
-
-    if (readFlag(moduleTourStorageKey(user.id, mod.id))) {
-      setPromptModule(null);
-      if (current === "module-prompt") setPhase("idle");
-      return;
-    }
-
-    setPromptModule(mod);
-    setPhase("module-prompt");
   }, [pathname, user]);
 
   const goToGlobalStep = useCallback(
-    (index: number) => {
-      const step = onboardingSteps[index];
+    (index: number, steps?: OnboardingStep[]) => {
+      const list = steps ?? tourSteps;
+      const step = list[index];
       if (!step) return;
       setStepIndex(index);
       if (step.expandModule) {
@@ -142,46 +126,68 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
           }),
         );
       }
-      if (step.href && pathname !== step.href) {
-        router.push(step.href);
+      // Orientación del shell: nos quedamos en Inicio.
+      if (step.href === appRoutes.inicio && pathname !== appRoutes.inicio) {
+        router.push(appRoutes.inicio);
       }
     },
-    [pathname, router],
+    [pathname, router, tourSteps],
   );
 
   const startTour = useCallback(() => {
-    if (user) clearFlag(onboardingStorageKey(user.id));
+    if (!user) return;
+    clearFlag(onboardingStorageKey(user.id));
     setActiveModule(null);
     setPromptModule(null);
-    setTourSteps(onboardingSteps);
+    const steps = getShellTourSteps(user.role);
+    const resolved = steps.length ? steps : onboardingSteps;
+    setTourSteps(resolved);
     setStepIndex(0);
     setPhase("tour");
-    goToGlobalStep(0);
-  }, [user, goToGlobalStep]);
+    // Solo asegura el menú expandido (ancho); el puntero abre cada bloque.
+    window.dispatchEvent(new CustomEvent("scheduly:onboarding-expand"));
+    if (pathname !== appRoutes.inicio) {
+      router.push(appRoutes.inicio);
+      window.setTimeout(() => goToGlobalStep(0, resolved), 350);
+    } else {
+      goToGlobalStep(0, resolved);
+    }
+  }, [user, goToGlobalStep, pathname, router]);
 
   const startModuleTour = useCallback(
     (moduleId?: string) => {
       const resolved = resolveModule(moduleId, pathname);
-      if (!resolved) return;
-
-      if (user) clearFlag(moduleTourStorageKey(user.id, resolved.id));
-      setActiveModule(resolved);
-      setTourSteps(resolved.steps);
-      setStepIndex(0);
       setPromptModule(null);
-      setPhase("module-tour");
-
+      setActiveModule(null);
+      if (phaseRef.current === "module-prompt" || phaseRef.current === "module-tour") {
+        setPhase("idle");
+      }
+      // driver.js global (ModuleTutorialOrchestrator)
+      window.dispatchEvent(
+        new CustomEvent("scheduly:start-module-tour", {
+          detail: { moduleId: resolved?.id },
+        }),
+      );
+      if (!resolved) return;
       const targetHref = resolved.match[0];
       if (!targetHref) return;
-      if (targetHref === appRoutes.dashboard || targetHref === "/") {
-        if (pathname !== appRoutes.dashboard) router.push(appRoutes.dashboard);
+      if (
+        targetHref === appRoutes.dashboard ||
+        targetHref === appRoutes.inicio ||
+        targetHref === "/"
+      ) {
+        if (pathname !== targetHref && targetHref !== "/") {
+          router.push(targetHref === "/" ? appRoutes.inicio : targetHref);
+        } else if (targetHref === "/" && pathname !== appRoutes.inicio) {
+          router.push(appRoutes.inicio);
+        }
         return;
       }
       if (pathname !== targetHref && !pathname.startsWith(`${targetHref}/`)) {
         router.push(targetHref);
       }
     },
-    [pathname, router, user],
+    [pathname, router],
   );
 
   const complete = useCallback(() => {

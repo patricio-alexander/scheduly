@@ -114,7 +114,13 @@ export function canAccessSystemModule(role: string | null | undefined): boolean 
   return isOwnerRole(role);
 }
 
+/** Dueña gestiona; Programador también (bootstrap Dueña + ver roles/cuentas). */
 export function canManageUsers(role: string | null | undefined): boolean {
+  return isOwnerRole(role) || isProgrammerRole(role);
+}
+
+/** Alta/edición de roles de negocio: solo Dueña. */
+export function canEditRoles(role: string | null | undefined): boolean {
   return isOwnerRole(role);
 }
 
@@ -122,10 +128,18 @@ export function canTransferStock(role: string | null | undefined): boolean {
   return isManagementRole(role);
 }
 
-/** Rutas permitidas para Programador (área Sistema completa). */
+/** Rutas permitidas para Programador. */
 export function isProgrammerAllowedPath(pathname: string): boolean {
   return (
+    pathname === "/inicio" ||
+    pathname === "/panel" ||
     pathname === "/sistema" ||
-    pathname.startsWith("/sistema/")
+    pathname.startsWith("/sistema/") ||
+    pathname === "/administracion/usuarios" ||
+    pathname === "/administracion/cuentas" ||
+    pathname === "/administracion/roles" ||
+    pathname.startsWith("/administracion/usuarios/") ||
+    pathname.startsWith("/administracion/cuentas/") ||
+    pathname.startsWith("/administracion/roles/")
   );
 }

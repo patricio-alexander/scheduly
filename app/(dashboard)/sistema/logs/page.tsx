@@ -25,6 +25,8 @@ type LogRow = {
   description: string | null;
   system: string | null;
   date: string;
+  ip?: string | null;
+  browser?: string | null;
 };
 
 const METHODS = ["ALL", "POST", "PUT", "PATCH", "DELETE"] as const;
@@ -128,10 +130,12 @@ export default function SystemLogsPage() {
     },
     {
       id: "date",
-      label: "Fecha",
+      label: "Fecha / hora",
       getSearchValue: (r) => r.date,
       render: (r) => (
-        <span className="font-mono text-xs">{formatDateTime(r.date)}</span>
+        <span className="font-mono text-xs whitespace-nowrap">
+          {formatDateTime(r.date)}
+        </span>
       ),
     },
     {
@@ -143,20 +147,53 @@ export default function SystemLogsPage() {
       ),
     },
     {
-      id: "endPoint",
-      label: "Ruta",
-      getSearchValue: (r) => r.endPoint ?? "",
+      id: "action",
+      label: "Acción",
+      getSearchValue: (r) => r.action ?? "",
       render: (r) => (
-        <span className="block max-w-[220px] truncate text-xs" title={r.endPoint ?? ""}>
-          {r.endPoint ?? "—"}
+        <span className="text-xs font-medium">{displayLogAction(r.action)}</span>
+      ),
+    },
+    {
+      id: "description",
+      label: "Detalle",
+      getSearchValue: (r) => r.description ?? "",
+      render: (r) => (
+        <span
+          className="block max-w-[320px] truncate text-xs"
+          title={r.description ?? ""}
+        >
+          {r.description ?? "—"}
         </span>
       ),
     },
     {
-      id: "action",
-      label: "Acción",
-      getSearchValue: (r) => r.action ?? "",
-      render: (r) => displayLogAction(r.action),
+      id: "browser",
+      label: "Navegador",
+      getSearchValue: (r) => r.browser ?? r.system ?? "",
+      render: (r) => (
+        <span className="block max-w-[140px] truncate text-xs text-muted" title={r.system ?? ""}>
+          {r.browser || "—"}
+        </span>
+      ),
+    },
+    {
+      id: "ip",
+      label: "IP",
+      getSearchValue: (r) => r.ip ?? "",
+      render: (r) => (
+        <span className="font-mono text-xs">{r.ip || "—"}</span>
+      ),
+    },
+    {
+      id: "endPoint",
+      label: "Ruta",
+      getSearchValue: (r) => r.endPoint ?? "",
+      render: (r) => (
+        <span className="block max-w-[180px] truncate text-xs" title={r.endPoint ?? ""}>
+          {r.endPoint ?? "—"}
+        </span>
+      ),
     },
     {
       id: "ops",
@@ -195,7 +232,7 @@ export default function SystemLogsPage() {
     <div className="flex flex-col gap-4 p-4 sm:p-6">
       <PageHeader
         title="Logs del sistema"
-        description="Todo lo que se mueve con escritura (POST, PUT, PATCH, DELETE). Sin GET ni OPTIONS."
+        description="Mutaciones HTTP con hora, quién, IP, navegador y User-Agent (estilo EdDeli enriquecido)."
         icon={<Database width={22} height={22} />}
         action={
           <div className="flex flex-wrap gap-2">
@@ -266,10 +303,18 @@ export default function SystemLogsPage() {
                     </div>
                     <div>
                       <dt className="text-xs text-muted">Descripción</dt>
-                      <dd>{selected.description || "—"}</dd>
+                      <dd className="whitespace-pre-wrap">{selected.description || "—"}</dd>
                     </div>
                     <div>
-                      <dt className="text-xs text-muted">Sistema (User-Agent)</dt>
+                      <dt className="text-xs text-muted">IP</dt>
+                      <dd className="font-mono text-xs">{selected.ip || "—"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted">Navegador</dt>
+                      <dd className="text-xs">{selected.browser || "—"}</dd>
+                    </div>
+                    <div>
+                      <dt className="text-xs text-muted">Cliente (IP · navegador · User-Agent)</dt>
                       <dd className="break-all text-xs text-muted">
                         {selected.system || "—"}
                       </dd>

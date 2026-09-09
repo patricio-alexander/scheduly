@@ -11,6 +11,10 @@ import {
 } from "../lib/task-status";
 import type { Task, TaskFormData } from "../types";
 import { SelectField } from "@/shared/components/SelectField";
+import {
+  ENTITY_FIELD_CLASS,
+  ENTITY_FORM_CLASS,
+} from "@/shared/components/entity-modal";
 
 interface AssigneeOption {
   id: number;
@@ -73,37 +77,37 @@ export function TaskForm({
           dueDate: data.dueDate || null,
         });
       })}
-      className="flex flex-col gap-4"
+      className={ENTITY_FORM_CLASS}
     >
-      <div className="flex flex-col gap-1">
-        <label htmlFor="title" className="text-sm font-medium">
+      <div className="flex flex-col gap-0.5" data-tour="tasks-form-title">
+        <label htmlFor="title" className="font-medium">
           Título
         </label>
         <input
           id="title"
-          placeholder="Ej: Reponer shampoo, limpiar estación..."
-          className="rounded-xl border border-separator bg-field-background px-3 py-2 text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
+          placeholder="Ej: Reponer shampoo…"
+          className={ENTITY_FIELD_CLASS}
           {...register("title")}
         />
         {errors.title && (
-          <p className="text-xs text-danger">{errors.title.message}</p>
+          <p className="text-danger">{errors.title.message}</p>
         )}
       </div>
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="description" className="text-sm font-medium">
+      <div className="flex flex-col gap-0.5" data-tour="tasks-form-description">
+        <label htmlFor="description" className="font-medium">
           Descripción
         </label>
         <textarea
           id="description"
-          rows={3}
+          rows={2}
           placeholder="Detalles opcionales"
-          className="resize-none rounded-xl border border-separator bg-field-background px-3 py-2 text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
+          className={`${ENTITY_FIELD_CLASS} resize-none`}
           {...register("description")}
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-2.5">
         <Controller
           name="status"
           control={control}
@@ -119,7 +123,6 @@ export function TaskForm({
             />
           )}
         />
-
         <Controller
           name="priority"
           control={control}
@@ -137,7 +140,7 @@ export function TaskForm({
         />
       </div>
 
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+      <div className="grid grid-cols-2 gap-2.5">
         <Controller
           name="assigneeId"
           control={control}
@@ -163,15 +166,14 @@ export function TaskForm({
             />
           )}
         />
-
-        <div className="flex flex-col gap-1">
-          <label htmlFor="dueDate" className="text-sm font-medium">
+        <div className="flex flex-col gap-0.5">
+          <label htmlFor="dueDate" className="font-medium">
             Fecha límite
           </label>
           <input
             id="dueDate"
             type="date"
-            className="rounded-xl border border-separator bg-field-background px-3 py-2 text-field-foreground focus:outline-none focus:ring-2 focus:ring-focus"
+            className={ENTITY_FIELD_CLASS}
             {...register("dueDate", {
               setValueAs: (v) => (v === "" || v == null ? null : String(v)),
             })}

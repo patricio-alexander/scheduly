@@ -20,6 +20,11 @@ import {
   normalizeAgendaHours,
 } from "@/shared/utils/agenda-hours";
 import {
+  DEFAULT_PAYROLL_SETTINGS,
+  WEEKDAY_OPTIONS,
+  normalizePayrollSettings,
+} from "@/shared/utils/payroll-settings";
+import {
   SettingsRow,
   SettingsSection,
   SettingsSwitch,
@@ -36,6 +41,12 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
   const [cashRegisterMode, setCashRegisterMode] = useState<CashRegisterMode>(
     DEFAULT_CASH_REGISTER_MODE,
   );
+  const [payrollWeekStartDay, setPayrollWeekStartDay] = useState(
+    DEFAULT_PAYROLL_SETTINGS.payrollWeekStartDay,
+  );
+  const [payrollAllowBranchAdmin, setPayrollAllowBranchAdmin] = useState(
+    DEFAULT_PAYROLL_SETTINGS.payrollAllowBranchAdmin,
+  );
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [dirty, setDirty] = useState(false);
@@ -51,6 +62,8 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
           bookingStartHour?: unknown;
           bookingEndHour?: unknown;
           cashRegisterMode?: unknown;
+          payrollWeekStartDay?: unknown;
+          payrollAllowBranchAdmin?: unknown;
         };
         if (!cancelled) {
           setFlags(normalizeOperationFlags(json.operationFlags));
@@ -63,6 +76,18 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
           setCashRegisterMode(
             normalizeCashRegisterMode(json.cashRegisterMode),
           );
+          const payroll = normalizePayrollSettings({
+            payrollWeekStartDay:
+              typeof json.payrollWeekStartDay === "number"
+                ? json.payrollWeekStartDay
+                : undefined,
+            payrollAllowBranchAdmin:
+              typeof json.payrollAllowBranchAdmin === "boolean"
+                ? json.payrollAllowBranchAdmin
+                : undefined,
+          });
+          setPayrollWeekStartDay(payroll.payrollWeekStartDay);
+          setPayrollAllowBranchAdmin(payroll.payrollAllowBranchAdmin);
           setDirty(false);
         }
       })
@@ -94,6 +119,8 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
           bookingStartHour,
           bookingEndHour,
           cashRegisterMode,
+          payrollWeekStartDay,
+          payrollAllowBranchAdmin,
         }),
       });
       if (!res.ok) {
@@ -107,6 +134,8 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
         bookingStartHour?: unknown;
         bookingEndHour?: unknown;
         cashRegisterMode?: unknown;
+        payrollWeekStartDay?: unknown;
+        payrollAllowBranchAdmin?: unknown;
       };
       setFlags(normalizeOperationFlags(json.operationFlags));
       const hours = normalizeAgendaHours({
@@ -116,6 +145,18 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
       setBookingStartHour(hours.bookingStartHour);
       setBookingEndHour(hours.bookingEndHour);
       setCashRegisterMode(normalizeCashRegisterMode(json.cashRegisterMode));
+      const payroll = normalizePayrollSettings({
+        payrollWeekStartDay:
+          typeof json.payrollWeekStartDay === "number"
+            ? json.payrollWeekStartDay
+            : undefined,
+        payrollAllowBranchAdmin:
+          typeof json.payrollAllowBranchAdmin === "boolean"
+            ? json.payrollAllowBranchAdmin
+            : undefined,
+      });
+      setPayrollWeekStartDay(payroll.payrollWeekStartDay);
+      setPayrollAllowBranchAdmin(payroll.payrollAllowBranchAdmin);
       setDirty(false);
       toast.success("Configuración guardada");
     } catch (err: unknown) {
@@ -174,7 +215,7 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
           </SettingsSection>
           <SettingsSection
             title="Caja POS"
-            hint="Botones de crear y editar productos en el punto de venta."
+            hint="Qué controles de producto y stock aparecen en el punto de venta."
           >
             <SettingsRow
               label="Crear producto desde caja"
@@ -193,6 +234,26 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
                 <SettingsSwitch
                   checked={flags.cajaAllowEditProductFromCart}
                   onChange={(v) => setFlag("cajaAllowEditProductFromCart", v)}
+                />
+              }
+            />
+            <SettingsRow
+              label="Mostrar stock en caja"
+              description="Checkbox «Mostrar stock» para ver existencias en el carrito y el buscador."
+              control={
+                <SettingsSwitch
+                  checked={flags.cajaShowStockToggle}
+                  onChange={(v) => setFlag("cajaShowStockToggle", v)}
+                />
+              }
+            />
+            <SettingsRow
+              label="Autocompletar stock"
+              description="Icono en el carrito para poner la cantidad igual al stock disponible."
+              control={
+                <SettingsSwitch
+                  checked={flags.cajaAllowAutocompleteStock}
+                  onChange={(v) => setFlag("cajaAllowAutocompleteStock", v)}
                 />
               }
             />
@@ -404,8 +465,47 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
             />
           </SettingsSection>
           <SettingsSection
+            title="Liquidación semanal"
+            hint="Semana laboral y quién puede armar el pago semanal."
+          >
+            <SettingsRow
+              label="Inicio de semana"
+              description="Por defecto lunes → domingo. La dueña puede cambiar el día de inicio."
+              control={
+                <select
+                  className="w-full max-w-[14rem] rounded-lg border border-separator bg-field-background px-2 py-1.5 text-sm"
+                  value={payrollWeekStartDay}
+                  onChange={(e) => {
+                    setPayrollWeekStartDay(Number(e.target.value));
+                    setDirty(true);
+                  }}
+                  aria-label="Día inicio semana liquidación"
+                >
+                  {WEEKDAY_OPTIONS.map((d) => (
+                    <option key={d.value} value={d.value}>
+                      {d.label}
+                    </option>
+                  ))}
+                </select>
+              }
+            />
+            <SettingsRow
+              label="Admin puede armar liquidación"
+              description="Ahora deshabilitado: solo la dueña. Si lo activás, cada admin arma la de su sucursal."
+              control={
+                <SettingsSwitch
+                  checked={payrollAllowBranchAdmin}
+                  onChange={(v) => {
+                    setPayrollAllowBranchAdmin(v);
+                    setDirty(true);
+                  }}
+                />
+              }
+            />
+          </SettingsSection>
+          <SettingsSection
             title="Caja POS"
-            hint="Activá o desactivá crear y editar productos desde caja."
+            hint="Qué controles de producto y stock aparecen en el punto de venta."
           >
             <SettingsRow
               label="Crear producto desde caja"
@@ -426,6 +526,26 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
                 <SettingsSwitch
                   checked={flags.cajaAllowEditProductFromCart}
                   onChange={(v) => setFlag("cajaAllowEditProductFromCart", v)}
+                />
+              }
+            />
+            <SettingsRow
+              label="Mostrar stock en caja"
+              description="Checkbox «Mostrar stock» en el listado de venta."
+              control={
+                <SettingsSwitch
+                  checked={flags.cajaShowStockToggle}
+                  onChange={(v) => setFlag("cajaShowStockToggle", v)}
+                />
+              }
+            />
+            <SettingsRow
+              label="Autocompletar stock"
+              description="Icono para igualar la cantidad al stock disponible."
+              control={
+                <SettingsSwitch
+                  checked={flags.cajaAllowAutocompleteStock}
+                  onChange={(v) => setFlag("cajaAllowAutocompleteStock", v)}
                 />
               }
             />
@@ -462,7 +582,7 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
         </>
       ) : null}
 
-      <div className="sticky bottom-4 z-10 flex justify-end">
+      <div className="sticky bottom-4 z-10 flex justify-end" data-tour="settings-flags-save">
         <Button
           variant="primary"
           isDisabled={!dirty || saving}

@@ -25,6 +25,7 @@ import {
   type AdminSeed,
   type StoryScene,
 } from "./shared";
+import { botConcurrency, mapPool } from "../../lib/map-pool";
 
 export async function runOneAdminReview(
   admin: AdminSeed,
@@ -236,17 +237,16 @@ export async function runOneAdminReview(
 
 export async function runAllAdminsReview() {
   const baseUrl = getSchedulyBaseUrl();
+  const concurrency = botConcurrency(2);
   console.log("");
   console.log(
-    `${c.brightYellow}${c.bold}Tour Admin · revisión TODOS (${AG_ADMINS.length})${c.reset}`,
+    `${c.brightYellow}${c.bold}Tour Admin · revisión TODOS (${AG_ADMINS.length}) · cola ${concurrency}${c.reset}`,
   );
   console.log("");
 
   const started = Date.now();
-  const results = await Promise.all(
-    AG_ADMINS.map((a) =>
-      runOneAdminReview(a, { quiet: true, skipHistory: true }),
-    ),
+  const results = await mapPool(AG_ADMINS, concurrency, (a) =>
+    runOneAdminReview(a, { quiet: true, skipHistory: true }),
   );
   const ms = Date.now() - started;
 

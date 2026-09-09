@@ -25,14 +25,26 @@ import {
   type CashRegisterMode,
   DEFAULT_CASH_REGISTER_MODE,
 } from "@/shared/utils/cash-register-mode";
+import {
+  DEFAULT_PAYROLL_SETTINGS,
+  normalizePayrollSettings,
+  payrollSettingsFromReceiptSettings,
+  type PayrollSettings,
+} from "@/shared/utils/payroll-settings";
 
-export type { BusinessProfile, ThemeColors, AgendaHours, CashRegisterMode };
-export { DEFAULT_BUSINESS_NAME, DEFAULT_THEME_COLORS, DEFAULT_CASH_REGISTER_MODE };
+export type { BusinessProfile, ThemeColors, AgendaHours, CashRegisterMode, PayrollSettings };
+export {
+  DEFAULT_BUSINESS_NAME,
+  DEFAULT_THEME_COLORS,
+  DEFAULT_CASH_REGISTER_MODE,
+  DEFAULT_PAYROLL_SETTINGS,
+};
 
 export type BusinessSettingsFull = BusinessProfile & {
   operationFlags: OperationFlags;
   cashRegisterMode: CashRegisterMode;
-} & AgendaHours;
+} & AgendaHours &
+  PayrollSettings;
 
 async function ensureAppSettings() {
   const existing = await prisma.appSettings.findUnique({ where: { id: 1 } });
@@ -84,6 +96,7 @@ function toProfile(
   const cashRegisterMode = cashRegisterModeFromReceiptSettings(
     app.receiptDetailSettings,
   );
+  const payroll = payrollSettingsFromReceiptSettings(app.receiptDetailSettings);
   return {
     businessName: app.name || DEFAULT_BUSINESS_NAME,
     address: sri.matrixAddress ?? sri.establishmentAddress ?? "",
@@ -95,6 +108,7 @@ function toProfile(
     operationFlags: normalizeOperationFlags(app.operationFlags),
     ...hours,
     cashRegisterMode,
+    ...payroll,
   };
 }
 
@@ -133,6 +147,8 @@ export async function updateBusinessSettings(input: {
   bookingStartHour?: number;
   bookingEndHour?: number;
   cashRegisterMode?: CashRegisterMode;
+  payrollWeekStartDay?: number;
+  payrollAllowBranchAdmin?: boolean;
 }): Promise<BusinessSettingsFull> {
   const businessName = input.businessName.trim() || DEFAULT_BUSINESS_NAME;
   const address = input.address.trim();
@@ -162,9 +178,23 @@ export async function updateBusinessSettings(input: {
       ? input.cashRegisterMode
       : current.cashRegisterMode,
   );
+  const payroll = normalizePayrollSettings({
+    payrollWeekStartDay:
+      input.payrollWeekStartDay !== undefined
+        ? input.payrollWeekStartDay
+        : current.payrollWeekStartDay,
+    payrollAllowBranchAdmin:
+      input.payrollAllowBranchAdmin !== undefined
+        ? input.payrollAllowBranchAdmin
+        : current.payrollAllowBranchAdmin,
+  });
   const receiptDetailSettings = mergeOpsIntoReceiptSettings(
     mergeAgendaHoursIntoReceiptSettings(currentApp.receiptDetailSettings, hours),
-    { cashRegisterMode },
+    {
+      cashRegisterMode,
+      payrollWeekStartDay: payroll.payrollWeekStartDay,
+      payrollAllowBranchAdmin: payroll.payrollAllowBranchAdmin,
+    },
   );
 
   const [app, sri] = await Promise.all([

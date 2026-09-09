@@ -5,13 +5,21 @@ import { usePathname } from "next/navigation";
 import { AppHeader, SIDEBAR_COLLAPSED_KEY } from "@/shared/components/AppHeader";
 import { Sidebar } from "@/shared/components/Sidebar";
 import { appRoutes } from "@/shared/utils/app-routes";
+import {
+  ModuleTutorialOrchestrator,
+  TutorialsReturnBridge,
+} from "@/src/features/tutorials";
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const compactMain = pathname.startsWith(appRoutes.operation.cash);
+  const isInicio = pathname === appRoutes.inicio;
   const mainPad = compactMain
     ? "p-2 sm:p-2.5 md:p-3"
-    : "p-4 sm:p-5 md:p-6 lg:p-8";
+    : isInicio
+      ? "p-0"
+      : "p-4 sm:p-5 md:p-6 lg:p-8";
+  const mainOverflow = isInicio ? "overflow-hidden" : "overflow-y-auto";
   const [collapsed, setCollapsed] = useState(false);
   const [ready, setReady] = useState(false);
 
@@ -46,7 +54,7 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <div className="h-14 border-b border-separator bg-surface" />
         <div className="flex min-h-0 flex-1">
           <div className="w-64 border-r border-separator bg-surface" />
-          <main className={`dashboard-main flex-1 min-h-0 overflow-y-auto bg-background ${mainPad}`}>
+          <main className={`dashboard-main flex-1 min-h-0 ${mainOverflow} bg-background ${mainPad}`}>
             {children}
           </main>
         </div>
@@ -61,10 +69,12 @@ export function DashboardShell({ children }: { children: React.ReactNode }) {
         <Suspense fallback={null}>
           <Sidebar collapsed={collapsed} />
         </Suspense>
-        <main className={`dashboard-main flex-1 min-h-0 overflow-y-auto bg-background ${mainPad}`}>
+        <main className={`dashboard-main flex-1 min-h-0 ${mainOverflow} bg-background ${mainPad}`}>
           {children}
         </main>
       </div>
+      <ModuleTutorialOrchestrator />
+      <TutorialsReturnBridge />
     </div>
   );
 }

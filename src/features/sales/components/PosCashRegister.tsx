@@ -20,6 +20,7 @@ import PersonPlus from "@gravity-ui/icons/PersonPlus";
 import SquarePlus from "@gravity-ui/icons/SquarePlus";
 import Pencil from "@gravity-ui/icons/Pencil";
 import TrashBin from "@gravity-ui/icons/TrashBin";
+import Boxes3 from "@gravity-ui/icons/Boxes3";
 import { useAuth } from "@/src/features/auth";
 import {
   CustomerForm,
@@ -177,7 +178,7 @@ export function PosCashRegister() {
   const [cart, setCart] = useState<CartRow[]>([]);
   const [productInput, setProductInput] = useState("");
   const [productPickerKey, setProductPickerKey] = useState(0);
-  const [showStock, setShowStock] = useState(false);
+  const [showStock, setShowStock] = useState(true);
   const [documentType, setDocumentType] = useState<DocumentType>("documento");
   const [saleType, setSaleType] = useState<SaleType>("contado");
   const [creditMode, setCreditMode] = useState<CreditPlanMode>("open");
@@ -195,6 +196,13 @@ export function PosCashRegister() {
 
   const allowCreateProduct = flags.cajaAllowCreateProductFromSelect;
   const allowEditProduct = flags.cajaAllowEditProductFromCart;
+  const allowShowStockToggle = flags.cajaShowStockToggle;
+  const allowAutocompleteStock = flags.cajaAllowAutocompleteStock;
+  const stockVisible = allowShowStockToggle && showStock;
+
+  useEffect(() => {
+    if (!allowShowStockToggle) setShowStock(false);
+  }, [allowShowStockToggle]);
 
   const openShift = cash?.openShifts[0] ?? null;
 
@@ -505,11 +513,17 @@ export function PosCashRegister() {
 
   const needCustomer =
     useCustomerData || documentType === "factura" || saleType === "credito";
-  const colCount = showStock ? 8 : 7;
+  const colCount = stockVisible ? 8 : 7;
 
   return (
-    <div className="mx-auto w-full max-w-[1400px] pb-2 text-[12px] leading-snug [&_label]:text-[11px] [&_input]:text-[12px] [&_button]:text-[12px]">
-      <div className="mb-1 flex flex-wrap items-center justify-between gap-1.5">
+    <div
+      className="mx-auto w-full max-w-[1400px] pb-2 text-[12px] leading-snug [&_label]:text-[11px] [&_input]:text-[12px] [&_button]:text-[12px]"
+      data-tour="caja-root"
+    >
+      <div
+        className="mb-1 flex flex-wrap items-center justify-between gap-1.5"
+        data-tour="caja-header"
+      >
         <div className="flex flex-wrap items-center gap-1.5">
           <h1 className="text-sm font-bold tracking-tight sm:text-base">
             Punto de Venta
@@ -569,7 +583,10 @@ export function PosCashRegister() {
           </p>
 
           <div className="mb-1.5 flex flex-col gap-1.5 md:flex-row md:items-end">
-            <div className="flex min-w-0 flex-1 items-end gap-1">
+            <div
+              className="flex min-w-0 flex-1 items-end gap-1"
+              data-tour="caja-product-search"
+            >
               <div className="min-w-0 flex-1">
               <ComboBox
                 key={productPickerKey}
@@ -598,7 +615,7 @@ export function PosCashRegister() {
                           <span className="truncate">{p.name}</span>
                           <span className="shrink-0 text-[11px] text-muted tabular-nums">
                             {formatMoney(p.price)}
-                            {showStock ? ` · stk ${p.stock}` : ""}
+                            {stockVisible ? ` · stk ${p.stock}` : ""}
                           </span>
                         </span>
                         <ListBox.ItemIndicator />
@@ -615,13 +632,19 @@ export function PosCashRegister() {
                   variant="secondary"
                   className="mb-0.5 shrink-0"
                   aria-label="Crear producto"
+                  data-tour="caja-create-product"
                   onPress={openCreateProduct}
                 >
                   <SquarePlus width={16} height={16} />
                 </Button>
               ) : null}
             </div>
-            <Button size="sm" variant="secondary" onPress={() => quickModal.open()}>
+            <Button
+              size="sm"
+              variant="secondary"
+              data-tour="caja-quick-access"
+              onPress={() => quickModal.open()}
+            >
               <LayoutCellsLarge width={14} height={14} />
               Accesos rápidos
             </Button>
@@ -630,11 +653,18 @@ export function PosCashRegister() {
           <div className="mb-1.5 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
             <div className="flex flex-wrap items-center gap-3 text-[12px] text-muted">
               <span>Registros en venta: {cart.length}</span>
-              <PosCheckbox checked={showStock} onChange={setShowStock}>
-                Mostrar stock
-              </PosCheckbox>
+              {allowShowStockToggle ? (
+                <span data-tour="caja-show-stock">
+                  <PosCheckbox checked={showStock} onChange={setShowStock}>
+                    Mostrar stock
+                  </PosCheckbox>
+                </span>
+              ) : null}
             </div>
-            <div className="flex shrink-0 flex-wrap gap-1.5">
+            <div
+              className="flex shrink-0 flex-wrap gap-1.5"
+              data-tour="caja-sell-actions"
+            >
               <Button
                 size="sm"
                 variant="primary"
@@ -655,13 +685,16 @@ export function PosCashRegister() {
             </div>
           </div>
 
-          <div className="overflow-x-auto rounded-lg border border-separator">
+          <div
+            className="overflow-x-auto rounded-lg border border-separator"
+            data-tour="caja-cart"
+          >
             <table className="w-full min-w-[640px] text-left text-[12px]">
               <thead className="border-b border-separator bg-surface-secondary/60 text-[11px] text-muted">
                 <tr>
                   <th className="px-2.5 py-1.5 font-medium">Código</th>
                   <th className="px-2.5 py-1.5 font-medium">Producto</th>
-                  {showStock ? (
+                  {stockVisible ? (
                     <th className="px-2.5 py-1.5 text-center font-medium">Stock</th>
                   ) : null}
                   <th className="px-2.5 py-1.5 text-center font-medium">Cantidad</th>
@@ -693,7 +726,7 @@ export function PosCashRegister() {
                           {row.code || "—"}
                         </td>
                         <td className="px-2.5 py-1 font-medium">{row.name}</td>
-                        {showStock ? (
+                        {stockVisible ? (
                           <td className="px-2.5 py-1 text-center tabular-nums">
                             {row.stock}
                           </td>
@@ -728,12 +761,30 @@ export function PosCashRegister() {
                         </td>
                         <td className="px-2.5 py-1 text-center">
                           <div className="inline-flex items-center justify-center gap-0.5">
+                            {allowAutocompleteStock ? (
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="ghost"
+                                aria-label="Autocompletar stock"
+                                title="Poner cantidad = stock disponible"
+                                data-tour="caja-autocomplete-stock"
+                                onPress={() =>
+                                  updateRow(row.key, {
+                                    quantity: Math.max(0, Number(row.stock) || 0),
+                                  })
+                                }
+                              >
+                                <Boxes3 width={13} height={13} />
+                              </Button>
+                            ) : null}
                             {allowEditProduct ? (
                               <Button
                                 isIconOnly
                                 size="sm"
                                 variant="ghost"
                                 aria-label="Editar producto"
+                                data-tour="caja-edit-product"
                                 onPress={() => openEditProduct(row.productId)}
                               >
                                 <Pencil width={13} height={13} />

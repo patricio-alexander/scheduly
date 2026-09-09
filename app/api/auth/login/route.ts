@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { loginSchema } from "@/src/features/auth/lib/auth-schema";
 import { hashPassword, isBcryptHash, verifyPassword } from "@/shared/utils/password";
-import { buildAuthCookie, clearAuthCookieLegacyBasePath } from "@/shared/utils/check-auth";
+import { buildAuthCookie, applyClearAuthCookies } from "@/shared/utils/check-auth";
 import { serializeAuthUser } from "@/shared/utils/auth-user";
 
 export async function POST(request: Request) {
@@ -35,9 +35,8 @@ export async function POST(request: Request) {
     }
 
     const response = NextResponse.json(authUser);
-    // Quita cookie vieja con Path=/scheduly si existía
-    const legacy = clearAuthCookieLegacyBasePath();
-    if (legacy) response.cookies.set(legacy);
+    // Limpia cookies viejas (otros path/secure) antes de setear la nueva
+    applyClearAuthCookies(response);
     response.cookies.set(buildAuthCookie(account.id));
     return response;
   } catch (error) {

@@ -16,6 +16,7 @@ import {
   isManagementRole,
   isOwnerRole,
   isProgrammerRole,
+  isPureEmployeeRole,
   hasEmployeeExperience,
 } from "@/shared/utils/roles";
 import { appRoutes } from "@/shared/utils/app-routes";
@@ -24,6 +25,7 @@ import {
   type NavItem,
   type NavModule,
 } from "@/shared/components/nav-config";
+import { filterVisibleModules, navItemLabelForRole } from "@/shared/utils/nav-visibility";
 
 const MODULES_STORAGE_KEY = "scheduly-sidebar-modules";
 
@@ -41,8 +43,8 @@ function isRouteActive(pathname: string, href: string, search = "") {
   const wantedQuery = hrefQuery(href);
   const currentSearch = search.startsWith("?") ? search : search ? `?${search}` : "";
 
-  if (path === appRoutes.dashboard) {
-    return pathname === appRoutes.dashboard && !wantedQuery;
+  if (path === appRoutes.inicio || path === appRoutes.dashboard) {
+    return pathname === path && !wantedQuery;
   }
 
   const pathMatches = pathname === path || pathname.startsWith(`${path}/`);
@@ -141,7 +143,11 @@ function NavButton({
 }) {
   const title = statusLabel && label ? `${label} · ${statusLabel}` : label;
   return (
-    <div className="relative w-full" title={collapsed ? title : undefined} data-onboarding={tourId}>
+    <div
+      className="relative w-full"
+      title={collapsed ? title : undefined}
+      data-onboarding={tourId}
+    >
       <Button
         variant={isActive ? "secondary" : "ghost"}
         className={`relative w-full ${collapsed ? "justify-center px-0" : "justify-start"} ${nested && !collapsed ? "pl-8" : ""} ${isActive ? "font-medium" : ""}`}
@@ -168,56 +174,6 @@ function NavButton({
   );
 }
 
-function filterVisibleModules(
-  modules: NavModule[],
-  opts: {
-    isOwner: boolean;
-    isManagement: boolean;
-    isBranchAdmin: boolean;
-    showEmployeeExperience: boolean;
-    isProgrammer: boolean;
-  },
-) {
-  const {
-    isOwner,
-    isManagement,
-    isBranchAdmin,
-    showEmployeeExperience,
-    isProgrammer,
-  } = opts;
-
-  if (isProgrammer) {
-    return modules
-      .filter((mod) => mod.programmerOnly)
-      .map((mod) => ({
-        ...mod,
-        items: mod.items.filter((item) => item.programmerOnly),
-      }))
-      .filter((mod) => mod.items.length > 0);
-  }
-
-  return modules
-    .filter(
-      (mod) =>
-        !mod.programmerOnly &&
-        (!mod.ownerOnly || isOwner) &&
-        (!mod.adminOnly || isManagement) &&
-        (!mod.employeeExperienceOnly || showEmployeeExperience),
-    )
-    .map((mod) => ({
-      ...mod,
-      items: mod.items.filter(
-        (item) =>
-          !item.programmerOnly &&
-          (!item.ownerOnly || isOwner) &&
-          (!item.adminOnly || isManagement) &&
-          (!item.branchAdminOnly || isBranchAdmin) &&
-          (!item.employeeExperienceOnly || showEmployeeExperience),
-      ),
-    }))
-    .filter((mod) => mod.items.length > 0);
-}
-
 type SidebarProps = {
   collapsed: boolean;
 };
@@ -235,6 +191,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
   const isOwner = isOwnerRole(user?.role);
   const isManagement = isManagementRole(user?.role);
   const isBranchAdmin = isBranchAdminRole(user?.role);
+  const isPureEmployee = isPureEmployeeRole(user?.role);
   const showEmployeeExperience = hasEmployeeExperience(user?.role);
   const isProgrammer = isProgrammerRole(user?.role);
 
@@ -242,6 +199,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
     isOwner,
     isManagement,
     isBranchAdmin,
+    isPureEmployee,
     showEmployeeExperience,
     isProgrammer,
   });
@@ -303,6 +261,17 @@ export function Sidebar({ collapsed }: SidebarProps) {
       const moduleId = (event as CustomEvent<{ moduleId?: string }>).detail
         ?.moduleId;
       if (!moduleId) return;
+
+      if (moduleId === "all") {
+        const next: Record<string, boolean> = {};
+        for (const mod of navModules) {
+          next[mod.id] = true;
+        }
+        localStorage.setItem(MODULES_STORAGE_KEY, JSON.stringify(next));
+        setOpenModules(next);
+        return;
+      }
+
       // Compat: tours viejos pedían "dashboard" / "employee"
       const resolved =
         moduleId === "dashboard"
@@ -345,16 +314,12 @@ export function Sidebar({ collapsed }: SidebarProps) {
     });
   };
 
-  const navItemLabel = (item: NavItem) => {
-    if (isBranchAdmin && item.branchAdminLabel) return item.branchAdminLabel;
-    if (showEmployeeExperience && !isBranchAdmin && item.employeeLabel) {
-      return item.employeeLabel;
-    }
-    return item.label;
-  };
+  const navItemLabel = (item: NavItem) =>
+    navItemLabelForRole(item, user?.role);
 
   return (
     <aside
+      data-onboarding="nav-sidebar"
       className={`flex h-full shrink-0 flex-col overflow-hidden border-r border-separator bg-surface transition-[width] duration-200 ease-in-out ${
         collapsed ? "w-[4.5rem]" : "w-64"
       }`}
@@ -440,6 +405,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
             <div key={mod.id} className="flex flex-col gap-1">
               {collapsed ? (
                 <div
+                  data-onboarding={`nav-mod-${mod.id}`}
                   className={`mb-1 flex items-center justify-center ${hasActiveChild ? "text-accent" : "text-muted"}`}
                   title={
                     moduleStatusLabel
@@ -452,6 +418,7 @@ export function Sidebar({ collapsed }: SidebarProps) {
               ) : (
                 <button
                   type="button"
+                  data-onboarding={`nav-mod-${mod.id}`}
                   onClick={() => toggleModule(mod.id)}
                   className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide transition-colors ${
                     hasActiveChild

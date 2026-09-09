@@ -1,0 +1,587 @@
+{
+  "role": "owner",
+  "updatedAt": "2026-09-08T13:07:24.853Z",
+  "runs": 1,
+  "totalProbes": 55,
+  "totalPass": 55,
+  "totalFail": 0,
+  "probes": {
+    "dashboard": {
+      "probeId": "dashboard",
+      "label": "Panel",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:06:58.313Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "notifications": {
+      "probeId": "notifications",
+      "label": "Notificaciones",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:22.391Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "me": {
+      "probeId": "me",
+      "label": "Sesión /api/auth/me",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:19.295Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "inventory-movements": {
+      "probeId": "inventory-movements",
+      "label": "Kardex movimientos",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:12.753Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "appointments": {
+      "probeId": "appointments",
+      "label": "Agenda",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:22.836Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "appointments-mine": {
+      "probeId": "appointments-mine",
+      "label": "Mi agenda",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:06:43.676Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "services": {
+      "probeId": "services",
+      "label": "Servicios",
+      "hits": 3,
+      "pass": 3,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:17.146Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "customers": {
+      "probeId": "customers",
+      "label": "Clientes",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:11.303Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "shifts-active": {
+      "probeId": "shifts-active",
+      "label": "Turno activo",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:07.397Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "cash": {
+      "probeId": "cash",
+      "label": "Caja",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:16.223Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "pos-sales": {
+      "probeId": "pos-sales",
+      "label": "Ventas POS",
+      "hits": 3,
+      "pass": 3,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:24.390Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "finance-summary": {
+      "probeId": "finance-summary",
+      "label": "Finanzas resumen",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:12.285Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "finance-incomes": {
+      "probeId": "finance-incomes",
+      "label": "Finanzas ingresos",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:21.940Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "finance-expenses": {
+      "probeId": "finance-expenses",
+      "label": "Finanzas gastos",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:18.797Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "users": {
+      "probeId": "users",
+      "label": "Cuentas / users",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:06:55.425Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "settings": {
+      "probeId": "settings",
+      "label": "Settings",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:01.027Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "branches": {
+      "probeId": "branches",
+      "label": "Sucursales",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:10.794Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "suppliers": {
+      "probeId": "suppliers",
+      "label": "Proveedores",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:01.539Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "roles": {
+      "probeId": "roles",
+      "label": "Roles",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:23.323Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "products": {
+      "probeId": "products",
+      "label": "Productos",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:18.167Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "purchases": {
+      "probeId": "purchases",
+      "label": "Compras",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:17.615Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "orders-calendar": {
+      "probeId": "orders-calendar",
+      "label": "Pedidos calendario",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:06.935Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "finance-collections": {
+      "probeId": "finance-collections",
+      "label": "Cobranzas workbench",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:20.298Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "backups-list": {
+      "probeId": "backups-list",
+      "label": "Backups (dueña)",
+      "hits": 3,
+      "pass": 3,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:23.900Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "sri": {
+      "probeId": "sri",
+      "label": "SRI config",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:16.679Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    },
+    "system-logs": {
+      "probeId": "system-logs",
+      "label": "Logs del sistema (programador/dueña)",
+      "hits": 2,
+      "pass": 2,
+      "fail": 0,
+      "lastStatus": 200,
+      "lastAt": "2026-09-08T13:07:19.734Z",
+      "lastNote": "OK acceso HTTP 200",
+      "confidence": 1
+    }
+  },
+  "uiVisited": {
+    "panel": {
+      "routeId": "panel",
+      "href": "/panel",
+      "hits": 1,
+      "lastAt": "2026-09-08T13:06:26.998Z"
+    },
+    "agenda": {
+      "routeId": "agenda",
+      "href": "/operacion/agenda",
+      "hits": 1,
+      "lastAt": "2026-09-08T13:06:33.647Z"
+    },
+    "caja": {
+      "routeId": "caja",
+      "href": "/operacion/caja",
+      "hits": 1,
+      "lastAt": "2026-09-08T13:06:38.866Z"
+    },
+    "finanzas": {
+      "routeId": "finanzas",
+      "href": "/finanzas/centro",
+      "hits": 1,
+      "lastAt": "2026-09-08T13:06:44.078Z"
+    },
+    "config": {
+      "routeId": "config",
+      "href": "/sistema/configuracion",
+      "hits": 1,
+      "lastAt": "2026-09-08T13:06:51.029Z"
+    },
+    "cuentas": {
+      "routeId": "cuentas",
+      "href": "/administracion/cuentas",
+      "hits": 1,
+      "lastAt": "2026-09-08T13:06:55.208Z"
+    },
+    "catalogo": {
+      "routeId": "catalogo",
+      "href": "/catalogo/productos",
+      "hits": 1,
+      "lastAt": "2026-09-08T13:06:58.715Z"
+    },
+    "compras": {
+      "routeId": "compras",
+      "href": "/compras/proveedores",
+      "hits": 1,
+      "lastAt": "2026-09-08T13:07:01.430Z"
+    },
+    "cobranzas": {
+      "routeId": "cobranzas",
+      "href": "/finanzas/cobranzas",
+      "hits": 1,
+      "lastAt": "2026-09-08T13:07:05.267Z"
+    },
+    "backups": {
+      "routeId": "backups",
+      "href": "/sistema/configuracion?tab=backups",
+      "hits": 2,
+      "lastAt": "2026-09-08T13:07:23.728Z"
+    },
+    "clientes": {
+      "routeId": "clientes",
+      "href": "/ventas/clientes",
+      "hits": 1,
+      "lastAt": "2026-09-08T13:07:11.196Z"
+    },
+    "inventario": {
+      "routeId": "inventario",
+      "href": "/inventario/movimientos",
+      "hits": 1,
+      "lastAt": "2026-09-08T13:07:12.688Z"
+    },
+    "logs": {
+      "routeId": "logs",
+      "href": "/sistema/logs",
+      "hits": 1,
+      "lastAt": "2026-09-08T13:07:15.548Z"
+    },
+    "sri": {
+      "routeId": "sri",
+      "href": "/operacion/comprobantes-pos",
+      "hits": 1,
+      "lastAt": "2026-09-08T13:07:16.625Z"
+    }
+  },
+  "comments": [
+    {
+      "at": "2026-09-08T13:06:26.995Z",
+      "kind": "observe",
+      "text": "Despierta con 0 corridas previas · 0 rutas en memoria"
+    },
+    {
+      "at": "2026-09-08T13:06:26.999Z",
+      "kind": "ui",
+      "text": "Abre /panel · Mira el resumen del negocio / día"
+    },
+    {
+      "at": "2026-09-08T13:06:31.260Z",
+      "kind": "observe",
+      "text": "Notificaciones: vi 15 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:06:33.647Z",
+      "kind": "ui",
+      "text": "Abre /operacion/agenda · Revisa citas y huecos"
+    },
+    {
+      "at": "2026-09-08T13:06:36.551Z",
+      "kind": "observe",
+      "text": "Servicios: vi 42 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:06:38.465Z",
+      "kind": "observe",
+      "text": "Clientes: vi 20 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:06:38.866Z",
+      "kind": "ui",
+      "text": "Abre /operacion/caja · Chequea turno activo y caja"
+    },
+    {
+      "at": "2026-09-08T13:06:44.078Z",
+      "kind": "ui",
+      "text": "Abre /finanzas/centro · Entra al centro financiero"
+    },
+    {
+      "at": "2026-09-08T13:06:50.626Z",
+      "kind": "observe",
+      "text": "Cuentas / users: vi 15 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:06:51.029Z",
+      "kind": "ui",
+      "text": "Abre /sistema/configuracion · Lee settings del negocio (sin tocar aún)"
+    },
+    {
+      "at": "2026-09-08T13:06:52.617Z",
+      "kind": "observe",
+      "text": "Settings: negocio «Andrea Guerrero Estética y Peluquería»"
+    },
+    {
+      "at": "2026-09-08T13:06:53.282Z",
+      "kind": "observe",
+      "text": "Sucursales: vi 2 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:06:54.806Z",
+      "kind": "observe",
+      "text": "Proveedores: vi 3 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:06:55.208Z",
+      "kind": "ui",
+      "text": "Abre /administracion/cuentas · Revisa usuarios del sistema"
+    },
+    {
+      "at": "2026-09-08T13:06:55.425Z",
+      "kind": "observe",
+      "text": "Cuentas / users: vi 15 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:06:56.745Z",
+      "kind": "observe",
+      "text": "Roles: vi 4 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:06:58.715Z",
+      "kind": "ui",
+      "text": "Abre /catalogo/productos · Mira productos y servicios"
+    },
+    {
+      "at": "2026-09-08T13:07:00.031Z",
+      "kind": "observe",
+      "text": "Productos: vi 47 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:00.495Z",
+      "kind": "observe",
+      "text": "Servicios: vi 42 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:01.027Z",
+      "kind": "observe",
+      "text": "Settings: negocio «Andrea Guerrero Estética y Peluquería»"
+    },
+    {
+      "at": "2026-09-08T13:07:01.430Z",
+      "kind": "ui",
+      "text": "Abre /compras/proveedores · Proveedores y compras"
+    },
+    {
+      "at": "2026-09-08T13:07:01.539Z",
+      "kind": "observe",
+      "text": "Proveedores: vi 3 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:05.267Z",
+      "kind": "ui",
+      "text": "Abre /finanzas/cobranzas · Revisa workbench de cobros"
+    },
+    {
+      "at": "2026-09-08T13:07:06.464Z",
+      "kind": "observe",
+      "text": "Cobranzas workbench: vi 20 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:07.798Z",
+      "kind": "ui",
+      "text": "Abre /sistema/configuracion?tab=backups · Lista backups (solo dueña)"
+    },
+    {
+      "at": "2026-09-08T13:07:10.794Z",
+      "kind": "observe",
+      "text": "Sucursales: vi 2 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:11.196Z",
+      "kind": "ui",
+      "text": "Abre /ventas/clientes · Lista clientes del local"
+    },
+    {
+      "at": "2026-09-08T13:07:11.303Z",
+      "kind": "observe",
+      "text": "Clientes: vi 20 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:12.688Z",
+      "kind": "ui",
+      "text": "Abre /inventario/movimientos · Mira movimientos de stock"
+    },
+    {
+      "at": "2026-09-08T13:07:15.548Z",
+      "kind": "ui",
+      "text": "Abre /sistema/logs · Mira mutaciones HTTP recientes"
+    },
+    {
+      "at": "2026-09-08T13:07:15.757Z",
+      "kind": "observe",
+      "text": "Logs del sistema (programador/dueña): vi 33 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:16.625Z",
+      "kind": "ui",
+      "text": "Abre /operacion/comprobantes-pos · Intenta ver config SRI (dueña sí, otros no)"
+    },
+    {
+      "at": "2026-09-08T13:07:17.146Z",
+      "kind": "observe",
+      "text": "Servicios: vi 42 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:18.167Z",
+      "kind": "observe",
+      "text": "Productos: vi 47 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:19.734Z",
+      "kind": "observe",
+      "text": "Logs del sistema (programador/dueña): vi 33 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:20.298Z",
+      "kind": "observe",
+      "text": "Cobranzas workbench: vi 20 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:22.391Z",
+      "kind": "observe",
+      "text": "Notificaciones: vi 15 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:23.323Z",
+      "kind": "observe",
+      "text": "Roles: vi 4 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:23.728Z",
+      "kind": "ui",
+      "text": "Abre /sistema/configuracion?tab=backups · Lista backups (solo dueña)"
+    },
+    {
+      "at": "2026-09-08T13:07:24.852Z",
+      "kind": "summary",
+      "text": "Dueña andrea: 1 min · probes 55 · OK 55 · FAIL 0"
+    }
+  ],
+  "insights": [
+    "Corrida limpia (55 probes) como owner · 2026-09-08"
+  ]
+}

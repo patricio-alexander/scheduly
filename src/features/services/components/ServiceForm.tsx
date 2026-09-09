@@ -1,8 +1,11 @@
 "use client";
 
-import { Controller, useForm } from "react-hook-form";
-import { AppNumberField } from "@/shared/components/AppNumberField";
+import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
+import {
+  ENTITY_FIELD_CLASS,
+  ENTITY_FORM_CLASS,
+} from "@/shared/components/entity-modal";
 import { serviceSchema, type ServiceFormData } from "../lib/service-schema";
 import type { Service } from "../types";
 
@@ -20,7 +23,6 @@ export function ServiceForm({
   const {
     register,
     handleSubmit,
-    control,
     formState: { errors },
   } = useForm<ServiceFormData>({
     resolver: zodResolver(serviceSchema),
@@ -38,90 +40,87 @@ export function ServiceForm({
     <form
       id={formId}
       onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col gap-4"
+      className={ENTITY_FORM_CLASS}
     >
-      <div className="flex flex-col gap-1">
-        <label htmlFor="name" className="text-sm font-medium">
+      <div className="flex flex-col gap-0.5" data-tour="services-form-name">
+        <label htmlFor="name" className="font-medium">
           Nombre del servicio
         </label>
         <input
           id="name"
           placeholder="Corte de cabello"
-          className="px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
+          className={ENTITY_FIELD_CLASS}
           {...register("name")}
         />
         {errors.name && (
-          <p className="text-danger text-sm">
-            {String(errors.name.message ?? "")}
-          </p>
+          <p className="text-danger">{String(errors.name.message ?? "")}</p>
         )}
       </div>
-      <Controller
-        name="price"
-        control={control}
-        render={({ field }) => (
-          <div className="flex flex-col gap-1">
-            <AppNumberField
-              id="price"
-              label="Precio"
-              minValue={0}
-              step={0.01}
-              value={field.value}
-              onChange={field.onChange}
-            />
-            {errors.price && (
-              <p className="text-danger text-sm">
-                {String(errors.price.message ?? "")}
-              </p>
-            )}
-          </div>
-        )}
-      />
-      <Controller
-        name="durationMinutes"
-        control={control}
-        render={({ field }) => (
-          <div className="flex flex-col gap-1">
-            <AppNumberField
-              id="durationMinutes"
-              label="Duración (minutos)"
-              minValue={1}
-              value={field.value}
-              onChange={field.onChange}
-            />
-            {errors.durationMinutes && (
-              <p className="text-danger text-sm">
-                {String(errors.durationMinutes.message ?? "")}
-              </p>
-            )}
-          </div>
-        )}
-      />
-      <Controller
-        name="commissionPct"
-        control={control}
-        render={({ field }) => (
-          <div className="flex flex-col gap-1">
-            <AppNumberField
-              id="commissionPct"
-              label="Comisión del empleado (%)"
-              minValue={0}
-              maxValue={100}
-              step={0.5}
-              value={field.value}
-              onChange={field.onChange}
-            />
-            <p className="text-xs text-muted">
-              Porcentaje que recibe el estilista por realizar este servicio.
+
+      <div className="grid gap-2.5 sm:grid-cols-3">
+        <div className="flex flex-col gap-0.5" data-tour="services-form-price">
+          <label htmlFor="price" className="font-medium">
+            Precio
+          </label>
+          <input
+            id="price"
+            type="number"
+            min={0}
+            step={0.01}
+            className={ENTITY_FIELD_CLASS}
+            {...register("price", { valueAsNumber: true })}
+          />
+          {errors.price && (
+            <p className="text-danger">{String(errors.price.message ?? "")}</p>
+          )}
+        </div>
+        <div
+          className="flex flex-col gap-0.5"
+          data-tour="services-form-duration"
+        >
+          <label htmlFor="durationMinutes" className="font-medium">
+            Duración (min)
+          </label>
+          <input
+            id="durationMinutes"
+            type="number"
+            min={1}
+            step={1}
+            className={ENTITY_FIELD_CLASS}
+            {...register("durationMinutes", { valueAsNumber: true })}
+          />
+          {errors.durationMinutes && (
+            <p className="text-danger">
+              {String(errors.durationMinutes.message ?? "")}
             </p>
-            {errors.commissionPct && (
-              <p className="text-danger text-sm">
-                {String(errors.commissionPct.message ?? "")}
-              </p>
-            )}
-          </div>
-        )}
-      />
+          )}
+        </div>
+        <div
+          className="flex flex-col gap-0.5"
+          data-tour="services-form-commission"
+        >
+          <label htmlFor="commissionPct" className="font-medium">
+            Comisión %
+          </label>
+          <input
+            id="commissionPct"
+            type="number"
+            min={0}
+            max={100}
+            step={0.5}
+            className={ENTITY_FIELD_CLASS}
+            {...register("commissionPct", { valueAsNumber: true })}
+          />
+          {errors.commissionPct && (
+            <p className="text-danger">
+              {String(errors.commissionPct.message ?? "")}
+            </p>
+          )}
+        </div>
+      </div>
+      <p className="text-xs text-muted">
+        Comisión: porcentaje que recibe el estilista por este servicio.
+      </p>
     </form>
   );
 }

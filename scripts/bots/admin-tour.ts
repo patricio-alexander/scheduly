@@ -10,6 +10,7 @@ import {
 } from "./admin/review";
 import { runAdminEditEmployeeTour } from "./admin/edit-employee";
 import { runAdminToggleAccountsTour } from "./admin/toggle-accounts";
+import { runAdminCreateEmployeeTour } from "./admin/create-employee";
 import {
   runAdminCatalogTour,
   runAllAdminsCatalog,
@@ -49,6 +50,10 @@ export async function runAdminTour(opts?: { all?: boolean }) {
   }
   if (forceScript === "edit-employee") {
     await runAdminEditEmployeeTour(resolveAdminFromEnv());
+    return;
+  }
+  if (forceScript === "create-employee") {
+    await runAdminCreateEmployeeTour(resolveAdminFromEnv());
     return;
   }
   if (forceScript === "toggle-accounts") {
@@ -94,6 +99,19 @@ export async function runAdminTour(opts?: { all?: boolean }) {
     {
       kind: "script",
       index: 1,
+      title: "Crear empleado de su local",
+      item: {
+        id: "create-employee",
+        title: "Crear empleado de su local",
+        desc: "Admin crea una cuenta Empleado en su sucursal y la desactiva (limpieza).",
+        danger: "med",
+        write: true,
+        action: "create-employee",
+      },
+    },
+    {
+      kind: "script",
+      index: 2,
       title: "Editar datos de empleado",
       item: {
         id: "edit-employee",
@@ -106,7 +124,7 @@ export async function runAdminTour(opts?: { all?: boolean }) {
     },
     {
       kind: "script",
-      index: 2,
+      index: 3,
       title: "Desactivar / reactivar cuentas",
       item: {
         id: "toggle-accounts",
@@ -119,7 +137,7 @@ export async function runAdminTour(opts?: { all?: boolean }) {
     },
     {
       kind: "script",
-      index: 3,
+      index: 4,
       title: "Productos y servicios (uno o todos)",
       item: {
         id: "catalog",
@@ -132,7 +150,7 @@ export async function runAdminTour(opts?: { all?: boolean }) {
     },
     {
       kind: "script",
-      index: 4,
+      index: 5,
       title: "Registrar clientes (10 c/u, uno o todos)",
       item: {
         id: "register-customers",
@@ -171,6 +189,9 @@ export async function runAdminTour(opts?: { all?: boolean }) {
       break;
     case "edit-employee":
       await runAdminEditEmployeeTour();
+      break;
+    case "create-employee":
+      await runAdminCreateEmployeeTour();
       break;
     case "toggle-accounts":
       await runAdminToggleAccountsTour();

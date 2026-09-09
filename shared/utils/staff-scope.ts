@@ -13,6 +13,7 @@ import {
 import {
   isBranchAdminRole,
   isOwnerRole,
+  isProgrammerRole,
   mapExternalRoleName,
 } from "@/shared/utils/roles";
 import { roleNamesFromAccount } from "@/shared/utils/account-serialize";
@@ -28,6 +29,11 @@ export function canManageGlobalAccounts(role: string | null | undefined) {
 
 export function canManageBranchStaff(role: string | null | undefined) {
   return isOwnerRole(role) || isBranchAdminRole(role);
+}
+
+/** Dueña/Admin de local + Programador (bootstrap / lectura de cuentas). */
+export function canAccessAccountsModule(role: string | null | undefined) {
+  return canManageBranchStaff(role) || isProgrammerRole(role);
 }
 
 export async function getManagerBranchId(

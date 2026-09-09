@@ -18,51 +18,52 @@ import {
   OperationFlagsPanel,
 } from "@/src/features/settings";
 import { BackupsManager } from "@/src/features/backups";
+import { SettingsTutorialGate, type SettingsTabId } from "@/src/features/tutorials";
 import { useAuth } from "@/src/features/auth";
 import { isOwnerRole, isProgrammerRole } from "@/shared/utils/roles";
 import { appRoutes } from "@/shared/utils/app-routes";
 
 const BASE_TABS = [
-  { id: "marca", label: "Marca", href: appRoutes.system.settings },
+  { id: "marca" as const, label: "Marca", href: appRoutes.system.settings },
   {
-    id: "sistema",
+    id: "sistema" as const,
     label: "Sistema",
     href: `${appRoutes.system.settings}?tab=sistema`,
   },
   {
-    id: "inventario",
+    id: "inventario" as const,
     label: "Inventario",
     href: `${appRoutes.system.settings}?tab=inventario`,
   },
   {
-    id: "comprobantes",
+    id: "comprobantes" as const,
     label: "Comprobantes",
     href: `${appRoutes.system.settings}?tab=comprobantes`,
   },
   {
-    id: "publico",
+    id: "publico" as const,
     label: "Público",
     href: `${appRoutes.system.settings}?tab=publico`,
   },
   {
-    id: "locales",
+    id: "locales" as const,
     label: "Locales",
     href: `${appRoutes.system.settings}?tab=locales`,
   },
   {
-    id: "sri",
+    id: "sri" as const,
     label: "Facturación SRI",
     href: `${appRoutes.system.settings}?tab=sri`,
   },
-] as const;
+];
 
 const BACKUPS_TAB = {
-  id: "backups",
+  id: "backups" as const,
   label: "Backups",
   href: `${appRoutes.system.settings}?tab=backups`,
-} as const;
+};
 
-type TabId = (typeof BASE_TABS)[number]["id"] | typeof BACKUPS_TAB.id;
+type TabId = SettingsTabId;
 
 function SettingsContent() {
   const searchParams = useSearchParams();
@@ -70,10 +71,18 @@ function SettingsContent() {
   const isProgrammer = isProgrammerRole(user?.role);
   const canManageBackups = isOwnerRole(user?.role) || isProgrammer;
   const [sriEnv, setSriEnv] = useState<"pruebas" | "produccion">("pruebas");
+  const autoTutorial =
+    searchParams.get("tutorial") === "1" ||
+    searchParams.get("tutorial") === "settings";
 
   const tabs = useMemo(
     () => (canManageBackups ? [...BASE_TABS, BACKUPS_TAB] : [...BASE_TABS]),
     [canManageBackups],
+  );
+
+  const tabIds = useMemo(
+    () => tabs.map((t) => t.id) as SettingsTabId[],
+    [tabs],
   );
 
   function resolveTab(raw: string | null): TabId {
@@ -87,7 +96,17 @@ function SettingsContent() {
 
   return (
     <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-1">
+      <header
+        className="flex flex-col gap-1 pr-12 relative"
+        data-tour="settings-header"
+      >
+        <div className="absolute top-0 right-0">
+          <SettingsTutorialGate
+            activeTab={tab}
+            tabIds={tabIds}
+            autoStartTabs={autoTutorial}
+          />
+        </div>
         <div className="flex items-center gap-2 text-muted">
           <Gear width={18} height={18} />
           <span className="text-xs font-medium uppercase tracking-wide">
@@ -101,13 +120,17 @@ function SettingsContent() {
         </p>
       </header>
 
-      <div className="flex flex-wrap gap-1 border-b border-separator">
+      <div
+        className="flex flex-wrap gap-1 border-b border-separator"
+        data-tour="settings-tabs"
+      >
         {tabs.map((item) => {
           const active = tab === item.id;
           return (
             <Link
               key={item.id}
               href={item.href}
+              data-tour={`settings-tab-${item.id}`}
               className={`-mb-px inline-flex items-center gap-1.5 border-b-2 px-3 py-2.5 text-sm font-medium transition-colors ${
                 active
                   ? "border-accent text-foreground"
@@ -115,7 +138,9 @@ function SettingsContent() {
               }`}
             >
               {item.id === "sri" ? <Shield width={14} height={14} /> : null}
-              {item.id === "inventario" ? <Boxes3 width={14} height={14} /> : null}
+              {item.id === "inventario" ? (
+                <Boxes3 width={14} height={14} />
+              ) : null}
               {item.id === "comprobantes" ? (
                 <Receipt width={14} height={14} />
               ) : null}
@@ -132,13 +157,19 @@ function SettingsContent() {
 
       {tab === "sri" ? (
         <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
-          <section className="rounded-2xl border border-separator bg-surface p-5 sm:p-6">
+          <section
+            className="rounded-2xl border border-separator bg-surface p-5 sm:p-6"
+            data-tour="settings-sri-cert"
+          >
             <h2 className="mb-5 text-sm font-semibold uppercase tracking-wide text-muted">
               Certificado de firma electrónica
             </h2>
             <SriCertificateForm onEnvironmentChange={setSriEnv} />
           </section>
-          <section className="rounded-2xl border border-separator bg-surface p-5 sm:p-6">
+          <section
+            className="rounded-2xl border border-separator bg-surface p-5 sm:p-6"
+            data-tour="settings-sri-preview"
+          >
             <h2 className="mb-5 text-sm font-semibold uppercase tracking-wide text-muted">
               Cómo se ve la factura
             </h2>
@@ -148,20 +179,29 @@ function SettingsContent() {
       ) : null}
 
       {tab === "locales" ? (
-        <div className="mx-auto w-full max-w-2xl">
+        <div
+          className="mx-auto w-full max-w-2xl"
+          data-tour="settings-locales-panel"
+        >
           <MultiBranchSettingsPanel />
         </div>
       ) : null}
 
       {tab === "marca" ? (
         <div className="grid items-start gap-6 xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
-          <section className="rounded-2xl border border-separator bg-surface p-5 sm:p-6">
+          <section
+            className="rounded-2xl border border-separator bg-surface p-5 sm:p-6"
+            data-tour="settings-marca-form"
+          >
             <h2 className="mb-5 text-sm font-semibold uppercase tracking-wide text-muted">
               Negocio y apariencia
             </h2>
             <BusinessSettingsForm />
           </section>
-          <section className="rounded-2xl border border-separator bg-surface p-5 sm:p-6">
+          <section
+            className="rounded-2xl border border-separator bg-surface p-5 sm:p-6"
+            data-tour="settings-marca-preview"
+          >
             <h2 className="mb-5 text-sm font-semibold uppercase tracking-wide text-muted">
               Cómo se ve la factura
             </h2>
@@ -178,11 +218,15 @@ function SettingsContent() {
       tab === "comprobantes" ||
       tab === "publico" ||
       tab === "sistema" ? (
-        <OperationFlagsPanel tab={tab} />
+        <div data-tour="settings-flags-panel">
+          <OperationFlagsPanel tab={tab} />
+        </div>
       ) : null}
 
       {tab === "backups" && canManageBackups ? (
-        <BackupsManager embedded />
+        <div data-tour="settings-backups">
+          <BackupsManager embedded />
+        </div>
       ) : null}
     </div>
   );

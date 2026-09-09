@@ -39,14 +39,15 @@ export function CustomerLoginForm({
         </p>
       ) : null}
       <label className="flex flex-col gap-1.5 text-sm">
-        <span className="font-medium">Correo</span>
+        <span className="font-medium">Correo o cédula</span>
         <input
-          type="email"
+          type="text"
           required
-          autoComplete="email"
+          autoComplete="username"
           className="rounded-xl border border-separator bg-field-background px-3 py-2.5 text-field-foreground placeholder:text-field-placeholder"
           value={email}
           onChange={(e) => setEmail(e.target.value)}
+          placeholder="correo@… o cédula"
         />
       </label>
       <label className="flex flex-col gap-1.5 text-sm">

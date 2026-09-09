@@ -1,14 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { checkAuth } from "@/shared/utils/check-auth";
-import { isManagementRole, isOwnerRole } from "@/shared/utils/roles";
+import { isManagementRole, isOwnerRole, isProgrammerRole } from "@/shared/utils/roles";
 import { ensureDefaultRoles } from "@/shared/utils/ensure-default-roles";
 import { isSystemRoleName } from "@/shared/utils/system-roles";
 
 export async function GET() {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
-  if (!isManagementRole(auth.user.role)) {
+  if (!isManagementRole(auth.user.role) && !isProgrammerRole(auth.user.role)) {
     return NextResponse.json({ message: "No autorizado" }, { status: 403 });
   }
 

@@ -9,19 +9,24 @@ import {
 export async function POST(request: Request) {
   try {
     const body = (await request.json()) as Record<string, unknown>;
-    const email = String(body.email ?? "")
-      .trim()
-      .toLowerCase();
+    const rawId = String(body.email ?? body.identifier ?? body.cedula ?? "")
+      .trim();
     const password = String(body.password ?? "");
 
-    if (!email || !password) {
+    if (!rawId || !password) {
       return NextResponse.json(
-        { message: "Correo y contraseña requeridos" },
+        { message: "Correo/cédula y contraseña requeridos" },
         { status: 400 },
       );
     }
 
-    const customer = await prisma.customer.findUnique({ where: { email } });
+    const emailKey = rawId.toLowerCase();
+    const customer = await prisma.customer.findFirst({
+      where: {
+        isActive: true,
+        OR: [{ email: emailKey }, { email: rawId }, { cedula: rawId }],
+      },
+    });
     if (!customer?.password || !(await verifyPassword(password, customer.password))) {
       return NextResponse.json(
         { message: "Credenciales inválidas" },

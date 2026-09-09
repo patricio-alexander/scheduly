@@ -25,6 +25,7 @@ import {
   type EmployeeSeed,
   type StoryScene,
 } from "./shared";
+import { botConcurrency, mapPool } from "../../lib/map-pool";
 
 export async function runOneEmployeeReview(
   employee: EmployeeSeed,
@@ -161,14 +162,13 @@ export async function runOneEmployeeReview(
 
 export async function runAllEmployeesReview() {
   const baseUrl = getSchedulyBaseUrl();
+  const concurrency = botConcurrency(2);
   console.log(
-    `${c.brightYellow}${c.bold}Tour Empleado · revisión TODOS (${EMPLOYEES.length})${c.reset}`,
+    `${c.brightYellow}${c.bold}Tour Empleado · revisión TODOS (${EMPLOYEES.length}) · cola ${concurrency}${c.reset}`,
   );
   const started = Date.now();
-  const results = await Promise.all(
-    EMPLOYEES.map((e) =>
-      runOneEmployeeReview(e, { quiet: true, skipHistory: true }),
-    ),
+  const results = await mapPool(EMPLOYEES, concurrency, (e) =>
+    runOneEmployeeReview(e, { quiet: true, skipHistory: true }),
   );
   const ms = Date.now() - started;
 

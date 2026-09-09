@@ -20,6 +20,17 @@ import {
 } from "@/shared/utils/roles";
 import Plus from "@gravity-ui/icons/Plus";
 import Person from "@gravity-ui/icons/Person";
+import {
+  EntityCreateHelpButton,
+  EntityCreateTutorialProvider,
+  useEntityCreateTourDemo,
+  ENTITY_CREATE_DEMOS,
+} from "@/src/features/tutorials";
+import {
+  ENTITY_MODAL_DIALOG_CLASS,
+  ENTITY_MODAL_BODY_CLASS,
+  ENTITY_MODAL_HEADER_CLASS,
+} from "@/shared/components/entity-modal";
 
 export default function CustomersPage() {
   const { user } = useAuth();
@@ -35,8 +46,6 @@ export default function CustomersPage() {
   const [pending, setPending] = useState(false);
   const modal = useOverlayState();
   const portalModal = useOverlayState();
-
-  if (!user) return null;
 
   const openCreate = useCallback(() => {
     setEditing(null);
@@ -56,8 +65,33 @@ export default function CustomersPage() {
     setEditing(null);
   }, [modal]);
 
+  const {
+    displayItems,
+    isTourDemo,
+    prepareTour,
+    cleanupTour,
+    commitDemoCreate,
+    tourActive,
+  } = useEntityCreateTourDemo<Customer>({
+    moduleId: "customers",
+    items: customers,
+    openCreate,
+    closeModal,
+    buildDemoItem: () => ({
+      id: -9001,
+      name: ENTITY_CREATE_DEMOS.customers.name,
+      lastnames: ENTITY_CREATE_DEMOS.customers.lastnames,
+      phone: ENTITY_CREATE_DEMOS.customers.phone,
+      email: ENTITY_CREATE_DEMOS.customers.email,
+      identificationType: null,
+      identification: null,
+      address: "",
+    }),
+  });
+
   const handleSubmit = useCallback(
     async (data: CustomerFormData) => {
+      if (isTourDemo() && commitDemoCreate()) return;
       setPending(true);
       try {
         if (editing) {
@@ -73,7 +107,7 @@ export default function CustomersPage() {
         setPending(false);
       }
     },
-    [editing, closeModal, refetch],
+    [editing, closeModal, refetch, isTourDemo, commitDemoCreate],
   );
 
   const handleDelete = useCallback(
@@ -117,128 +151,158 @@ export default function CustomersPage() {
     }
   }, [portalCustomer, portalPassword, portalModal, refetch]);
 
+  if (!user) return null;
+
   return (
-    <div className="flex flex-col gap-6">
-      <PageHeader
-        icon={<Person width={24} height={24} />}
-        title="Clientes"
-        description="Gestiona tu base de clientes y sus datos de contacto"
-        action={
-          canEditCustomers ? (
-            <div data-onboarding="customers-create">
-              <Button variant="primary" onPress={openCreate}>
-                <Plus width={16} height={16} />
-                Agregar cliente
-              </Button>
-            </div>
-          ) : undefined
-        }
-      />
-
-      <div data-onboarding="customers-list">
-        <CustomerList
-          customers={customers}
-          onEdit={openEdit}
-          onDelete={handleDelete}
-          onAdd={canEditCustomers ? openCreate : undefined}
-          loading={loading}
-          canDelete={canDelete}
-          readOnly={!canEditCustomers}
-          canManagePortal={canManagePortal}
-          onActivatePortal={openPortalModal}
+    <EntityCreateTutorialProvider
+      moduleId="customers"
+      prepareTour={prepareTour}
+      cleanupTour={cleanupTour}
+      openCreateForm={openCreate}
+      resetFormTour={closeModal}
+      enabled={canEditCustomers}
+    >
+      <div className="flex flex-col gap-6">
+        <PageHeader
+          icon={<Person width={24} height={24} />}
+          title="Clientes"
+          description="Gestiona tu base de clientes y sus datos de contacto"
+          action={
+            canEditCustomers ? (
+              <div className="flex items-center gap-2">
+                <EntityCreateHelpButton title="Tutorial: Clientes" />
+                <Button
+                  variant="primary"
+                  onPress={openCreate}
+                  data-tour="customers-create"
+                >
+                  <Plus width={16} height={16} />
+                  Agregar cliente
+                </Button>
+              </div>
+            ) : undefined
+          }
         />
+
+        <div
+          data-tour={
+            displayItems.length === 0 ? "customers-empty" : "customers-list"
+          }
+        >
+          <CustomerList
+            customers={displayItems}
+            onEdit={openEdit}
+            onDelete={handleDelete}
+            onAdd={canEditCustomers ? openCreate : undefined}
+            loading={loading && !tourActive}
+            canDelete={canDelete}
+            readOnly={!canEditCustomers}
+            canManagePortal={canManagePortal}
+            onActivatePortal={openPortalModal}
+          />
+        </div>
+
+        {canManagePortal ? (
+          <Modal state={portalModal}>
+            <Modal.Backdrop>
+              <Modal.Container placement="center">
+                <Modal.Dialog>
+                  <Modal.CloseTrigger />
+                  <Modal.Header>
+                    <Modal.Heading>
+                      {portalCustomer?.hasPortalAccess
+                        ? "Actualizar acceso al portal"
+                        : "Activar cuenta de cliente"}
+                    </Modal.Heading>
+                  </Modal.Header>
+                  <Modal.Body className="flex flex-col gap-3">
+                    <p className="text-sm text-muted">
+                      {portalCustomer
+                        ? `${portalCustomer.name} · ${portalCustomer.email}`
+                        : ""}
+                    </p>
+                    <label className="flex flex-col gap-1.5 text-sm">
+                      <span className="font-medium">Contraseña</span>
+                      <input
+                        type="password"
+                        className="rounded-xl border border-separator bg-field-background px-3 py-2 text-field-foreground placeholder:text-field-placeholder"
+                        value={portalPassword}
+                        onChange={(e) => setPortalPassword(e.target.value)}
+                        placeholder="Mínimo 6 caracteres"
+                      />
+                    </label>
+                  </Modal.Body>
+                  <Modal.Footer>
+                    <Button
+                      variant="secondary"
+                      onPress={() => portalModal.close()}
+                    >
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="primary"
+                      isDisabled={pending || portalPassword.length < 6}
+                      onPress={() => void handleActivatePortal()}
+                    >
+                      {pending ? "Guardando..." : "Guardar contraseña"}
+                    </Button>
+                  </Modal.Footer>
+                </Modal.Dialog>
+              </Modal.Container>
+            </Modal.Backdrop>
+          </Modal>
+        ) : null}
+
+        {canEditCustomers ? (
+          <Modal state={modal}>
+            <Modal.Backdrop>
+              <Modal.Container placement="center">
+                <Modal.Dialog className={ENTITY_MODAL_DIALOG_CLASS}>
+                  <Modal.CloseTrigger />
+                  <Modal.Header className={ENTITY_MODAL_HEADER_CLASS}>
+                    <Modal.Icon>
+                      <Person width={20} height={20} />
+                    </Modal.Icon>
+                    <Modal.Heading>
+                      {editing ? "Editar cliente" : "Nuevo cliente"}
+                    </Modal.Heading>
+                    <div className="ml-auto">
+                      <EntityCreateHelpButton
+                        inModal
+                        title="Tutorial: cómo registrar un cliente"
+                      />
+                    </div>
+                  </Modal.Header>
+                  <Modal.Body className={ENTITY_MODAL_BODY_CLASS}>
+                    <CustomerForm
+                      defaultValues={editing ?? undefined}
+                      onSubmit={handleSubmit}
+                    />
+                  </Modal.Body>
+                  <Modal.Footer>
+                    <Button variant="secondary" onPress={closeModal}>
+                      Cancelar
+                    </Button>
+                    <Button
+                      variant="primary"
+                      isDisabled={pending}
+                      form="customer-form"
+                      type="submit"
+                      data-tour="customers-form-submit"
+                    >
+                      {pending
+                        ? "Guardando..."
+                        : editing
+                          ? "Actualizar"
+                          : "Guardar"}
+                    </Button>
+                  </Modal.Footer>
+                </Modal.Dialog>
+              </Modal.Container>
+            </Modal.Backdrop>
+          </Modal>
+        ) : null}
       </div>
-
-      {canManagePortal ? (
-      <Modal state={portalModal}>
-        <Modal.Backdrop>
-          <Modal.Container placement="center">
-            <Modal.Dialog>
-              <Modal.CloseTrigger />
-              <Modal.Header>
-                <Modal.Heading>
-                  {portalCustomer?.hasPortalAccess
-                    ? "Actualizar acceso al portal"
-                    : "Activar cuenta de cliente"}
-                </Modal.Heading>
-              </Modal.Header>
-              <Modal.Body className="flex flex-col gap-3">
-                <p className="text-sm text-muted">
-                  {portalCustomer
-                    ? `${portalCustomer.name} · ${portalCustomer.email}`
-                    : ""}
-                </p>
-                <label className="flex flex-col gap-1.5 text-sm">
-                  <span className="font-medium">Contraseña</span>
-                  <input
-                    type="password"
-                    className="rounded-xl border border-separator bg-field-background px-3 py-2 text-field-foreground placeholder:text-field-placeholder"
-                    value={portalPassword}
-                    onChange={(e) => setPortalPassword(e.target.value)}
-                    placeholder="Mínimo 6 caracteres"
-                  />
-                </label>
-              </Modal.Body>
-              <Modal.Footer>
-                <Button variant="secondary" onPress={() => portalModal.close()}>
-                  Cancelar
-                </Button>
-                <Button
-                  variant="primary"
-                  isDisabled={pending || portalPassword.length < 6}
-                  onPress={() => void handleActivatePortal()}
-                >
-                  {pending ? "Guardando..." : "Guardar contraseña"}
-                </Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
-      ) : null}
-
-      {canEditCustomers ? (
-      <Modal state={modal}>
-        <Modal.Backdrop>
-          <Modal.Container placement="center">
-            <Modal.Dialog>
-              <Modal.CloseTrigger />
-              <Modal.Header>
-                <Modal.Icon>
-                  <Person width={20} height={20} />
-                </Modal.Icon>
-                <Modal.Heading>
-                  {editing ? "Editar cliente" : "Nuevo cliente"}
-                </Modal.Heading>
-              </Modal.Header>
-              <Modal.Body>
-                <CustomerForm
-                  defaultValues={editing ?? undefined}
-                  onSubmit={handleSubmit}
-                />
-              </Modal.Body>
-              <Modal.Footer>
-                <Button variant="secondary" onPress={closeModal}>
-                  Cancelar
-                </Button>
-                <Button
-                  variant="primary"
-                  isDisabled={pending}
-                  form="customer-form"
-                  type="submit"
-                >
-                  {pending
-                    ? "Guardando..."
-                    : editing
-                      ? "Actualizar"
-                      : "Guardar"}
-                </Button>
-              </Modal.Footer>
-            </Modal.Dialog>
-          </Modal.Container>
-        </Modal.Backdrop>
-      </Modal>
-      ) : null}
-    </div>
+    </EntityCreateTutorialProvider>
   );
 }

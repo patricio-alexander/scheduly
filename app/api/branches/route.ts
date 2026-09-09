@@ -5,7 +5,9 @@ import { isOwnerRole, isBranchAdminRole } from "@/shared/utils/roles";
 import {
   countAccountsByBranch,
   ensureAccountBranchTable,
+  ensureBranchManagerColumn,
   getAccountPrimaryBranchId,
+  getBranchManagerAccountId,
   listAccountsForBranch,
 } from "@/shared/utils/account-branch";
 
@@ -15,6 +17,7 @@ export async function GET(request: Request) {
 
   try {
     await ensureAccountBranchTable(prisma);
+    await ensureBranchManagerColumn(prisma);
 
     const withTeam =
       new URL(request.url).searchParams.get("withTeam") === "1";
@@ -54,9 +57,13 @@ export async function GET(request: Request) {
 
         if (!withTeam || !isOwnerRole(auth.user.role)) return base;
 
-        const team = await listAccountsForBranch(prisma, b.id);
+        const [team, managerAccountId] = await Promise.all([
+          listAccountsForBranch(prisma, b.id),
+          getBranchManagerAccountId(prisma, b.id),
+        ]);
         return {
           ...base,
+          managerAccountId,
           team: team.map((t) => ({
             id: t.accountId,
             username: t.username ?? "",
@@ -64,6 +71,7 @@ export async function GET(request: Request) {
             role: t.roleName ?? "Empleado",
             isActive: Boolean(t.isActive),
             isPrimary: Boolean(t.isPrimary),
+            isManager: Boolean(t.isManager),
           })),
         };
       }),

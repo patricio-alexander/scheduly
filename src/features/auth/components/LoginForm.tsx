@@ -5,9 +5,11 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Button, Label } from "@heroui/react";
 import { loginSchema, type LoginFormData } from "../lib/auth-schema";
 import { useAuth } from "../hooks/useAuth";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Person from "@gravity-ui/icons/Person";
 import Lock from "@gravity-ui/icons/Lock";
+
+const ERROR_DISMISS_MS = 3500;
 
 const inputClassName =
   "w-full pl-10 pr-3 py-2.5 rounded-xl border border-separator bg-field-background text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus focus:border-focus text-sm transition-shadow";
@@ -17,6 +19,7 @@ export function LoginForm() {
   const [error, setError] = useState("");
   const [pending, setPending] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const errorTimerRef = useRef<number | null>(null);
 
   const {
     control,
@@ -27,13 +30,36 @@ export function LoginForm() {
     defaultValues: { username: "", password: "" },
   });
 
+  useEffect(() => {
+    return () => {
+      if (errorTimerRef.current != null) {
+        window.clearTimeout(errorTimerRef.current);
+      }
+    };
+  }, []);
+
+  const showError = (message: string) => {
+    if (errorTimerRef.current != null) {
+      window.clearTimeout(errorTimerRef.current);
+    }
+    setError(message);
+    errorTimerRef.current = window.setTimeout(() => {
+      errorTimerRef.current = null;
+      setError("");
+    }, ERROR_DISMISS_MS);
+  };
+
   const onSubmit = async (data: LoginFormData) => {
     setPending(true);
     setError("");
+    if (errorTimerRef.current != null) {
+      window.clearTimeout(errorTimerRef.current);
+      errorTimerRef.current = null;
+    }
     try {
       await login(data.username, data.password);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "Error al iniciar sesión");
+      showError(e instanceof Error ? e.message : "Error al iniciar sesión");
     } finally {
       setPending(false);
     }
@@ -57,6 +83,7 @@ export function LoginForm() {
             render={({ field }) => (
               <input
                 id="username"
+                data-tour="login-username"
                 placeholder="ej: admin"
                 autoComplete="username"
                 className={inputClassName}
@@ -89,6 +116,7 @@ export function LoginForm() {
             render={({ field }) => (
               <input
                 id="password"
+                data-tour="login-password"
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
                 autoComplete="current-password"
@@ -102,6 +130,7 @@ export function LoginForm() {
           />
           <button
             type="button"
+            data-tour="login-show-password"
             onClick={() => setShowPassword((v) => !v)}
             className="absolute right-3 top-1/2 -translate-y-1/2 text-xs font-medium text-muted hover:text-foreground transition-colors"
             tabIndex={-1}
@@ -124,16 +153,18 @@ export function LoginForm() {
         </div>
       )}
 
-      <Button
-        type="submit"
-        variant="primary"
-        isDisabled={pending}
-        fullWidth
-        size="lg"
-        className="mt-1 font-semibold"
-      >
-        {pending ? "Ingresando..." : "Iniciar sesión"}
-      </Button>
+      <div data-tour="login-submit">
+        <Button
+          type="submit"
+          variant="primary"
+          isDisabled={pending}
+          fullWidth
+          size="lg"
+          className="mt-1 font-semibold"
+        >
+          {pending ? "Ingresando..." : "Iniciar sesión"}
+        </Button>
+      </div>
     </form>
   );
 }

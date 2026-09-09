@@ -20,18 +20,25 @@ interface AuthContextType {
   user: AuthUser | null;
   loading: boolean;
   login: (username: string, password: string) => Promise<void>;
-  logout: () => void;
+  /** Cierra sesión en servidor (cookie) y limpia estado local. */
+  logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
   changeRole: (roleId: number) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+const USER_CACHE_KEY = "scheduly_user";
+
 function persistUser(user: AuthUser | null) {
-  if (user) {
-    localStorage.setItem("scheduly_user", JSON.stringify(user));
-  } else {
-    localStorage.removeItem("scheduly_user");
+  try {
+    if (user) {
+      localStorage.setItem(USER_CACHE_KEY, JSON.stringify(user));
+    } else {
+      localStorage.removeItem(USER_CACHE_KEY);
+    }
+  } catch {
+    /* ignore */
   }
 }
 
@@ -39,38 +46,32 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
 
+  /**
+   * Fuente de verdad: cookie httpOnly vía GET /api/auth/me.
+   * localStorage solo cachea tras un /me OK; nunca crea sesión sola.
+   */
   const refreshUser = useCallback(async () => {
     try {
-      const res = await fetch(apiUrl("/api/auth/me"), { credentials: "include" });
-      if (res.status === 401) {
+      const res = await fetch(apiUrl("/api/auth/me"), {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (res.status === 401 || res.status === 404) {
         setUser(null);
         persistUser(null);
         return;
       }
       if (!res.ok) {
-        // Error de servidor: no botar la sesión local
-        const stored = localStorage.getItem("scheduly_user");
-        if (stored) {
-          try {
-            setUser(JSON.parse(stored) as AuthUser);
-          } catch {
-            /* ignore */
-          }
-        }
+        // Servidor inestable: no inventar sesión desde cache
+        setUser(null);
         return;
       }
       const userData = (await res.json()) as AuthUser;
       setUser(userData);
       persistUser(userData);
     } catch {
-      const stored = localStorage.getItem("scheduly_user");
-      if (stored) {
-        try {
-          setUser(JSON.parse(stored) as AuthUser);
-        } catch {
-          localStorage.removeItem("scheduly_user");
-        }
-      }
+      // Red caída: sin cookie verificada → sin usuario
+      setUser(null);
     }
   }, []);
 
@@ -91,10 +92,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     persistUser(userData);
   }, []);
 
-  const logout = useCallback(() => {
-    setUser(null);
-    persistUser(null);
-    void logoutUser();
+  const logout = useCallback(async () => {
+    try {
+      await logoutUser();
+    } finally {
+      // Siempre limpia cliente aunque el POST falle
+      setUser(null);
+      persistUser(null);
+    }
   }, []);
 
   const changeRole = useCallback(async (roleId: number) => {

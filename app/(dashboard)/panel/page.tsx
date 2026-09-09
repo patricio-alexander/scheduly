@@ -10,10 +10,23 @@ import {
 } from "@/shared/utils/appointment-status";
 import { BranchSelector, useBranches } from "@/src/features/branches";
 import { useAuth } from "@/src/features/auth";
-import { canViewRevenue, isOwnerRole, isPureEmployeeRole } from "@/shared/utils/roles";
+import {
+  canViewRevenue,
+  isOwnerRole,
+  isPureEmployeeRole,
+} from "@/shared/utils/roles";
 import { branchDisplayLabel } from "@/shared/utils/auth-user";
 import { appRoutes } from "@/shared/utils/app-routes";
-import { useDashboardSocket, TopEmployeesCard, RecentAppointmentsCard, FinanceHeroCards, StockAlertsPanel, AppointmentStatusSummaryPanel, DashboardFinanceCharts, AppointmentStatusPieCard } from "@/src/features/dashboard";
+import {
+  useDashboardSocket,
+  TopEmployeesCard,
+  RecentAppointmentsCard,
+  FinanceHeroCards,
+  StockAlertsPanel,
+  AppointmentStatusSummaryPanel,
+  DashboardFinanceCharts,
+  AppointmentStatusPieCard,
+} from "@/src/features/dashboard";
 import type {
   DashboardPaymentBreakdownItem,
   DashboardRecentAppointment,
@@ -63,7 +76,7 @@ interface DashboardData {
   pendingPaymentAmount: number;
   revenue: number;
   completionRate: number;
-  appointmentsByDay: { date: string; count: number }[];
+  appointmentsByDay: { date: string; count: string | number }[];
   revenueByDay: { date: string; amount: number }[];
   topEmployees: DashboardTopEmployee[];
   paymentBreakdown: DashboardPaymentBreakdownItem[];
@@ -100,27 +113,19 @@ function DeltaBadge({
       </span>
     );
   }
-
   if (changePct === 0) {
     return (
       <span className="text-[11px] text-muted">Sin cambio · {label}</span>
     );
   }
-
   const up = changePct > 0;
   return (
     <span
       className={`inline-flex flex-wrap items-center gap-0.5 text-[11px] font-semibold ${
-        up
-          ? "text-emerald-600 dark:text-emerald-400"
-          : "text-danger"
+        up ? "text-emerald-600 dark:text-emerald-400" : "text-danger"
       }`}
     >
-      {up ? (
-        <ArrowUp width={12} height={12} />
-      ) : (
-        <ArrowDown width={12} height={12} />
-      )}
+      {up ? <ArrowUp width={12} height={12} /> : <ArrowDown width={12} height={12} />}
       {up ? "+" : ""}
       {changePct}%
       <span className="font-normal text-muted">· {label}</span>
@@ -141,14 +146,36 @@ function DashboardSkeleton() {
         <Skeleton className="h-72 rounded-2xl xl:col-span-8" />
         <Skeleton className="h-72 rounded-2xl xl:col-span-4" />
       </div>
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
-        <Skeleton className="h-64 rounded-2xl" />
-        <Skeleton className="h-64 rounded-2xl" />
-        <Skeleton className="h-64 rounded-2xl" />
-      </div>
     </div>
   );
 }
+
+const quickActions = [
+  {
+    href: appRoutes.sales.orders,
+    label: "Nuevo pedido",
+    hint: "Ventas",
+    icon: Plus,
+  },
+  {
+    href: appRoutes.sales.customers,
+    label: "Clientes",
+    hint: "Cartera",
+    icon: Person,
+  },
+  {
+    href: appRoutes.inventory.products,
+    label: "Inventario",
+    hint: "Stock",
+    icon: Boxes3,
+  },
+  {
+    href: appRoutes.sales.salesHub,
+    label: "Ventas",
+    hint: "Productos",
+    icon: Receipt,
+  },
+] as const;
 
 function QuickActions({ showSales = true }: { showSales?: boolean }) {
   const actions = showSales
@@ -221,41 +248,8 @@ function PeriodFilter({
   );
 }
 
-const quickActions = [
-  {
-    href: appRoutes.sales.orders,
-    label: "Nuevo pedido",
-    hint: "Ventas",
-    icon: Plus,
-  },
-  {
-    href: appRoutes.sales.customers,
-    label: "Clientes",
-    hint: "Cartera",
-    icon: Person,
-  },
-  {
-    href: appRoutes.inventory.products,
-    label: "Inventario",
-    hint: "Stock",
-    icon: Boxes3,
-  },
-  {
-    href: appRoutes.sales.salesHub,
-    label: "Ventas",
-    hint: "Productos",
-    icon: Receipt,
-  },
-] as const;
-
-type StatusChartEntry = {
-  key: string;
-  name: string;
-  value: number;
-  color: string;
-};
-
-export default function DashboardPage() {
+/** Resumen operativo del negocio (métricas). */
+export default function PanelPage() {
   const { user } = useAuth();
   const { branches } = useBranches();
   const [period, setPeriod] = useState<DashboardPeriod>("all");
@@ -269,6 +263,7 @@ export default function DashboardPage() {
   const isOwner = isOwnerRole(user?.role);
   const isEmployee = isPureEmployeeRole(user?.role);
   const userBranchLabel = branchDisplayLabel(user?.branch, user?.role);
+  const firstName = user?.name?.split(" ")[0] ?? "";
 
   const loadDashboard = useCallback(
     async (opts?: { silent?: boolean }) => {
@@ -282,7 +277,9 @@ export default function DashboardPage() {
         const branchQuery =
           branchFilter === "all" ? "" : `&branchId=${branchFilter}`;
         const res = await fetch(
-          apiUrl(`/api/dashboard?userId=${user.id}&period=${period}${branchQuery}`),
+          apiUrl(
+            `/api/dashboard?userId=${user.id}&period=${period}${branchQuery}`,
+          ),
           { credentials: "include" },
         );
         if (!res.ok) {
@@ -340,7 +337,6 @@ export default function DashboardPage() {
     (data?.paid_pending ?? 0);
 
   const completionRate = data?.completionRate ?? 0;
-
   const posMode = data?.metricsMode === "pos";
 
   const statusChartData = data
@@ -361,49 +357,49 @@ export default function DashboardPage() {
                     : statusChartColor.scheduled,
           }))
       : [
-        {
-          key: "scheduled",
-          name: statusLabel.scheduled,
-          value: data.scheduled,
-          color: statusChartColor.scheduled,
-        },
-        {
-          key: "paid_pending",
-          name: statusLabel.paid_pending,
-          value: data.paid_pending,
-          color: statusChartColor.paid_pending,
-        },
-        {
-          key: "pending_payment",
-          name: statusLabel.pending_payment,
-          value: data.pending_payment,
-          color: statusChartColor.pending_payment,
-        },
-        {
-          key: "completed",
-          name: statusLabel.completed,
-          value: data.completed,
-          color: statusChartColor.completed,
-        },
-        {
-          key: "cancelled",
-          name: statusLabel.cancelled,
-          value: data.cancelled,
-          color: statusChartColor.cancelled,
-        },
-        {
-          key: "rescheduled",
-          name: statusLabel.rescheduled,
-          value: data.rescheduled,
-          color: statusChartColor.rescheduled,
-        },
-      ].filter((item) => item.value > 0)
+          {
+            key: "scheduled",
+            name: statusLabel.scheduled,
+            value: data.scheduled,
+            color: statusChartColor.scheduled,
+          },
+          {
+            key: "paid_pending",
+            name: statusLabel.paid_pending,
+            value: data.paid_pending,
+            color: statusChartColor.paid_pending,
+          },
+          {
+            key: "pending_payment",
+            name: statusLabel.pending_payment,
+            value: data.pending_payment,
+            color: statusChartColor.pending_payment,
+          },
+          {
+            key: "completed",
+            name: statusLabel.completed,
+            value: data.completed,
+            color: statusChartColor.completed,
+          },
+          {
+            key: "cancelled",
+            name: statusLabel.cancelled,
+            value: data.cancelled,
+            color: statusChartColor.cancelled,
+          },
+          {
+            key: "rescheduled",
+            name: statusLabel.rescheduled,
+            value: data.rescheduled,
+            color: statusChartColor.rescheduled,
+          },
+        ].filter((item) => item.value > 0)
     : [];
 
   const periodDescription = getDashboardPeriodDescription(period);
   const comparisonLabel = getDashboardComparisonLabel(period);
   const activeStatusEntry = activeStatusKey
-    ? statusChartData.find((e) => e.key === activeStatusKey) ?? null
+    ? (statusChartData.find((e) => e.key === activeStatusKey) ?? null)
     : null;
   const activeStatusPct =
     activeStatusEntry && totalStatus > 0
@@ -423,10 +419,11 @@ export default function DashboardPage() {
         <div className="relative flex flex-col gap-4 p-4 md:flex-row md:items-end md:justify-between md:p-5 lg:p-6">
           <div className="min-w-0">
             <p className="truncate text-xs font-semibold uppercase tracking-wide text-accent">
-              {todayLabel}
+              Panel · {todayLabel}
             </p>
             <h1 className="mt-1 truncate text-2xl font-bold tracking-tight lg:text-3xl">
-              {getGreeting()}, {user.name.split(" ")[0]}
+              {getGreeting()}
+              {firstName ? `, ${firstName}` : ""}
             </h1>
             <p className="mt-1 max-w-xl text-sm text-muted">
               {isOwner
@@ -438,13 +435,16 @@ export default function DashboardPage() {
               {userBranchLabel ? (
                 <>
                   {" "}
-                  · <span className="font-medium text-foreground">{userBranchLabel}</span>
+                  ·{" "}
+                  <span className="font-medium text-foreground">
+                    {userBranchLabel}
+                  </span>
                 </>
               ) : null}
             </p>
           </div>
-          <div className="w-full shrink-0 md:w-auto flex flex-col gap-2 sm:flex-row sm:items-center">
-            {isOwnerRole(user?.role) ? (
+          <div className="flex w-full shrink-0 flex-col gap-2 sm:flex-row sm:items-center md:w-auto">
+            {isOwner ? (
               <BranchSelector
                 branches={branches}
                 value={branchFilter}
@@ -460,16 +460,20 @@ export default function DashboardPage() {
 
       <QuickActions showSales={showRevenue} />
 
-      {loadError && (
+      {loadError ? (
         <div className="flex flex-col gap-3 rounded-2xl border border-danger/30 bg-danger/10 px-4 py-3 sm:flex-row sm:items-center sm:justify-between">
           <p className="text-sm">
             No se pudo cargar el resumen. Intenta de nuevo.
           </p>
-          <Button size="sm" variant="secondary" onPress={() => void loadDashboard()}>
+          <Button
+            size="sm"
+            variant="secondary"
+            onPress={() => void loadDashboard()}
+          >
             Reintentar
           </Button>
         </div>
-      )}
+      ) : null}
 
       {loading ? (
         <DashboardSkeleton />

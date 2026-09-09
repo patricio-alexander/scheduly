@@ -1,294 +1,294 @@
 {
   "role": "admin",
-  "updatedAt": "2026-09-08T00:01:56.927Z",
-  "runs": 3,
-  "totalProbes": 195,
-  "totalPass": 195,
+  "updatedAt": "2026-09-08T13:08:27.502Z",
+  "runs": 6,
+  "totalProbes": 347,
+  "totalPass": 347,
   "totalFail": 0,
   "probes": {
     "appointments": {
       "probeId": "appointments",
       "label": "Agenda",
-      "hits": 8,
-      "pass": 8,
+      "hits": 14,
+      "pass": 14,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:23.942Z",
+      "lastAt": "2026-09-08T13:08:23.356Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "appointments-mine": {
       "probeId": "appointments-mine",
       "label": "Mi agenda",
-      "hits": 7,
-      "pass": 7,
+      "hits": 13,
+      "pass": 13,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:16.413Z",
+      "lastAt": "2026-09-08T13:08:24.075Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "services": {
       "probeId": "services",
       "label": "Servicios",
-      "hits": 10,
-      "pass": 10,
+      "hits": 19,
+      "pass": 19,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:20.221Z",
+      "lastAt": "2026-09-08T13:08:19.157Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "products": {
       "probeId": "products",
       "label": "Productos",
-      "hits": 8,
-      "pass": 8,
+      "hits": 14,
+      "pass": 14,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:19.795Z",
+      "lastAt": "2026-09-08T13:08:18.803Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "shifts-active": {
       "probeId": "shifts-active",
       "label": "Turno activo",
-      "hits": 6,
-      "pass": 6,
+      "hits": 12,
+      "pass": 12,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:36.221Z",
+      "lastAt": "2026-09-08T13:08:24.422Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "cash": {
       "probeId": "cash",
       "label": "Caja",
-      "hits": 6,
-      "pass": 6,
+      "hits": 12,
+      "pass": 12,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:36.965Z",
+      "lastAt": "2026-09-08T13:08:15.650Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "pos-sales": {
       "probeId": "pos-sales",
       "label": "Ventas POS",
-      "hits": 7,
-      "pass": 7,
+      "hits": 13,
+      "pass": 13,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:39.360Z",
+      "lastAt": "2026-09-08T13:08:13.555Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "customers": {
       "probeId": "customers",
       "label": "Clientes",
-      "hits": 7,
-      "pass": 7,
+      "hits": 12,
+      "pass": 12,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:23.469Z",
+      "lastAt": "2026-09-08T13:08:26.124Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "finance-summary": {
       "probeId": "finance-summary",
       "label": "Finanzas resumen",
-      "hits": 8,
-      "pass": 8,
+      "hits": 14,
+      "pass": 14,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:41.620Z",
+      "lastAt": "2026-09-08T13:08:09.540Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "finance-incomes": {
       "probeId": "finance-incomes",
       "label": "Finanzas ingresos",
-      "hits": 7,
-      "pass": 7,
+      "hits": 13,
+      "pass": 13,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:42.905Z",
+      "lastAt": "2026-09-08T13:08:23.720Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "finance-expenses": {
       "probeId": "finance-expenses",
       "label": "Finanzas gastos",
-      "hits": 7,
-      "pass": 7,
+      "hits": 13,
+      "pass": 13,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:56.923Z",
+      "lastAt": "2026-09-08T13:08:24.770Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "settings": {
       "probeId": "settings",
       "label": "Settings",
-      "hits": 7,
-      "pass": 7,
+      "hits": 11,
+      "pass": 11,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:39.836Z",
+      "lastAt": "2026-09-08T13:08:17.739Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "dashboard": {
       "probeId": "dashboard",
       "label": "Panel",
-      "hits": 8,
-      "pass": 8,
+      "hits": 14,
+      "pass": 14,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:32.307Z",
+      "lastAt": "2026-09-08T13:08:20.794Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "notifications": {
       "probeId": "notifications",
       "label": "Notificaciones",
-      "hits": 8,
-      "pass": 8,
+      "hits": 14,
+      "pass": 14,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:19.357Z",
+      "lastAt": "2026-09-08T13:08:25.456Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "me": {
       "probeId": "me",
       "label": "Sesión /api/auth/me",
-      "hits": 8,
-      "pass": 8,
+      "hits": 14,
+      "pass": 14,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:22.113Z",
+      "lastAt": "2026-09-08T13:08:21.517Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "users": {
       "probeId": "users",
       "label": "Cuentas / users",
-      "hits": 6,
-      "pass": 6,
+      "hits": 12,
+      "pass": 12,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:31.062Z",
+      "lastAt": "2026-09-08T13:08:18.449Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "roles": {
       "probeId": "roles",
       "label": "Roles",
-      "hits": 7,
-      "pass": 7,
+      "hits": 13,
+      "pass": 13,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:31.741Z",
+      "lastAt": "2026-09-08T13:08:26.502Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "finance-collections": {
       "probeId": "finance-collections",
       "label": "Cobranzas workbench",
-      "hits": 8,
-      "pass": 8,
+      "hits": 13,
+      "pass": 13,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:40.988Z",
+      "lastAt": "2026-09-08T13:08:22.278Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "orders-calendar": {
       "probeId": "orders-calendar",
       "label": "Pedidos calendario",
-      "hits": 7,
-      "pass": 7,
+      "hits": 13,
+      "pass": 13,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:21.679Z",
+      "lastAt": "2026-09-08T13:08:22.653Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "branches": {
       "probeId": "branches",
       "label": "Sucursales",
-      "hits": 6,
-      "pass": 6,
+      "hits": 12,
+      "pass": 12,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:40.437Z",
+      "lastAt": "2026-09-08T13:08:27.496Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "suppliers": {
       "probeId": "suppliers",
       "label": "Proveedores",
-      "hits": 9,
-      "pass": 9,
+      "hits": 14,
+      "pass": 14,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:27.704Z",
+      "lastAt": "2026-09-08T13:08:23.002Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "purchases": {
       "probeId": "purchases",
       "label": "Compras",
-      "hits": 8,
-      "pass": 8,
+      "hits": 13,
+      "pass": 13,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:24.891Z",
+      "lastAt": "2026-09-08T13:08:25.811Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "inventory-movements": {
       "probeId": "inventory-movements",
       "label": "Kardex movimientos",
-      "hits": 9,
-      "pass": 9,
+      "hits": 15,
+      "pass": 15,
       "fail": 0,
       "lastStatus": 200,
-      "lastAt": "2026-09-08T00:01:34.022Z",
+      "lastAt": "2026-09-08T13:08:16.327Z",
       "lastNote": "OK acceso HTTP 200",
       "confidence": 1
     },
     "sri": {
       "probeId": "sri",
       "label": "SRI config",
-      "hits": 8,
-      "pass": 8,
+      "hits": 14,
+      "pass": 14,
       "fail": 0,
       "lastStatus": 403,
-      "lastAt": "2026-09-08T00:01:34.847Z",
+      "lastAt": "2026-09-08T13:08:17.389Z",
       "lastNote": "OK denegado HTTP 403 (sin permiso)",
       "confidence": 1
     },
     "backups-list": {
       "probeId": "backups-list",
       "label": "Backups (dueña)",
-      "hits": 8,
-      "pass": 8,
+      "hits": 14,
+      "pass": 14,
       "fail": 0,
       "lastStatus": 403,
-      "lastAt": "2026-09-08T00:01:35.713Z",
+      "lastAt": "2026-09-08T13:08:25.109Z",
       "lastNote": "OK denegado HTTP 403 (sin permiso)",
       "confidence": 1
     },
     "system-logs": {
       "probeId": "system-logs",
       "label": "Logs del sistema (programador/dueña)",
-      "hits": 7,
-      "pass": 7,
+      "hits": 12,
+      "pass": 12,
       "fail": 0,
       "lastStatus": 403,
-      "lastAt": "2026-09-08T00:01:22.540Z",
+      "lastAt": "2026-09-08T13:08:15.984Z",
       "lastNote": "OK denegado HTTP 403 (sin permiso)",
       "confidence": 1
     }
@@ -297,493 +297,495 @@
     "agenda": {
       "routeId": "agenda",
       "href": "/operacion/agenda",
-      "hits": 4,
-      "lastAt": "2026-09-08T00:01:15.886Z"
+      "hits": 7,
+      "lastAt": "2026-09-08T13:08:14.587Z"
     },
     "caja": {
       "routeId": "caja",
       "href": "/operacion/caja",
-      "hits": 3,
-      "lastAt": "2026-09-08T00:01:36.115Z"
+      "hits": 6,
+      "lastAt": "2026-09-08T13:08:10.520Z"
     },
     "finanzas": {
       "routeId": "finanzas",
       "href": "/finanzas/centro",
-      "hits": 5,
-      "lastAt": "2026-09-08T00:01:41.389Z"
+      "hits": 8,
+      "lastAt": "2026-09-08T13:08:08.335Z"
     },
     "panel": {
       "routeId": "panel",
       "href": "/panel",
-      "hits": 4,
-      "lastAt": "2026-09-08T00:01:17.671Z"
+      "hits": 7,
+      "lastAt": "2026-09-08T13:08:20.652Z"
     },
     "cuentas": {
       "routeId": "cuentas",
       "href": "/administracion/cuentas",
-      "hits": 3,
-      "lastAt": "2026-09-08T00:01:28.107Z"
+      "hits": 6,
+      "lastAt": "2026-09-08T13:08:12.734Z"
     },
     "cobranzas": {
       "routeId": "cobranzas",
       "href": "/finanzas/cobranzas",
-      "hits": 5,
-      "lastAt": "2026-09-08T00:01:21.078Z"
+      "hits": 8,
+      "lastAt": "2026-09-08T13:08:22.194Z"
     },
     "catalogo": {
       "routeId": "catalogo",
       "href": "/catalogo/productos",
-      "hits": 5,
-      "lastAt": "2026-09-08T00:01:19.760Z"
+      "hits": 8,
+      "lastAt": "2026-09-08T13:08:18.730Z"
     },
     "compras": {
       "routeId": "compras",
       "href": "/compras/proveedores",
-      "hits": 5,
-      "lastAt": "2026-09-08T00:01:24.343Z"
+      "hits": 8,
+      "lastAt": "2026-09-08T13:08:16.608Z"
     },
     "config": {
       "routeId": "config",
       "href": "/sistema/configuracion",
-      "hits": 4,
-      "lastAt": "2026-09-08T00:01:39.763Z"
+      "hits": 7,
+      "lastAt": "2026-09-08T13:08:17.671Z"
     },
     "inventario": {
       "routeId": "inventario",
       "href": "/inventario/movimientos",
-      "hits": 4,
-      "lastAt": "2026-09-08T00:01:32.708Z"
+      "hits": 7,
+      "lastAt": "2026-09-08T13:08:11.936Z"
     },
     "sri": {
       "routeId": "sri",
       "href": "/operacion/comprobantes-pos",
-      "hits": 5,
-      "lastAt": "2026-09-08T00:01:34.424Z"
+      "hits": 8,
+      "lastAt": "2026-09-08T13:08:13.837Z"
     },
     "backups": {
       "routeId": "backups",
       "href": "/sistema/configuracion?tab=backups",
-      "hits": 4,
-      "lastAt": "2026-09-08T00:01:25.799Z"
+      "hits": 7,
+      "lastAt": "2026-09-08T13:08:19.796Z"
     },
     "logs": {
       "routeId": "logs",
       "href": "/sistema/logs",
-      "hits": 4,
-      "lastAt": "2026-09-08T00:01:22.515Z"
+      "hits": 7,
+      "lastAt": "2026-09-08T13:08:15.931Z"
     },
     "clientes": {
       "routeId": "clientes",
       "href": "/ventas/clientes",
-      "hits": 5,
-      "lastAt": "2026-09-08T00:01:23.373Z"
+      "hits": 8,
+      "lastAt": "2026-09-08T13:08:09.820Z"
     }
   },
   "comments": [
     {
-      "at": "2026-09-08T00:00:44.258Z",
+      "at": "2026-09-08T13:07:47.758Z",
       "kind": "observe",
-      "text": "Clientes: vi 20 ítem(s) en respuesta"
+      "text": "Despierta con 4 corridas previas · 26 rutas en memoria"
     },
     {
-      "at": "2026-09-08T00:00:44.756Z",
-      "kind": "observe",
-      "text": "Cuentas / users: vi 5 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:00:45.157Z",
-      "kind": "ui",
-      "text": "Abre /compras/proveedores · Proveedores y compras"
-    },
-    {
-      "at": "2026-09-08T00:00:45.183Z",
-      "kind": "observe",
-      "text": "Proveedores: vi 3 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:00:46.559Z",
-      "kind": "ui",
-      "text": "Abre /finanzas/centro · Entra al centro financiero"
-    },
-    {
-      "at": "2026-09-08T00:00:48.376Z",
-      "kind": "ui",
-      "text": "Abre /sistema/logs · Mira mutaciones HTTP recientes"
-    },
-    {
-      "at": "2026-09-08T00:00:48.398Z",
-      "kind": "learn",
-      "text": "Confirmado: admin no entra a Logs del sistema (programador/dueña) (HTTP 403)"
-    },
-    {
-      "at": "2026-09-08T00:00:49.251Z",
-      "kind": "ui",
-      "text": "Abre /panel · Mira el resumen del negocio / día"
-    },
-    {
-      "at": "2026-09-08T00:00:50.870Z",
-      "kind": "observe",
-      "text": "Servicios: vi 42 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:00:51.277Z",
-      "kind": "ui",
-      "text": "Abre /operacion/caja · Chequea turno activo y caja"
-    },
-    {
-      "at": "2026-09-08T00:00:53.035Z",
+      "at": "2026-09-08T13:07:47.758Z",
       "kind": "ui",
       "text": "Abre /catalogo/productos · Mira productos y servicios"
     },
     {
-      "at": "2026-09-08T00:00:53.073Z",
+      "at": "2026-09-08T13:07:47.786Z",
       "kind": "observe",
       "text": "Productos: vi 47 ítem(s) en respuesta"
     },
     {
-      "at": "2026-09-08T00:00:53.503Z",
+      "at": "2026-09-08T13:07:48.160Z",
       "kind": "observe",
       "text": "Servicios: vi 42 ítem(s) en respuesta"
     },
     {
-      "at": "2026-09-08T00:00:53.949Z",
-      "kind": "observe",
-      "text": "Clientes: vi 20 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:00:54.365Z",
-      "kind": "observe",
-      "text": "Settings: negocio «Andrea Guerrero Estética y Peluquería»"
-    },
-    {
-      "at": "2026-09-08T00:00:55.348Z",
-      "kind": "observe",
-      "text": "Cobranzas workbench: vi 20 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:00:56.359Z",
-      "kind": "learn",
-      "text": "Confirmado: admin no entra a SRI config (HTTP 403)"
-    },
-    {
-      "at": "2026-09-08T00:00:57.749Z",
-      "kind": "observe",
-      "text": "Productos: vi 47 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:00:59.427Z",
-      "kind": "observe",
-      "text": "Proveedores: vi 3 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:00:59.900Z",
-      "kind": "observe",
-      "text": "Sucursales: vi 1 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:00.304Z",
-      "kind": "ui",
-      "text": "Abre /operacion/agenda · Revisa citas y huecos"
-    },
-    {
-      "at": "2026-09-08T00:01:01.292Z",
-      "kind": "observe",
-      "text": "Servicios: vi 42 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:01.733Z",
-      "kind": "learn",
-      "text": "Confirmado: admin no entra a Backups (dueña) (HTTP 403)"
-    },
-    {
-      "at": "2026-09-08T00:01:02.136Z",
-      "kind": "ui",
-      "text": "Abre /inventario/movimientos · Mira movimientos de stock"
-    },
-    {
-      "at": "2026-09-08T00:01:03.152Z",
-      "kind": "ui",
-      "text": "Abre /ventas/clientes · Lista clientes del local"
-    },
-    {
-      "at": "2026-09-08T00:01:03.241Z",
-      "kind": "observe",
-      "text": "Clientes: vi 20 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:03.771Z",
-      "kind": "observe",
-      "text": "Roles: vi 4 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:04.173Z",
-      "kind": "ui",
-      "text": "Abre /catalogo/productos · Mira productos y servicios"
-    },
-    {
-      "at": "2026-09-08T00:01:04.281Z",
-      "kind": "observe",
-      "text": "Productos: vi 47 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:04.787Z",
-      "kind": "observe",
-      "text": "Servicios: vi 42 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:05.285Z",
-      "kind": "learn",
-      "text": "Confirmado: admin no entra a Logs del sistema (programador/dueña) (HTTP 403)"
-    },
-    {
-      "at": "2026-09-08T00:01:05.689Z",
-      "kind": "ui",
-      "text": "Abre /finanzas/cobranzas · Revisa workbench de cobros"
-    },
-    {
-      "at": "2026-09-08T00:01:05.825Z",
-      "kind": "observe",
-      "text": "Cobranzas workbench: vi 20 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:07.275Z",
-      "kind": "ui",
-      "text": "Abre /compras/proveedores · Proveedores y compras"
-    },
-    {
-      "at": "2026-09-08T00:01:07.305Z",
-      "kind": "observe",
-      "text": "Proveedores: vi 3 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:08.749Z",
-      "kind": "ui",
-      "text": "Abre /panel · Mira el resumen del negocio / día"
-    },
-    {
-      "at": "2026-09-08T00:01:10.871Z",
-      "kind": "ui",
-      "text": "Abre /finanzas/centro · Entra al centro financiero"
-    },
-    {
-      "at": "2026-09-08T00:01:12.436Z",
-      "kind": "observe",
-      "text": "Cuentas / users: vi 5 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:12.836Z",
-      "kind": "ui",
-      "text": "Abre /operacion/comprobantes-pos · Intenta ver config SRI (dueña sí, otros no)"
-    },
-    {
-      "at": "2026-09-08T00:01:12.874Z",
-      "kind": "learn",
-      "text": "Confirmado: admin no entra a SRI config (HTTP 403)"
-    },
-    {
-      "at": "2026-09-08T00:01:13.722Z",
-      "kind": "ui",
-      "text": "Abre /sistema/configuracion?tab=backups · Lista backups (solo dueña)"
-    },
-    {
-      "at": "2026-09-08T00:01:13.796Z",
-      "kind": "learn",
-      "text": "Confirmado: admin no entra a Backups (dueña) (HTTP 403)"
-    },
-    {
-      "at": "2026-09-08T00:01:14.635Z",
-      "kind": "ui",
-      "text": "Abre /sistema/logs · Mira mutaciones HTTP recientes"
-    },
-    {
-      "at": "2026-09-08T00:01:14.688Z",
-      "kind": "learn",
-      "text": "Confirmado: admin no entra a Logs del sistema (programador/dueña) (HTTP 403)"
-    },
-    {
-      "at": "2026-09-08T00:01:15.183Z",
-      "kind": "summary",
-      "text": "Admin admin_eguiguren: 0.6666666666666666 min · probes 84 · OK 84 · FAIL 0"
-    },
-    {
-      "at": "2026-09-08T00:01:15.886Z",
-      "kind": "observe",
-      "text": "Despierta con 2 corridas previas · 26 rutas en memoria"
-    },
-    {
-      "at": "2026-09-08T00:01:15.886Z",
-      "kind": "ui",
-      "text": "Abre /operacion/agenda · Revisa citas y huecos"
-    },
-    {
-      "at": "2026-09-08T00:01:16.847Z",
-      "kind": "observe",
-      "text": "Servicios: vi 42 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:17.269Z",
-      "kind": "observe",
-      "text": "Settings: negocio «Andrea Guerrero Estética y Peluquería»"
-    },
-    {
-      "at": "2026-09-08T00:01:17.671Z",
-      "kind": "ui",
-      "text": "Abre /panel · Mira el resumen del negocio / día"
-    },
-    {
-      "at": "2026-09-08T00:01:19.760Z",
-      "kind": "ui",
-      "text": "Abre /catalogo/productos · Mira productos y servicios"
-    },
-    {
-      "at": "2026-09-08T00:01:19.795Z",
-      "kind": "observe",
-      "text": "Productos: vi 47 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:20.221Z",
-      "kind": "observe",
-      "text": "Servicios: vi 42 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:20.675Z",
-      "kind": "observe",
-      "text": "Roles: vi 4 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:21.078Z",
-      "kind": "ui",
-      "text": "Abre /finanzas/cobranzas · Revisa workbench de cobros"
-    },
-    {
-      "at": "2026-09-08T00:01:21.197Z",
-      "kind": "observe",
-      "text": "Cobranzas workbench: vi 20 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:22.515Z",
-      "kind": "ui",
-      "text": "Abre /sistema/logs · Mira mutaciones HTTP recientes"
-    },
-    {
-      "at": "2026-09-08T00:01:22.540Z",
-      "kind": "learn",
-      "text": "Confirmado: admin no entra a Logs del sistema (programador/dueña) (HTTP 403)"
-    },
-    {
-      "at": "2026-09-08T00:01:22.972Z",
-      "kind": "learn",
-      "text": "Confirmado: admin no entra a SRI config (HTTP 403)"
-    },
-    {
-      "at": "2026-09-08T00:01:23.373Z",
-      "kind": "ui",
-      "text": "Abre /ventas/clientes · Lista clientes del local"
-    },
-    {
-      "at": "2026-09-08T00:01:23.469Z",
-      "kind": "observe",
-      "text": "Clientes: vi 20 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:24.344Z",
-      "kind": "ui",
-      "text": "Abre /compras/proveedores · Proveedores y compras"
-    },
-    {
-      "at": "2026-09-08T00:01:24.415Z",
-      "kind": "observe",
-      "text": "Proveedores: vi 3 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:25.799Z",
-      "kind": "ui",
-      "text": "Abre /sistema/configuracion?tab=backups · Lista backups (solo dueña)"
-    },
-    {
-      "at": "2026-09-08T00:01:26.529Z",
-      "kind": "learn",
-      "text": "Confirmado: admin no entra a Backups (dueña) (HTTP 403)"
-    },
-    {
-      "at": "2026-09-08T00:01:27.704Z",
-      "kind": "observe",
-      "text": "Proveedores: vi 3 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:28.107Z",
-      "kind": "ui",
-      "text": "Abre /administracion/cuentas · Revisa usuarios del sistema"
-    },
-    {
-      "at": "2026-09-08T00:01:31.062Z",
-      "kind": "observe",
-      "text": "Cuentas / users: vi 5 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:31.741Z",
-      "kind": "observe",
-      "text": "Roles: vi 4 ítem(s) en respuesta"
-    },
-    {
-      "at": "2026-09-08T00:01:32.708Z",
-      "kind": "ui",
-      "text": "Abre /inventario/movimientos · Mira movimientos de stock"
-    },
-    {
-      "at": "2026-09-08T00:01:34.424Z",
-      "kind": "ui",
-      "text": "Abre /operacion/comprobantes-pos · Intenta ver config SRI (dueña sí, otros no)"
-    },
-    {
-      "at": "2026-09-08T00:01:34.847Z",
-      "kind": "learn",
-      "text": "Confirmado: admin no entra a SRI config (HTTP 403)"
-    },
-    {
-      "at": "2026-09-08T00:01:35.713Z",
-      "kind": "learn",
-      "text": "Confirmado: admin no entra a Backups (dueña) (HTTP 403)"
-    },
-    {
-      "at": "2026-09-08T00:01:36.115Z",
-      "kind": "ui",
-      "text": "Abre /operacion/caja · Chequea turno activo y caja"
-    },
-    {
-      "at": "2026-09-08T00:01:39.763Z",
+      "at": "2026-09-08T13:07:48.803Z",
       "kind": "ui",
       "text": "Abre /sistema/configuracion · Lee settings del negocio (sin tocar aún)"
     },
     {
-      "at": "2026-09-08T00:01:39.836Z",
+      "at": "2026-09-08T13:07:48.870Z",
       "kind": "observe",
       "text": "Settings: negocio «Andrea Guerrero Estética y Peluquería»"
     },
     {
-      "at": "2026-09-08T00:01:40.437Z",
+      "at": "2026-09-08T13:07:49.240Z",
       "kind": "observe",
       "text": "Sucursales: vi 1 ítem(s) en respuesta"
     },
     {
-      "at": "2026-09-08T00:01:40.988Z",
-      "kind": "observe",
-      "text": "Cobranzas workbench: vi 20 ítem(s) en respuesta"
+      "at": "2026-09-08T13:07:49.869Z",
+      "kind": "ui",
+      "text": "Abre /ventas/clientes · Lista clientes del local"
     },
     {
-      "at": "2026-09-08T00:01:41.389Z",
+      "at": "2026-09-08T13:07:49.953Z",
+      "kind": "observe",
+      "text": "Clientes: vi 20 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:50.600Z",
+      "kind": "ui",
+      "text": "Abre /compras/proveedores · Proveedores y compras"
+    },
+    {
+      "at": "2026-09-08T13:07:50.697Z",
+      "kind": "observe",
+      "text": "Proveedores: vi 3 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:51.415Z",
+      "kind": "learn",
+      "text": "Confirmado: admin no entra a Logs del sistema (programador/dueña) (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T13:07:51.696Z",
       "kind": "ui",
       "text": "Abre /finanzas/centro · Entra al centro financiero"
     },
     {
-      "at": "2026-09-08T00:01:56.927Z",
+      "at": "2026-09-08T13:07:53.224Z",
+      "kind": "ui",
+      "text": "Abre /operacion/comprobantes-pos · Intenta ver config SRI (dueña sí, otros no)"
+    },
+    {
+      "at": "2026-09-08T13:07:53.289Z",
+      "kind": "learn",
+      "text": "Confirmado: admin no entra a SRI config (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T13:07:54.205Z",
+      "kind": "ui",
+      "text": "Abre /panel · Mira el resumen del negocio / día"
+    },
+    {
+      "at": "2026-09-08T13:07:55.906Z",
+      "kind": "ui",
+      "text": "Abre /finanzas/cobranzas · Revisa workbench de cobros"
+    },
+    {
+      "at": "2026-09-08T13:07:55.964Z",
+      "kind": "observe",
+      "text": "Cobranzas workbench: vi 20 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:56.692Z",
+      "kind": "observe",
+      "text": "Clientes: vi 20 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:56.973Z",
+      "kind": "ui",
+      "text": "Abre /inventario/movimientos · Mira movimientos de stock"
+    },
+    {
+      "at": "2026-09-08T13:07:57.475Z",
+      "kind": "observe",
+      "text": "Proveedores: vi 3 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:57.757Z",
+      "kind": "ui",
+      "text": "Abre /sistema/logs · Mira mutaciones HTTP recientes"
+    },
+    {
+      "at": "2026-09-08T13:07:57.841Z",
+      "kind": "learn",
+      "text": "Confirmado: admin no entra a Logs del sistema (programador/dueña) (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T13:07:58.500Z",
+      "kind": "ui",
+      "text": "Abre /sistema/configuracion?tab=backups · Lista backups (solo dueña)"
+    },
+    {
+      "at": "2026-09-08T13:07:58.550Z",
+      "kind": "learn",
+      "text": "Confirmado: admin no entra a Backups (dueña) (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T13:07:58.888Z",
+      "kind": "observe",
+      "text": "Roles: vi 4 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:59.169Z",
+      "kind": "ui",
+      "text": "Abre /administracion/cuentas · Revisa usuarios del sistema"
+    },
+    {
+      "at": "2026-09-08T13:07:59.228Z",
+      "kind": "observe",
+      "text": "Cuentas / users: vi 5 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:59.571Z",
+      "kind": "observe",
+      "text": "Roles: vi 4 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:07:59.899Z",
+      "kind": "learn",
+      "text": "Confirmado: admin no entra a SRI config (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T13:08:00.180Z",
+      "kind": "ui",
+      "text": "Abre /operacion/caja · Chequea turno activo y caja"
+    },
+    {
+      "at": "2026-09-08T13:08:01.761Z",
+      "kind": "ui",
+      "text": "Abre /operacion/agenda · Revisa citas y huecos"
+    },
+    {
+      "at": "2026-09-08T13:08:02.564Z",
+      "kind": "observe",
+      "text": "Servicios: vi 42 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:02.951Z",
+      "kind": "observe",
+      "text": "Productos: vi 47 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:04.818Z",
+      "kind": "observe",
+      "text": "Sucursales: vi 1 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:05.552Z",
+      "kind": "learn",
+      "text": "Confirmado: admin no entra a Backups (dueña) (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T13:08:06.262Z",
+      "kind": "observe",
+      "text": "Cobranzas workbench: vi 20 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:06.611Z",
+      "kind": "observe",
+      "text": "Servicios: vi 42 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:06.960Z",
+      "kind": "observe",
+      "text": "Cuentas / users: vi 5 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:07.245Z",
       "kind": "summary",
-      "text": "Admin admin_loja: 0.6666666666666666 min · probes 40 · OK 40 · FAIL 0"
+      "text": "Admin admin_eguiguren: 0.33205 min · probes 52 · OK 52 · FAIL 0"
+    },
+    {
+      "at": "2026-09-08T13:08:08.335Z",
+      "kind": "observe",
+      "text": "Despierta con 5 corridas previas · 26 rutas en memoria"
+    },
+    {
+      "at": "2026-09-08T13:08:08.335Z",
+      "kind": "ui",
+      "text": "Abre /finanzas/centro · Entra al centro financiero"
+    },
+    {
+      "at": "2026-09-08T13:08:09.820Z",
+      "kind": "ui",
+      "text": "Abre /ventas/clientes · Lista clientes del local"
+    },
+    {
+      "at": "2026-09-08T13:08:09.884Z",
+      "kind": "observe",
+      "text": "Clientes: vi 20 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:10.238Z",
+      "kind": "observe",
+      "text": "Settings: negocio «Andrea Guerrero Estética y Peluquería»"
+    },
+    {
+      "at": "2026-09-08T13:08:10.520Z",
+      "kind": "ui",
+      "text": "Abre /operacion/caja · Chequea turno activo y caja"
+    },
+    {
+      "at": "2026-09-08T13:08:11.655Z",
+      "kind": "learn",
+      "text": "Confirmado: admin no entra a Logs del sistema (programador/dueña) (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T13:08:11.936Z",
+      "kind": "ui",
+      "text": "Abre /inventario/movimientos · Mira movimientos de stock"
+    },
+    {
+      "at": "2026-09-08T13:08:12.452Z",
+      "kind": "observe",
+      "text": "Productos: vi 47 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:12.734Z",
+      "kind": "ui",
+      "text": "Abre /administracion/cuentas · Revisa usuarios del sistema"
+    },
+    {
+      "at": "2026-09-08T13:08:12.820Z",
+      "kind": "observe",
+      "text": "Cuentas / users: vi 5 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:13.179Z",
+      "kind": "observe",
+      "text": "Roles: vi 4 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:13.837Z",
+      "kind": "ui",
+      "text": "Abre /operacion/comprobantes-pos · Intenta ver config SRI (dueña sí, otros no)"
+    },
+    {
+      "at": "2026-09-08T13:08:13.929Z",
+      "kind": "learn",
+      "text": "Confirmado: admin no entra a SRI config (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T13:08:14.306Z",
+      "kind": "observe",
+      "text": "Servicios: vi 42 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:14.587Z",
+      "kind": "ui",
+      "text": "Abre /operacion/agenda · Revisa citas y huecos"
+    },
+    {
+      "at": "2026-09-08T13:08:15.295Z",
+      "kind": "observe",
+      "text": "Servicios: vi 42 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:15.931Z",
+      "kind": "ui",
+      "text": "Abre /sistema/logs · Mira mutaciones HTTP recientes"
+    },
+    {
+      "at": "2026-09-08T13:08:15.984Z",
+      "kind": "learn",
+      "text": "Confirmado: admin no entra a Logs del sistema (programador/dueña) (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T13:08:16.608Z",
+      "kind": "ui",
+      "text": "Abre /compras/proveedores · Proveedores y compras"
+    },
+    {
+      "at": "2026-09-08T13:08:16.662Z",
+      "kind": "observe",
+      "text": "Proveedores: vi 3 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:17.389Z",
+      "kind": "learn",
+      "text": "Confirmado: admin no entra a SRI config (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T13:08:17.671Z",
+      "kind": "ui",
+      "text": "Abre /sistema/configuracion · Lee settings del negocio (sin tocar aún)"
+    },
+    {
+      "at": "2026-09-08T13:08:17.739Z",
+      "kind": "observe",
+      "text": "Settings: negocio «Andrea Guerrero Estética y Peluquería»"
+    },
+    {
+      "at": "2026-09-08T13:08:18.090Z",
+      "kind": "observe",
+      "text": "Sucursales: vi 1 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:18.449Z",
+      "kind": "observe",
+      "text": "Cuentas / users: vi 5 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:18.730Z",
+      "kind": "ui",
+      "text": "Abre /catalogo/productos · Mira productos y servicios"
+    },
+    {
+      "at": "2026-09-08T13:08:18.803Z",
+      "kind": "observe",
+      "text": "Productos: vi 47 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:19.157Z",
+      "kind": "observe",
+      "text": "Servicios: vi 42 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:19.796Z",
+      "kind": "ui",
+      "text": "Abre /sistema/configuracion?tab=backups · Lista backups (solo dueña)"
+    },
+    {
+      "at": "2026-09-08T13:08:19.847Z",
+      "kind": "learn",
+      "text": "Confirmado: admin no entra a Backups (dueña) (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T13:08:20.653Z",
+      "kind": "ui",
+      "text": "Abre /panel · Mira el resumen del negocio / día"
+    },
+    {
+      "at": "2026-09-08T13:08:22.194Z",
+      "kind": "ui",
+      "text": "Abre /finanzas/cobranzas · Revisa workbench de cobros"
+    },
+    {
+      "at": "2026-09-08T13:08:22.278Z",
+      "kind": "observe",
+      "text": "Cobranzas workbench: vi 20 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:23.002Z",
+      "kind": "observe",
+      "text": "Proveedores: vi 3 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:25.109Z",
+      "kind": "learn",
+      "text": "Confirmado: admin no entra a Backups (dueña) (HTTP 403)"
+    },
+    {
+      "at": "2026-09-08T13:08:26.124Z",
+      "kind": "observe",
+      "text": "Clientes: vi 20 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:26.502Z",
+      "kind": "observe",
+      "text": "Roles: vi 4 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:27.496Z",
+      "kind": "observe",
+      "text": "Sucursales: vi 1 ítem(s) en respuesta"
+    },
+    {
+      "at": "2026-09-08T13:08:27.502Z",
+      "kind": "summary",
+      "text": "Admin admin_loja: 0.32106666666666667 min · probes 52 · OK 52 · FAIL 0"
     }
   ],
   "insights": [
     "Corrida limpia (71 probes) como admin · 2026-09-08",
     "Corrida limpia (84 probes) como admin · 2026-09-08",
-    "Corrida limpia (40 probes) como admin · 2026-09-08"
+    "Corrida limpia (40 probes) como admin · 2026-09-08",
+    "Corrida limpia (48 probes) como admin · 2026-09-08",
+    "Corrida limpia (52 probes) como admin · 2026-09-08"
   ]
 }

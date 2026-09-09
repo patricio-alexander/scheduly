@@ -79,7 +79,7 @@ const CATALOG: CatalogGroup[] = [
       {
         id: "multi-role-bots",
         title: "Orquestador conciencia (3 roles)",
-        desc: "Pide minutos y corre dueña → admins → empleados. Detalle en terminal; mutaciones en Logs del sistema.",
+        desc: "Dueña + admins + empleados en paralelo (BOT_CONCURRENCY=2). Detalle en terminal; mutaciones en Logs.",
         danger: "low",
         action: "multi-role-bots",
       },

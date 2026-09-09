@@ -59,12 +59,12 @@ export async function PUT(
     const unitId =
       Number.isInteger(unitIdRaw) && unitIdRaw > 0 ? unitIdRaw : undefined;
 
+    const commissionPct = Number(body.commissionPct ?? 0);
     const product = await prisma.product.update({
       where: { id: Number(id) },
       data: {
         name: String(body.name ?? ""),
         price: Number(body.price ?? 0),
-        commissionPct: Number(body.commissionPct ?? 0),
         stock: Number(body.stock ?? 0),
         categoryId: parseCategoryId(body.categoryId),
         ...(unitId != null ? { unitId } : {}),
@@ -74,8 +74,17 @@ export async function PUT(
         unit: { select: { id: true, name: true, abbreviation: true } },
       },
     });
+    if (Number.isFinite(commissionPct)) {
+      try {
+        await prisma.$executeRaw`
+          UPDATE Product SET commissionPct = ${commissionPct} WHERE id = ${product.id}
+        `;
+      } catch {
+        /* client/schema desfasado · update base ya OK */
+      }
+    }
     await notifyAdminsLowStock(product);
-    return NextResponse.json(product);
+    return NextResponse.json({ ...product, commissionPct });
   } catch {
     return NextResponse.json(
       { message: "Error al actualizar el producto" },

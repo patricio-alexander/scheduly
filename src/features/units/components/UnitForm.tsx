@@ -3,6 +3,10 @@
 import { useForm, Controller } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { AppNumberField } from "@/shared/components/AppNumberField";
+import {
+  ENTITY_FIELD_CLASS,
+  ENTITY_FORM_CLASS,
+} from "@/shared/components/entity-modal";
 import { unitSchema, type UnitFormData } from "../lib/unit-schema";
 import type { Unit } from "../types";
 
@@ -38,51 +42,53 @@ export function UnitForm({
     <form
       id={formId}
       onSubmit={handleSubmit(onSubmit)}
-      className="flex flex-col gap-4"
+      className={ENTITY_FORM_CLASS}
     >
-      <div className="flex flex-col gap-1">
-        <label htmlFor="unit-name" className="text-sm font-medium">
-          Nombre
-        </label>
-        <input
-          id="unit-name"
-          placeholder="Mililitro, Litro, Unidad…"
-          className="px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
-          {...register("name")}
-        />
-        {errors.name && (
-          <p className="text-danger text-sm">
-            {String(errors.name.message ?? "")}
-          </p>
-        )}
+      <div className="grid gap-2.5 sm:grid-cols-2">
+        <div className="flex flex-col gap-0.5" data-tour="units-form-name">
+          <label htmlFor="unit-name" className="font-medium">
+            Nombre
+          </label>
+          <input
+            id="unit-name"
+            placeholder="Mililitro, Litro…"
+            className={ENTITY_FIELD_CLASS}
+            {...register("name")}
+          />
+          {errors.name && (
+            <p className="text-danger">{String(errors.name.message ?? "")}</p>
+          )}
+        </div>
+        <div
+          className="flex flex-col gap-0.5"
+          data-tour="units-form-abbreviation"
+        >
+          <label htmlFor="unit-abbr" className="font-medium">
+            Abreviatura
+          </label>
+          <input
+            id="unit-abbr"
+            placeholder="ml, L, und…"
+            className={ENTITY_FIELD_CLASS}
+            {...register("abbreviation")}
+          />
+          {errors.abbreviation && (
+            <p className="text-danger">
+              {String(errors.abbreviation.message ?? "")}
+            </p>
+          )}
+        </div>
       </div>
 
-      <div className="flex flex-col gap-1">
-        <label htmlFor="unit-abbr" className="text-sm font-medium">
-          Abreviatura
-        </label>
-        <input
-          id="unit-abbr"
-          placeholder="ml, L, und, g…"
-          className="px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
-          {...register("abbreviation")}
-        />
-        {errors.abbreviation && (
-          <p className="text-danger text-sm">
-            {String(errors.abbreviation.message ?? "")}
-          </p>
-        )}
-      </div>
-
-      <div className="flex flex-col gap-1">
-        <label htmlFor="unit-description" className="text-sm font-medium">
+      <div className="flex flex-col gap-0.5">
+        <label htmlFor="unit-description" className="font-medium">
           Descripción
         </label>
         <textarea
           id="unit-description"
           rows={2}
           placeholder="Para líquidos, sólidos, conteo…"
-          className="resize-none px-3 py-2 rounded-xl border border-separator bg-field-background text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
+          className={`${ENTITY_FIELD_CLASS} resize-none`}
           {...register("description")}
         />
       </div>
@@ -91,7 +97,7 @@ export function UnitForm({
         name="factor"
         control={control}
         render={({ field }) => (
-          <div className="flex flex-col gap-1">
+          <div className="flex flex-col gap-0.5">
             <AppNumberField
               id="unit-factor"
               label="Factor (opcional)"
@@ -104,7 +110,7 @@ export function UnitForm({
               Relación respecto a la unidad base (ej. 1000 ml = 1 L).
             </p>
             {errors.factor && (
-              <p className="text-danger text-sm">
+              <p className="text-danger">
                 {String(errors.factor.message ?? "")}
               </p>
             )}

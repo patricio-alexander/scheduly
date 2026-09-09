@@ -9,6 +9,10 @@ export type OperationFlags = {
   cajaAllowCreateProductFromSelect: boolean;
   /** Editar producto desde carrito de caja */
   cajaAllowEditProductFromCart: boolean;
+  /** Checkbox «Mostrar stock» en el listado de caja */
+  cajaShowStockToggle: boolean;
+  /** Icono para poner la cantidad = stock disponible en el carrito */
+  cajaAllowAutocompleteStock: boolean;
   /** Sugerir actualizar precio al cobrar si difiere del catálogo */
   cajaSuggestUpdateProductPrice: boolean;
   /** Mostrar Nº de línea en comprobantes */
@@ -38,6 +42,8 @@ export const DEFAULT_OPERATION_FLAGS: OperationFlags = {
   financeAllowAdminCorrections: true,
   cajaAllowCreateProductFromSelect: true,
   cajaAllowEditProductFromCart: true,
+  cajaShowStockToggle: true,
+  cajaAllowAutocompleteStock: true,
   cajaSuggestUpdateProductPrice: true,
   receiptShowLineNumber: true,
   receiptShowBarcode: false,

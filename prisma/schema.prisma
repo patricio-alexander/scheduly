@@ -160,10 +160,14 @@ model Account {
   stockMovementsCreated StockMovement[] @relation("MovementCreator")
   batchesCreated        Batch[]         @relation("BatchCreator")
   branchesCreated       Branch[]        @relation("BranchCreator")
+  branchesManaged       Branch[]        @relation("BranchManager")
   expensesCreated       Expense[]       @relation("ExpenseCreator")
   incomesCreated        Income[]        @relation("IncomeCreator")
   salesSold             Sale[]          @relation("SaleSeller")
   paymentsCreated       FinancePayment[] @relation("PaymentCreator")
+  cashClosesCreated     CashClose[]      @relation("CashCloseCreator")
+  payrollWeeksCreated   PayrollWeek[]    @relation("PayrollWeekCreator")
+  payrollWeekLines      PayrollWeekLine[] @relation("PayrollWeekLineEmployee")
 }
 
 /** Vincula una cuenta a uno o más locales. isPrimary = local que administra/trabaja. */
@@ -424,11 +428,14 @@ model Branch {
   locationKind       BranchLocationKind @default(vitrina)
   establishmentCode  String             @default("001") @db.VarChar(3)
   emissionPointCode  String             @default("001") @db.VarChar(3)
+  /** Cuenta encargada principal de este local (puede haber más admins vinculados). */
+  managerAccountId   Int?
   createdBy          Int?
   createdAt          DateTime           @default(now())
   updatedAt          DateTime           @updatedAt
 
   creator        Account?         @relation("BranchCreator", fields: [createdBy], references: [id])
+  manager        Account?         @relation("BranchManager", fields: [managerAccountId], references: [id], onDelete: SetNull)
   accountBranches AccountBranch[]
   cashRegisters  CashRegister[]
   shelves        BranchShelf[]
@@ -442,8 +449,11 @@ model Branch {
   appointments   Appointment[]
   serviceBranches ServiceBranch[]
   electronicInvoices ElectronicInvoice[]
+  cashCloses     CashClose[]
+  payrollWeekLines PayrollWeekLine[]
 
   @@index([isActive, position])
+  @@index([managerAccountId])
 }
 
 model CashRegister {
@@ -586,6 +596,8 @@ model Customer {
   phone          String?
   address        String?
   email          String?
+  /** Acceso portal cliente (hash). Null = sin cuenta pública. */
+  password       String?
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
@@ -1476,4 +1488,98 @@ model CommissionRecord {
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
 
   @@index([userId, settledAt])
+}
+
+/** Medios / bancos del cuadre (sin eliminación dura: isActive=false). */
+model PaymentMedium {
+  id        Int      @id @default(autoincrement())
+  name      String   @db.VarChar(120)
+  code      String?  @unique @db.VarChar(40)
+  kind      String   @default("other") @db.VarChar(40)
+  position  Int      @default(0)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  cashCloseLines CashCloseLine[]
+
+  @@index([isActive, position])
+}
+
+/** Cuadre diario de caja por sucursal y medio de pago. */
+model CashClose {
+  id            Int      @id @default(autoincrement())
+  branchId      Int
+  closeDate     DateTime @db.Date
+  expensesTotal Float    @default(0)
+  notes         String?  @db.Text
+  createdById   Int
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  branch    Branch          @relation(fields: [branchId], references: [id])
+  createdBy Account         @relation("CashCloseCreator", fields: [createdById], references: [id])
+  lines     CashCloseLine[]
+
+  @@unique([branchId, closeDate])
+  @@index([closeDate])
+}
+
+model CashCloseLine {
+  id              Int   @id @default(autoincrement())
+  cashCloseId     Int
+  paymentMediumId Int
+  amount          Float @default(0)
+
+  cashClose     CashClose     @relation(fields: [cashCloseId], references: [id], onDelete: Cascade)
+  paymentMedium PaymentMedium @relation(fields: [paymentMediumId], references: [id])
+
+  @@unique([cashCloseId, paymentMediumId])
+}
+
+/** Liquidación / pago semanal (firma = confirmación del empleado). */
+model PayrollWeek {
+  id          Int      @id @default(autoincrement())
+  periodStart DateTime @db.Date
+  periodEnd   DateTime @db.Date
+  /** draft | published | closed */
+  status      String   @default("draft") @db.VarChar(20)
+  notes       String?  @db.Text
+  createdById Int
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  createdBy Account           @relation("PayrollWeekCreator", fields: [createdById], references: [id])
+  lines     PayrollWeekLine[]
+
+  @@unique([periodStart, periodEnd])
+  @@index([status, periodStart])
+}
+
+model PayrollWeekLine {
+  id                   Int       @id @default(autoincrement())
+  payrollWeekId        Int
+  accountId            Int
+  branchId             Int?
+  /** Se · comisión servicios (auto + editable) */
+  producedAmount       Float     @default(0)
+  /** Pr · comisión productos (auto + editable) */
+  salesAmount          Float     @default(0)
+  vouchersAmount       Float     @default(0)
+  cafeteriaAmount      Float     @default(0)
+  finesAmount          Float     @default(0)
+  discountsAmount      Float     @default(0)
+  additionalAmount     Float     @default(0)
+  totalAmount          Float     @default(0)
+  notes                String?   @db.Text
+  employeeConfirmedAt  DateTime?
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  payrollWeek PayrollWeek @relation(fields: [payrollWeekId], references: [id], onDelete: Cascade)
+  account     Account     @relation("PayrollWeekLineEmployee", fields: [accountId], references: [id])
+  branch      Branch?     @relation(fields: [branchId], references: [id])
+
+  @@unique([payrollWeekId, accountId])
+  @@index([accountId, employeeConfirmedAt])
 }

@@ -18,7 +18,6 @@ import {
   Calendar,
   TimeField,
   toast,
-  SearchField,
 } from "@heroui/react";
 import { parseDate, parseTime, today, getLocalTimeZone, type CalendarDate } from "@internationalized/date";
 import type { TimeValue } from "react-aria-components";
@@ -51,12 +50,21 @@ import { useAppointmentSocket } from "@/src/features/appointments";
 import type { AppointmentCalendarEvent } from "@/src/features/appointments";
 import { BranchSelector, StaffSelector, useBranches, type StaffMember } from "@/src/features/branches";
 import {
+  AgendaCreateHelpButton,
+  AgendaOverviewHelpButton,
+  AgendaTutorialProvider,
+  useTourOverlays,
+  type TourOverlayId,
+} from "@/src/features/tutorials";
+import { useOperationFlags } from "@/src/features/settings/hooks/useOperationFlags";
+import {
   canDeleteRecords,
   isBranchAdminRole,
   isEmployeeRole,
   isOwnerRole,
 } from "@/shared/utils/roles";
 import TrashBin from "@gravity-ui/icons/TrashBin";
+import Xmark from "@gravity-ui/icons/Xmark";
 
 type CalendarEvent = AppointmentCalendarEvent;
 
@@ -105,6 +113,7 @@ interface ProductOption {
   name: string;
   price: number;
   stock: number;
+  supplierPrice?: number;
 }
 
 interface AppointmentPayment {
@@ -277,21 +286,6 @@ function CalendarEventContent({ arg }: { arg: EventContentArg }) {
   );
 }
 
-function ModalSection({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <section className="flex flex-col gap-3">
-      <h3 className="text-sm font-semibold text-foreground">{title}</h3>
-      {children}
-    </section>
-  );
-}
-
 function customerInitials(name: string, lastnames: string) {
   const first = name.trim()[0] ?? "";
   const last = lastnames.trim()[0] ?? "";
@@ -374,9 +368,11 @@ export default function AgendaPage() {
   const { user } = useAuth();
   const isOwner = isOwnerRole(user?.role);
   const isBranchAdmin = isBranchAdminRole(user?.role);
-  /** Dueña: solo lectura (ve todos / por sucursal). Admin y empleados agendan. */
+  /** Dueña, admin y empleados pueden agendar. */
   const canSchedule =
-    isEmployeeRole(user?.role) || isBranchAdminRole(user?.role);
+    isOwner || isBranchAdmin || isEmployeeRole(user?.role);
+  const flags = useOperationFlags();
+  const showProductCost = flags.showProductCostInSelect;
   const { branches } = useBranches();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -391,6 +387,10 @@ export default function AgendaPage() {
   const [branchStaff, setBranchStaff] = useState<StaffMember[]>([]);
   const [branchScope, setBranchScope] = useState<BranchScope | null>(null);
   const [agendaScope, setAgendaScope] = useState<AgendaScope | null>(null);
+  const hasScheduleBranch =
+    Boolean(user?.branch?.id) ||
+    (isOwner && branchFilter !== "all") ||
+    Boolean(branchScope?.id);
   const branchScopeRef = useRef<BranchScope | null>(null);
   const agendaScopeRef = useRef<AgendaScope | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<CalendarEvent | null>(null);
@@ -412,15 +412,53 @@ export default function AgendaPage() {
   const [selectedTime, setSelectedTime] = useState<TimeValue>(parseTime("09:00"));
   const [selectedServiceIds, setSelectedServiceIds] = useState<number[]>([]);
   const [selectedProducts, setSelectedProducts] = useState<Record<number, number>>({});
-  const [productSearch, setProductSearch] = useState("");
+  const [servicePickerKey, setServicePickerKey] = useState(0);
+  const [productPickerKey, setProductPickerKey] = useState(0);
+  const [serviceInput, setServiceInput] = useState("");
+  const [productInput, setProductInput] = useState("");
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [selectedStatus, setSelectedStatus] = useState("scheduled");
+  const [customerMenuOpen, setCustomerMenuOpen] = useState(false);
+  const [statusMenuOpen, setStatusMenuOpen] = useState(false);
+  const [serviceMenuOpen, setServiceMenuOpen] = useState(false);
+  const [productMenuOpen, setProductMenuOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodValue>("cash");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [selectedRewardId, setSelectedRewardId] = useState<number | null>(null);
   const [paying, setPaying] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [spotlightId, setSpotlightId] = useState<string | null>(null);
+  const [tourRunning, setTourRunning] = useState(false);
+
+  /** Solo cierra menús (sin remount) para que el tour pueda volver a abrir. */
+  const closeFormOverlays = useCallback(() => {
+    setCustomerMenuOpen(false);
+    setStatusMenuOpen(false);
+    setServiceMenuOpen(false);
+    setProductMenuOpen(false);
+  }, []);
+
+  const openFormOverlay = useCallback((id: TourOverlayId) => {
+    setCustomerMenuOpen(id === "customer");
+    setStatusMenuOpen(id === "status");
+    setServiceMenuOpen(id === "service");
+    setProductMenuOpen(id === "product");
+  }, []);
+
+  useTourOverlays({ onClose: closeFormOverlays, onOpen: openFormOverlay });
+
+  /** En tour: solo el motor abre; fuera: comportamiento normal. */
+  const onComboOpenChange = useCallback(
+    (open: boolean, setOpen: (v: boolean) => void) => {
+      if (!open) {
+        setOpen(false);
+        return;
+      }
+      if (tourRunning) return; // ignorar reopen por focus durante el tour
+      setOpen(true);
+    },
+    [tourRunning],
+  );
 
   const {
     register,
@@ -443,11 +481,39 @@ export default function AgendaPage() {
     setDetailData(null);
     setDetailLoading(false);
     setSelectedDayDate("");
-    setProductSearch("");
   }, [modal, paymentConfirmState, deleteConfirmState]);
+
+  /** Deja el formulario de crear en blanco (p. ej. al terminar el tutorial). */
+  const resetCreateFormFields = useCallback(() => {
+    reset({ title: "", description: "" });
+    setSelectedServiceIds([]);
+    setSelectedProducts({});
+    setServiceInput("");
+    setProductInput("");
+    setServicePickerKey((k) => k + 1);
+    setProductPickerKey((k) => k + 1);
+    setSelectedCustomerId("");
+    setSelectedStatus("scheduled");
+    setCustomerMenuOpen(false);
+    setStatusMenuOpen(false);
+    setServiceMenuOpen(false);
+    setProductMenuOpen(false);
+    const titleEl = document.querySelector("#apt-title");
+    const descEl = document.querySelector("#apt-description");
+    if (titleEl instanceof HTMLInputElement) titleEl.value = "";
+    if (descEl instanceof HTMLTextAreaElement) descEl.value = "";
+  }, [reset]);
 
   const openCreate = useCallback((dateStr?: string) => {
     if (!canSchedule) return;
+    if (!hasScheduleBranch) {
+      toast.danger(
+        isOwner
+          ? "Elige una sucursal en el filtro de arriba para agendar"
+          : "Tu cuenta no tiene sucursal vinculada; no puedes agendar turnos",
+      );
+      return;
+    }
     const date = dateStr ? parseDate(dateStr.slice(0, 10)) : today(getLocalTimeZone());
     setSelectedDate(date);
     setSelectedTime(parseTime("09:00"));
@@ -457,16 +523,11 @@ export default function AgendaPage() {
       start: date.toString(),
       extendedProps: { description: "", customer: "", user: "", status: "scheduled" },
     });
-    reset({ title: "", description: "" });
-    setSelectedServiceIds([]);
-    setSelectedProducts({});
-    setProductSearch("");
-    setSelectedCustomerId("");
-    setSelectedStatus("scheduled");
+    resetCreateFormFields();
     setSelectedDayDate("");
     setViewMode("create");
     modal.open();
-  }, [modal, reset, canSchedule]);
+  }, [modal, canSchedule, hasScheduleBranch, isOwner, resetCreateFormFields]);
 
   const applyAppointmentToForm = useCallback((data: AppointmentDetail) => {
     const datePart = data.appointmentDate.slice(0, 10);
@@ -760,7 +821,10 @@ export default function AgendaPage() {
     if (!selectedEvent?.id) return;
     if (detailData?.id === Number(selectedEvent.id)) {
       applyAppointmentToForm(detailData);
-      setProductSearch("");
+      setServiceInput("");
+      setProductInput("");
+      setServicePickerKey((k) => k + 1);
+      setProductPickerKey((k) => k + 1);
       setViewMode("edit");
       return;
     }
@@ -770,7 +834,10 @@ export default function AgendaPage() {
       const data: AppointmentDetail = await res.json();
       setDetailData(normalizeAppointmentDetail(data));
       applyAppointmentToForm(data);
-      setProductSearch("");
+      setServiceInput("");
+      setProductInput("");
+      setServicePickerKey((k) => k + 1);
+      setProductPickerKey((k) => k + 1);
       setViewMode("edit");
     } catch {
       // ignore
@@ -781,6 +848,16 @@ export default function AgendaPage() {
     setSelectedServiceIds((prev) =>
       prev.includes(id) ? prev.filter((s) => s !== id) : [...prev, id]
     );
+  };
+
+  const pickService = (key: React.Key | null) => {
+    if (key == null || key === "__none") return;
+    const id = Number(key);
+    if (!Number.isFinite(id)) return;
+    setSelectedServiceIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    setServiceInput("");
+    setServiceMenuOpen(false);
+    setServicePickerKey((k) => k + 1);
   };
 
   const getProductStockForForm = (product: ProductOption) => {
@@ -801,6 +878,16 @@ export default function AgendaPage() {
       if (current >= available) return prev;
       return { ...prev, [id]: current + 1 };
     });
+  };
+
+  const pickProduct = (key: React.Key | null) => {
+    if (key == null || key === "__none") return;
+    const id = Number(key);
+    if (!Number.isFinite(id)) return;
+    addProduct(id);
+    setProductInput("");
+    setProductMenuOpen(false);
+    setProductPickerKey((k) => k + 1);
   };
 
   const decrementProduct = (id: number) => {
@@ -829,14 +916,27 @@ export default function AgendaPage() {
   const selectedProductsCount = Object.keys(selectedProducts).length;
   const selectedServicesTotal = calcSelectionTotal(services, selectedServiceIds);
 
-  const filteredProducts = useMemo(() => {
-    const q = productSearch.trim().toLowerCase();
-    if (!q) return products;
-    return products.filter(
-      (p) =>
-        p.name.toLowerCase().includes(q) || (selectedProducts[p.id] ?? 0) > 0,
-    );
-  }, [products, productSearch, selectedProducts]);
+  const selectableServices = useMemo(
+    () => services.filter((s) => !selectedServiceIds.includes(s.id)),
+    [services, selectedServiceIds],
+  );
+
+  const selectableProducts = useMemo(
+    () =>
+      products.filter((p) => {
+        const available = getProductStockForForm(p);
+        const qty = selectedProducts[p.id] ?? 0;
+        return available > qty;
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- stock helper uses viewMode/detailData
+    [products, selectedProducts, viewMode, detailData],
+  );
+
+  const selectedProductRows = useMemo(
+    () =>
+      products.filter((p) => (selectedProducts[p.id] ?? 0) > 0),
+    [products, selectedProducts],
+  );
 
   const selectedProductsTotal = calcProductsTotal(products, selectedProducts);
   const selectedGrandTotal = selectedServicesTotal + selectedProductsTotal;
@@ -966,15 +1066,23 @@ export default function AgendaPage() {
       toast.danger("Selecciona un cliente");
       return;
     }
+    const appointmentBranchId = isOwner
+      ? branchFilter !== "all"
+        ? branchFilter
+        : (branchScope?.id ?? user.branch?.id ?? null)
+      : (branchScope?.id ?? user.branch?.id ?? null);
+    if (!appointmentBranchId) {
+      toast.danger(
+        isOwner
+          ? "Elige una sucursal en el filtro de arriba para agendar"
+          : "Tu cuenta no tiene sucursal vinculada",
+      );
+      return;
+    }
     setCreating(true);
     const isEdit = viewMode === "edit" && selectedEvent?.id;
     try {
       const dateStr = `${selectedDate.toString()}T${selectedTime.toString()}`;
-      const appointmentBranchId = isOwner
-        ? branchFilter !== "all"
-          ? branchFilter
-          : (branchScope?.id ?? user.branch?.id ?? null)
-        : (branchScope?.id ?? user.branch?.id ?? null);
       const assigneeUserId =
         !personalAgendaView &&
         (isOwner || isBranchAdmin) &&
@@ -1057,17 +1165,19 @@ export default function AgendaPage() {
     ? "Consulta y gestiona tus turnos asignados"
     : isOwner
       ? selectedStaffName
-        ? `Turnos de ${selectedStaffName} · solo lectura`
+        ? `Turnos de ${selectedStaffName}`
         : branchFilter !== "all" && branchScope?.name
-          ? `${branchScope.name} · solo lectura`
-          : "Todos los locales · filtra por sucursal (solo lectura)"
+          ? `${branchScope.name} · elige el día o usa Agendar turno`
+          : "Filtra por sucursal para agendar, o mira todos los locales"
       : selectedStaffName
         ? `Turnos de ${selectedStaffName}`
         : isBranchAdmin && branchScope?.name
           ? `Turnos de ${branchScope.name}`
           : branchScope?.name
             ? `Turnos de ${branchScope.name}`
-            : "Visualiza y gestiona los turnos de tu negocio";
+            : hasScheduleBranch
+              ? "Visualiza y gestiona los turnos de tu negocio"
+              : "Vincula una sucursal a tu cuenta para poder agendar";
 
   const setAgendaView = (mode: "branch" | "mine") => {
     const params = new URLSearchParams(searchParams.toString());
@@ -1083,6 +1193,12 @@ export default function AgendaPage() {
   };
 
   return (
+    <AgendaTutorialProvider
+      openCreateForm={() => openCreate()}
+      resetCreateForm={resetCreateFormFields}
+      canOpenCreate={canSchedule && (hasScheduleBranch || isOwner)}
+      onRunningChange={setTourRunning}
+    >
     <div className="flex h-[calc(100dvh-3rem)] min-h-0 flex-col gap-4 sm:h-[calc(100dvh-4rem)] sm:gap-6">
       <div className="shrink-0">
         <PageHeader
@@ -1091,6 +1207,7 @@ export default function AgendaPage() {
         description={agendaDescription}
         action={
           <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
+            <AgendaOverviewHelpButton />
             {isBranchAdmin ? (
               <div className="inline-flex shrink-0 rounded-xl border border-separator bg-surface p-1">
                 <button
@@ -1118,15 +1235,17 @@ export default function AgendaPage() {
               </div>
             ) : null}
             {isOwner ? (
-              <BranchSelector
-                branches={branches}
-                value={branchFilter}
-                className="w-auto min-w-[11rem] shrink-0"
-                onChange={(value) => {
-                  setBranchFilter(value);
-                  setStaffFilter("all");
-                }}
-              />
+              <div data-tour="agenda-branch-filter">
+                <BranchSelector
+                  branches={branches}
+                  value={branchFilter}
+                  className="w-auto min-w-[11rem] shrink-0"
+                  onChange={(value) => {
+                    setBranchFilter(value);
+                    setStaffFilter("all");
+                  }}
+                />
+              </div>
             ) : null}
             {showStaffFilter ? (
               <StaffSelector
@@ -1146,8 +1265,20 @@ export default function AgendaPage() {
               Ocultar cancelados
             </label>
             {canSchedule ? (
-              <div className="shrink-0" data-onboarding="agenda-create">
-                <Button variant="primary" onPress={() => openCreate()}>
+              <div className="flex shrink-0 items-center gap-1" data-onboarding="agenda-create">
+                <AgendaCreateHelpButton />
+                <Button
+                  variant="primary"
+                  onPress={() => openCreate()}
+                  isDisabled={!hasScheduleBranch && !isOwner}
+                  title={
+                    !hasScheduleBranch
+                      ? isOwner
+                        ? "Elige una sucursal en el filtro para agendar"
+                        : "Sin sucursal vinculada"
+                      : undefined
+                  }
+                >
                   <Plus width={16} height={16} />
                   <span className="whitespace-nowrap">Agendar turno</span>
                 </Button>
@@ -1211,9 +1342,21 @@ export default function AgendaPage() {
       </div>
 
       <Modal state={modal}>
-        <Modal.Backdrop isDismissable>
-          <Modal.Container placement="center" size="lg" scroll="inside">
-            <Modal.Dialog className="!max-w-2xl">
+        <Modal.Backdrop isDismissable={!tourRunning}>
+          <Modal.Container
+            placement="center"
+            size="lg"
+            scroll={
+              viewMode === "create" || viewMode === "edit" ? undefined : "inside"
+            }
+          >
+            <Modal.Dialog
+              className={
+                viewMode === "create" || viewMode === "edit"
+                  ? "!max-w-6xl w-[min(98vw,72rem)] !max-h-[min(92dvh,52rem)] flex flex-col overflow-hidden"
+                  : "!max-w-2xl"
+              }
+            >
               <Modal.CloseTrigger />
 
               {/* ── Turnos del día ── */}
@@ -1656,297 +1799,445 @@ export default function AgendaPage() {
               {(viewMode === "create" || viewMode === "edit") && selectedEvent && (
                 <form
                   ref={formRef}
+                  data-tour="agenda-form"
                   onSubmit={handleSubmit(onSubmit, (formErrors) => {
                     const first = Object.values(formErrors)[0];
                     toast.danger(first?.message?.toString() ?? "Completa los campos requeridos");
                   })}
                   className="contents"
                 >
-                  <Modal.Header>
+                  <Modal.Header className="shrink-0 py-3">
                     <Modal.Icon>
                       <CalendarIcon width={20} height={20} />
                     </Modal.Icon>
-                    <Modal.Heading>{viewMode === "edit" ? "Editar turno" : "Nuevo turno"}</Modal.Heading>
+                    <Modal.Heading>
+                      {viewMode === "edit" ? "Editar turno" : "Nuevo turno"}
+                    </Modal.Heading>
+                    {viewMode === "create" ? (
+                      <div className="ml-auto flex items-center pr-8">
+                        <AgendaCreateHelpButton inForm />
+                      </div>
+                    ) : null}
                   </Modal.Header>
-                  <Modal.Body>
-                    <div className="flex flex-col gap-6">
-                      <ModalSection title="Datos del turno">
-                        <div className="flex flex-col gap-4 rounded-xl border border-separator bg-surface-secondary/40 p-4">
-                          <div className="flex flex-col gap-1">
-                            <label htmlFor="apt-title" className="text-sm font-medium">Título</label>
+                  <Modal.Body className="!overflow-visible py-3">
+                    <div className="grid gap-3 lg:grid-cols-12 lg:items-start">
+                      {/* Datos principales */}
+                      <div className="flex flex-col gap-2.5 lg:col-span-7">
+                        <div className="grid gap-2 sm:grid-cols-2">
+                          <div className="flex flex-col gap-0.5" data-tour="agenda-form-title">
+                            <label htmlFor="apt-title" className="text-xs font-medium text-muted">
+                              Título
+                            </label>
                             <input
                               id="apt-title"
                               placeholder="Corte de cabello"
-                              className="rounded-xl border border-separator bg-field-background px-3 py-2 text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
+                              className="rounded-lg border border-separator bg-field-background px-2.5 py-1.5 text-sm text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
                               {...register("title")}
                             />
                             {errors.title && (
-                              <p className="text-danger text-sm">{String(errors.title.message ?? "")}</p>
+                              <p className="text-xs text-danger">
+                                {String(errors.title.message ?? "")}
+                              </p>
                             )}
                           </div>
 
-                          <ComboBox
-                            selectedKey={selectedCustomerId}
-                            onSelectionChange={(key) => setSelectedCustomerId(String(key ?? ""))}
-                            variant="secondary"
-                          >
-                            <Label className="text-sm font-medium">Cliente</Label>
-                            <ComboBox.InputGroup>
-                              <Input placeholder="Buscar cliente..." />
-                              <ComboBox.Trigger />
-                            </ComboBox.InputGroup>
-                            <ComboBox.Popover>
-                              <ListBox>
-                                {customers.map((c) => (
-                                  <ListBox.Item
-                                    key={String(c.id)}
-                                    id={String(c.id)}
-                                    textValue={`${c.name} ${c.lastnames}`}
-                                  >
-                                    {c.name} {c.lastnames}
-                                    <ListBox.ItemIndicator />
-                                  </ListBox.Item>
-                                ))}
-                              </ListBox>
-                            </ComboBox.Popover>
-                          </ComboBox>
-
-                          <div className="grid gap-3 sm:grid-cols-3">
-                            <div className="flex flex-col gap-1">
-                              <Label>Fecha</Label>
-                              <DatePicker
-                                value={selectedDate}
-                                onChange={(d) => {
-                                  if (!d) return;
-                                  setSelectedDate(d);
-                                  setSelectedEvent((prev) =>
-                                    prev ? { ...prev, start: d.toString() } : prev
-                                  );
-                                }}
-                                className="w-full"
-                              >
-                                <DateField.Group fullWidth>
-                                  <DateField.Input>
-                                    {(segment) => <DateField.Segment segment={segment} />}
-                                  </DateField.Input>
-                                  <DateField.Suffix>
-                                    <DatePicker.Trigger>
-                                      <DatePicker.TriggerIndicator />
-                                    </DatePicker.Trigger>
-                                  </DateField.Suffix>
-                                </DateField.Group>
-                                <DatePicker.Popover>
-                                  <Calendar aria-label="Event date">
-                                    <Calendar.Header>
-                                      <Calendar.YearPickerTrigger>
-                                        <Calendar.YearPickerTriggerHeading />
-                                        <Calendar.YearPickerTriggerIndicator />
-                                      </Calendar.YearPickerTrigger>
-                                      <Calendar.NavButton slot="previous" />
-                                      <Calendar.NavButton slot="next" />
-                                    </Calendar.Header>
-                                    <Calendar.Grid>
-                                      <Calendar.GridHeader>
-                                        {(day) => <Calendar.HeaderCell>{day}</Calendar.HeaderCell>}
-                                      </Calendar.GridHeader>
-                                      <Calendar.GridBody>
-                                        {(date) => <Calendar.Cell date={date} />}
-                                      </Calendar.GridBody>
-                                    </Calendar.Grid>
-                                    <Calendar.YearPickerGrid>
-                                      <Calendar.YearPickerGridBody>
-                                        {({ year }) => <Calendar.YearPickerCell year={year} />}
-                                      </Calendar.YearPickerGridBody>
-                                    </Calendar.YearPickerGrid>
-                                  </Calendar>
-                                </DatePicker.Popover>
-                              </DatePicker>
-                            </div>
-
-                            <div className="flex flex-col gap-1">
-                              <Label>Hora</Label>
-                              <TimeField
-                                value={selectedTime}
-                                onChange={(t) => t && setSelectedTime(t)}
-                                className="w-full"
-                              >
-                                <TimeField.Group fullWidth>
-                                  <TimeField.Input>
-                                    {(segment) => <TimeField.Segment segment={segment} />}
-                                  </TimeField.Input>
-                                </TimeField.Group>
-                              </TimeField>
-                            </div>
-
-                            <div className="flex flex-col gap-1">
-                              <ComboBox
-                                selectedKey={selectedStatus}
-                                onSelectionChange={(key) => setSelectedStatus(String(key ?? "scheduled"))}
-                                variant="secondary"
-                              >
-                                <Label className="text-sm font-medium">Estado</Label>
-                                <ComboBox.InputGroup>
-                                  <Input />
-                                  <ComboBox.Trigger />
-                                </ComboBox.InputGroup>
-                                <ComboBox.Popover>
-                                  <ListBox>
-                                    {appointmentStatusOptions.map((key) => (
-                                      <ListBox.Item key={key} id={key} textValue={statusLabel[key]}>
-                                        {statusLabel[key]}
-                                        <ListBox.ItemIndicator />
-                                      </ListBox.Item>
-                                    ))}
-                                  </ListBox>
-                                </ComboBox.Popover>
-                              </ComboBox>
-                            </div>
-                          </div>
-
-                          <div className="flex flex-col gap-1">
-                            <label htmlFor="apt-description" className="text-sm font-medium">
-                              Descripción
-                            </label>
-                            <textarea
-                              id="apt-description"
-                              rows={3}
-                              placeholder="Detalles del turno..."
-                              className="resize-none rounded-xl border border-separator bg-field-background px-3 py-2 text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
-                              {...register("description")}
-                            />
+                          <div data-tour="agenda-form-customer">
+                            <ComboBox
+                              selectedKey={selectedCustomerId || null}
+                              // manual en tour evita reopen por focus; input fuera del tour
+                              menuTrigger={tourRunning ? "manual" : "input"}
+                              isOpen={customerMenuOpen}
+                              onOpenChange={(open) =>
+                                onComboOpenChange(open, setCustomerMenuOpen)
+                              }
+                              onSelectionChange={(key) => {
+                                setSelectedCustomerId(String(key ?? ""));
+                                setCustomerMenuOpen(false);
+                              }}
+                              variant="secondary"
+                            >
+                              <Label className="text-xs font-medium text-muted">Cliente</Label>
+                              <ComboBox.InputGroup>
+                                <Input placeholder="Buscar cliente…" className="text-sm" />
+                                <ComboBox.Trigger />
+                              </ComboBox.InputGroup>
+                              <ComboBox.Popover>
+                                <ListBox>
+                                  {customers.map((c) => (
+                                    <ListBox.Item
+                                      key={String(c.id)}
+                                      id={String(c.id)}
+                                      textValue={`${c.name} ${c.lastnames}`}
+                                    >
+                                      {c.name} {c.lastnames}
+                                      <ListBox.ItemIndicator />
+                                    </ListBox.Item>
+                                  ))}
+                                </ListBox>
+                              </ComboBox.Popover>
+                            </ComboBox>
                           </div>
                         </div>
-                      </ModalSection>
 
-                      <ModalSection title="Servicios">
-                        {services.length === 0 ? (
-                          <p className="text-muted text-sm">No hay servicios disponibles</p>
-                        ) : (
-                          <div className="flex flex-wrap gap-2 rounded-xl border border-separator bg-surface-secondary/40 p-3">
-                            {services.map((s) => {
-                              const selected = selectedServiceIds.includes(s.id);
-                              return (
-                                <button
-                                  key={s.id}
-                                  type="button"
-                                  onClick={() => toggleService(s.id)}
-                                  className={`rounded-xl border px-3 py-1.5 text-sm transition-colors ${
-                                    selected
-                                      ? "border-accent bg-accent text-accent-foreground"
-                                      : "border-separator bg-field-background text-field-foreground hover:border-accent"
-                                  }`}
-                                >
-                                  {s.name} — {formatMoney(s.price)}
-                                </button>
-                              );
-                            })}
+                        <div
+                          className="grid gap-2 sm:grid-cols-3"
+                          data-tour="agenda-form-when"
+                        >
+                          <div className="flex flex-col gap-0.5">
+                            <Label className="text-xs font-medium text-muted">Fecha</Label>
+                            <DatePicker
+                              value={selectedDate}
+                              onChange={(d) => {
+                                if (!d) return;
+                                setSelectedDate(d);
+                                setSelectedEvent((prev) =>
+                                  prev ? { ...prev, start: d.toString() } : prev,
+                                );
+                              }}
+                              className="w-full"
+                            >
+                              <DateField.Group fullWidth>
+                                <DateField.Input>
+                                  {(segment) => <DateField.Segment segment={segment} />}
+                                </DateField.Input>
+                                <DateField.Suffix>
+                                  <DatePicker.Trigger>
+                                    <DatePicker.TriggerIndicator />
+                                  </DatePicker.Trigger>
+                                </DateField.Suffix>
+                              </DateField.Group>
+                              <DatePicker.Popover>
+                                <Calendar aria-label="Event date">
+                                  <Calendar.Header>
+                                    <Calendar.YearPickerTrigger>
+                                      <Calendar.YearPickerTriggerHeading />
+                                      <Calendar.YearPickerTriggerIndicator />
+                                    </Calendar.YearPickerTrigger>
+                                    <Calendar.NavButton slot="previous" />
+                                    <Calendar.NavButton slot="next" />
+                                  </Calendar.Header>
+                                  <Calendar.Grid>
+                                    <Calendar.GridHeader>
+                                      {(day) => (
+                                        <Calendar.HeaderCell>{day}</Calendar.HeaderCell>
+                                      )}
+                                    </Calendar.GridHeader>
+                                    <Calendar.GridBody>
+                                      {(date) => <Calendar.Cell date={date} />}
+                                    </Calendar.GridBody>
+                                  </Calendar.Grid>
+                                  <Calendar.YearPickerGrid>
+                                    <Calendar.YearPickerGridBody>
+                                      {({ year }) => (
+                                        <Calendar.YearPickerCell year={year} />
+                                      )}
+                                    </Calendar.YearPickerGridBody>
+                                  </Calendar.YearPickerGrid>
+                                </Calendar>
+                              </DatePicker.Popover>
+                            </DatePicker>
                           </div>
-                        )}
-                      </ModalSection>
 
-                      <ModalSection title="Productos">
-                        {products.length === 0 ? (
-                          <p className="text-muted text-sm">No hay productos disponibles</p>
-                        ) : (
-                          <div className="flex flex-col gap-2">
-                            <SearchField value={productSearch} onChange={setProductSearch}>
-                              <Label className="sr-only">Buscar producto</Label>
-                              <SearchField.Group>
-                                <SearchField.SearchIcon />
-                                <SearchField.Input
-                                  className="w-full"
-                                  placeholder="Buscar producto..."
-                                />
-                                <SearchField.ClearButton />
-                              </SearchField.Group>
-                            </SearchField>
-                            <div className="flex max-h-52 flex-col gap-2 overflow-y-auto rounded-xl border border-separator bg-surface-secondary/40 p-3">
-                              {filteredProducts.length === 0 ? (
-                                <p className="py-4 text-center text-sm text-muted">
-                                  No se encontraron productos
-                                </p>
-                              ) : (
-                                filteredProducts.map((p) => {
-                                  const qty = selectedProducts[p.id] ?? 0;
-                                  const selected = qty > 0;
-                                  const available = getProductStockForForm(p);
-                                  const outOfStock = available <= 0;
-                                  const atMax = qty >= available;
-                                  return (
-                                    <div
-                                      key={p.id}
-                                      className={`flex items-center justify-between gap-3 rounded-lg border px-3 py-2 ${
-                                        selected
-                                          ? "border-accent bg-accent/5"
-                                          : outOfStock
-                                            ? "border-transparent opacity-60"
-                                            : available <= 5
-                                              ? "border-warning/40 bg-field-background"
-                                              : "border-transparent bg-field-background"
-                                      }`}
+                          <div className="flex flex-col gap-0.5">
+                            <Label className="text-xs font-medium text-muted">Hora</Label>
+                            <TimeField
+                              value={selectedTime}
+                              onChange={(t) => t && setSelectedTime(t)}
+                              className="w-full"
+                            >
+                              <TimeField.Group fullWidth>
+                                <TimeField.Input>
+                                  {(segment) => <TimeField.Segment segment={segment} />}
+                                </TimeField.Input>
+                              </TimeField.Group>
+                            </TimeField>
+                          </div>
+
+                          <div className="flex flex-col gap-0.5">
+                            <ComboBox
+                              selectedKey={selectedStatus}
+                              menuTrigger={tourRunning ? "manual" : "input"}
+                              isOpen={statusMenuOpen}
+                              onOpenChange={(open) =>
+                                onComboOpenChange(open, setStatusMenuOpen)
+                              }
+                              onSelectionChange={(key) => {
+                                setSelectedStatus(String(key ?? "scheduled"));
+                                setStatusMenuOpen(false);
+                              }}
+                              variant="secondary"
+                            >
+                              <Label className="text-xs font-medium text-muted">Estado</Label>
+                              <ComboBox.InputGroup>
+                                <Input className="text-sm" />
+                                <ComboBox.Trigger />
+                              </ComboBox.InputGroup>
+                              <ComboBox.Popover>
+                                <ListBox>
+                                  {appointmentStatusOptions.map((key) => (
+                                    <ListBox.Item
+                                      key={key}
+                                      id={key}
+                                      textValue={statusLabel[key]}
                                     >
-                                      <div className="min-w-0 flex-1">
-                                        <p className="truncate text-sm font-medium">{p.name}</p>
-                                        <p className="text-xs text-muted">
-                                          {formatMoney(p.price)} ·{" "}
-                                          {outOfStock ? "sin stock" : `stock: ${available}`}
-                                        </p>
-                                      </div>
-                                      {selected ? (
-                                        <div className="flex shrink-0 items-center gap-1.5">
+                                      {statusLabel[key]}
+                                      <ListBox.ItemIndicator />
+                                    </ListBox.Item>
+                                  ))}
+                                </ListBox>
+                              </ComboBox.Popover>
+                            </ComboBox>
+                          </div>
+                        </div>
+
+                        <div
+                          className="flex flex-col gap-0.5"
+                          data-tour="agenda-form-description"
+                        >
+                          <label
+                            htmlFor="apt-description"
+                            className="text-xs font-medium text-muted"
+                          >
+                            Descripción
+                          </label>
+                          <textarea
+                            id="apt-description"
+                            rows={2}
+                            placeholder="Detalles del turno (opcional)"
+                            className="resize-none rounded-lg border border-separator bg-field-background px-2.5 py-1.5 text-sm text-field-foreground placeholder:text-field-placeholder focus:outline-none focus:ring-2 focus:ring-focus"
+                            {...register("description")}
+                          />
+                        </div>
+                      </div>
+
+                      {/* Servicios + productos */}
+                      <div className="flex flex-col gap-2.5 lg:col-span-5">
+                        <div
+                          className="flex flex-col gap-1.5 rounded-xl border border-separator bg-surface-secondary/30 p-2.5"
+                          data-tour="agenda-form-services"
+                        >
+                          {services.length === 0 ? (
+                            <p className="text-xs text-muted">No hay servicios</p>
+                          ) : (
+                            <>
+                              <div data-tour="agenda-service-select">
+                                <ComboBox
+                                  key={servicePickerKey}
+                                  aria-label="Buscar servicio"
+                                  selectedKey={null}
+                                  inputValue={serviceInput}
+                                  onInputChange={setServiceInput}
+                                  menuTrigger={tourRunning ? "manual" : "input"}
+                                  isOpen={serviceMenuOpen}
+                                  onOpenChange={(open) =>
+                                    onComboOpenChange(open, setServiceMenuOpen)
+                                  }
+                                  onSelectionChange={pickService}
+                                  variant="secondary"
+                                >
+                                  <Label className="text-xs font-medium text-muted">
+                                    Servicios
+                                  </Label>
+                                  <ComboBox.InputGroup>
+                                    <Input
+                                      placeholder="Buscar y agregar…"
+                                      className="text-sm"
+                                    />
+                                    <ComboBox.Trigger />
+                                  </ComboBox.InputGroup>
+                                  <ComboBox.Popover>
+                                    <ListBox>
+                                      {selectableServices.length === 0 ? (
+                                        <ListBox.Item
+                                          id="__none"
+                                          textValue="Sin más servicios"
+                                        >
+                                          Todos agregados
+                                        </ListBox.Item>
+                                      ) : (
+                                        selectableServices.map((s) => (
+                                          <ListBox.Item
+                                            key={String(s.id)}
+                                            id={String(s.id)}
+                                            textValue={s.name}
+                                          >
+                                            <span className="flex w-full items-center justify-between gap-2">
+                                              <span className="truncate">{s.name}</span>
+                                              <span className="shrink-0 text-[11px] tabular-nums text-muted">
+                                                {formatMoney(s.price)}
+                                              </span>
+                                            </span>
+                                            <ListBox.ItemIndicator />
+                                          </ListBox.Item>
+                                        ))
+                                      )}
+                                    </ListBox>
+                                  </ComboBox.Popover>
+                                </ComboBox>
+                              </div>
+                              {selectedServiceIds.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                  {selectedServiceIds.map((id) => {
+                                    const s = services.find((x) => x.id === id);
+                                    if (!s) return null;
+                                    return (
+                                      <span
+                                        key={id}
+                                        data-tour="agenda-service"
+                                        className="inline-flex max-w-full items-center gap-1 rounded-md border border-accent/35 bg-accent/10 py-0.5 pl-2 pr-1 text-[11px]"
+                                      >
+                                        <span className="truncate">
+                                          {s.name} · {formatMoney(s.price)}
+                                        </span>
+                                        <button
+                                          type="button"
+                                          onClick={() => toggleService(id)}
+                                          className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded text-muted hover:text-danger"
+                                          aria-label={`Quitar ${s.name}`}
+                                        >
+                                          <Xmark width={12} height={12} />
+                                        </button>
+                                      </span>
+                                    );
+                                  })}
+                                </div>
+                              ) : null}
+                            </>
+                          )}
+                        </div>
+
+                        <div className="flex flex-col gap-1.5 rounded-xl border border-separator bg-surface-secondary/30 p-2.5">
+                          {products.length === 0 ? (
+                            <p className="text-xs text-muted">No hay productos</p>
+                          ) : (
+                            <>
+                              <div data-tour="agenda-product-select">
+                                <ComboBox
+                                  key={productPickerKey}
+                                  aria-label="Buscar producto"
+                                  selectedKey={null}
+                                  inputValue={productInput}
+                                  onInputChange={setProductInput}
+                                  menuTrigger={tourRunning ? "manual" : "input"}
+                                  isOpen={productMenuOpen}
+                                  onOpenChange={(open) =>
+                                    onComboOpenChange(open, setProductMenuOpen)
+                                  }
+                                  onSelectionChange={pickProduct}
+                                  variant="secondary"
+                                >
+                                  <Label className="text-xs font-medium text-muted">
+                                    Productos
+                                  </Label>
+                                  <ComboBox.InputGroup>
+                                    <Input
+                                      placeholder="Buscar y agregar…"
+                                      className="text-sm"
+                                    />
+                                    <ComboBox.Trigger />
+                                  </ComboBox.InputGroup>
+                                  <ComboBox.Popover>
+                                    <ListBox>
+                                      {selectableProducts.length === 0 ? (
+                                        <ListBox.Item id="__none" textValue="Sin productos">
+                                          Sin stock o ya agregados
+                                        </ListBox.Item>
+                                      ) : (
+                                        selectableProducts.slice(0, 120).map((p) => {
+                                          const available = getProductStockForForm(p);
+                                          const cost = Number(p.supplierPrice ?? 0);
+                                          return (
+                                            <ListBox.Item
+                                              key={String(p.id)}
+                                              id={String(p.id)}
+                                              textValue={p.name}
+                                            >
+                                              <span className="flex w-full items-center justify-between gap-2">
+                                                <span className="truncate">{p.name}</span>
+                                                <span className="shrink-0 text-right text-[11px] tabular-nums text-muted">
+                                                  {formatMoney(p.price)} · stk {available}
+                                                  {showProductCost && cost > 0
+                                                    ? ` · costo ${formatMoney(cost)}`
+                                                    : ""}
+                                                </span>
+                                              </span>
+                                              <ListBox.ItemIndicator />
+                                            </ListBox.Item>
+                                          );
+                                        })
+                                      )}
+                                    </ListBox>
+                                  </ComboBox.Popover>
+                                </ComboBox>
+                              </div>
+                              {selectedProductRows.length > 0 ? (
+                                <ul className="flex flex-col gap-1">
+                                  {selectedProductRows.map((p) => {
+                                    const qty = selectedProducts[p.id] ?? 0;
+                                    const available = getProductStockForForm(p);
+                                    const atMax = qty >= available;
+                                    return (
+                                      <li
+                                        key={p.id}
+                                        className="flex items-center gap-2 rounded-md border border-accent/30 bg-accent/5 px-2 py-1"
+                                      >
+                                        <div className="min-w-0 flex-1">
+                                          <p className="truncate text-[12px] font-medium leading-tight">
+                                            {p.name}
+                                          </p>
+                                          <p className="truncate text-[10px] tabular-nums text-muted">
+                                            {formatMoney(p.price)} · stk {available}
+                                          </p>
+                                        </div>
+                                        <div className="flex shrink-0 items-center gap-0.5">
                                           <button
                                             type="button"
                                             onClick={() => decrementProduct(p.id)}
-                                            className="flex h-7 w-7 items-center justify-center rounded-md border border-separator bg-surface text-sm hover:border-accent"
+                                            className="flex h-6 w-6 items-center justify-center rounded border border-separator bg-surface text-xs hover:border-accent"
                                             aria-label="Disminuir cantidad"
                                           >
                                             −
                                           </button>
-                                          <span className="w-5 text-center text-sm font-semibold tabular-nums">
+                                          <span className="w-4 text-center text-xs font-semibold tabular-nums">
                                             {qty}
                                           </span>
                                           <button
                                             type="button"
                                             onClick={() => incrementProduct(p.id)}
                                             disabled={atMax}
-                                            className="flex h-7 w-7 items-center justify-center rounded-md border border-separator bg-surface text-sm hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
+                                            className="flex h-6 w-6 items-center justify-center rounded border border-separator bg-surface text-xs hover:border-accent disabled:opacity-50"
                                             aria-label="Aumentar cantidad"
                                           >
                                             +
                                           </button>
                                         </div>
-                                      ) : (
-                                        <button
-                                          type="button"
-                                          disabled={outOfStock}
-                                          onClick={() => addProduct(p.id)}
-                                          className="shrink-0 rounded-md border border-separator bg-surface px-2.5 py-1 text-xs font-medium hover:border-accent disabled:cursor-not-allowed disabled:opacity-50"
-                                        >
-                                          Agregar
-                                        </button>
-                                      )}
-                                    </div>
-                                  );
-                                })
-                              )}
-                            </div>
-                          </div>
-                        )}
-                      </ModalSection>
-
-                      {(selectedServiceIds.length > 0 || selectedProductsCount > 0) && (
-                        <div className="flex items-center justify-between rounded-xl border border-separator bg-surface-secondary/60 px-4 py-3 text-base font-semibold">
-                          <span>Total estimado</span>
-                          <span className="tabular-nums">{formatMoney(selectedGrandTotal)}</span>
+                                      </li>
+                                    );
+                                  })}
+                                </ul>
+                              ) : null}
+                            </>
+                          )}
                         </div>
-                      )}
+                      </div>
                     </div>
                   </Modal.Body>
-                  <Modal.Footer>
-                    <Button type="button" variant="secondary" onPress={closeModal}>Cancelar</Button>
+                  <Modal.Footer className="shrink-0 gap-3 py-3">
+                    {(selectedServiceIds.length > 0 || selectedProductsCount > 0) && (
+                      <div className="mr-auto flex items-baseline gap-2 text-sm">
+                        <span className="text-muted">Total</span>
+                        <span className="font-semibold tabular-nums">
+                          {formatMoney(selectedGrandTotal)}
+                        </span>
+                      </div>
+                    )}
+                    <Button type="button" variant="secondary" onPress={closeModal}>
+                      Cancelar
+                    </Button>
                     <Button
                       type="button"
                       variant="primary"
+                      data-tour="agenda-form-save"
                       isDisabled={creating}
                       onPress={() => formRef.current?.requestSubmit()}
                     >
@@ -2044,5 +2335,6 @@ export default function AgendaPage() {
         />
       ) : null}
     </div>
+    </AgendaTutorialProvider>
   );
 }

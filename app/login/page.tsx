@@ -2,11 +2,12 @@
 
 import { useAuth } from "@/src/features/auth";
 import { LoginForm } from "@/src/features/auth";
+import { LoginTutorialGate } from "@/src/features/tutorials";
 import { Skeleton } from "@/shared/components/ui";
 import { appRoutes } from "@/shared/utils/app-routes";
 import { APP_BRAND_NAME } from "@/shared/utils/business-profile";
-import { useRouter } from "next/navigation";
-import { useEffect, type ReactNode } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, type ReactNode } from "react";
 import Calendar from "@gravity-ui/icons/Calendar";
 import Clock from "@gravity-ui/icons/Clock";
 import ChartColumn from "@gravity-ui/icons/ChartColumn";
@@ -119,12 +120,29 @@ function LoginShell({ children }: { children: ReactNode }) {
 }
 
 export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <LoginShell>
+          <LoginSkeleton />
+        </LoginShell>
+      }
+    >
+      <LoginPageInner />
+    </Suspense>
+  );
+}
+
+function LoginPageInner() {
   const { user, loading } = useAuth();
   const router = useRouter();
+  const search = useSearchParams();
+  const autoTutorial =
+    search.get("tutorial") === "1" || search.get("tutorial") === "login";
 
   useEffect(() => {
     if (!loading && user) {
-      router.replace(appRoutes.dashboard);
+      router.replace(appRoutes.inicio);
     }
   }, [user, loading, router]);
 
@@ -140,8 +158,8 @@ export default function LoginPage() {
 
   return (
     <LoginShell>
-      <div className="bg-surface rounded-2xl border border-separator shadow-xl p-8 sm:p-10">
-        <div className="mb-8 flex flex-col items-center text-center lg:items-start lg:text-left">
+      <div className="relative bg-surface rounded-2xl border border-separator shadow-xl p-8 sm:p-10">
+        <div className="mb-6 flex flex-col items-center text-center lg:items-start lg:text-left pr-10">
           <div className="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-accent/10 text-accent lg:hidden">
             <Calendar width={24} height={24} />
           </div>
@@ -150,6 +168,8 @@ export default function LoginPage() {
             Ingresa tus credenciales para acceder a tu cuenta
           </p>
         </div>
+
+        <LoginTutorialGate autoStart={autoTutorial} />
 
         <LoginForm />
 
