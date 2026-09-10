@@ -1,9 +1,161 @@
 import "dotenv/config";
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
-import type { AppointmentStatus, PaymentMethod, Prisma } from "@/generated/prisma/client";
+import type {
+  AppointmentStatus,
+  NotificationType,
+  Prisma,
+} from "@/generated/prisma/client";
 import { hashPassword } from "../shared/utils/password";
 import { calcAppointmentCommission } from "../shared/utils/commissions";
+import { SYSTEM_ROLES } from "../shared/utils/system-roles";
+
+type SeedPaymentMethod = "cash" | "card" | "transfer";
+
+type SeedAccount = {
+  personId: number;
+  accountId: number;
+  username: string;
+};
+
+function parseFullName(fullName: string) {
+  const parts = fullName.trim().split(/\s+/);
+  if (parts.length <= 1) {
+    return { firstName: parts[0] ?? "Usuario", firstLastName: "" };
+  }
+  return { firstName: parts[0], firstLastName: parts.slice(1).join(" ") };
+}
+
+function appRoleToDbRoleName(appRole: string): string {
+  const match = SYSTEM_ROLES.find((r) => r.appRole === appRole);
+  return match?.name ?? "Empleado";
+}
+
+function mapNotificationType(type: string): NotificationType {
+  if (type === "warning") return "alert";
+  if (type === "success") return "info";
+  if (type === "alert" || type === "reminder" || type === "message") {
+    return type;
+  }
+  return "info";
+}
+
+function customerFromDemo(c: {
+  name: string;
+  lastnames: string;
+  phone: string;
+  email: string;
+}) {
+  const nameParts = c.name.trim().split(/\s+/);
+  const lastParts = c.lastnames.trim().split(/\s+/);
+  return {
+    name: `${c.name} ${c.lastnames}`,
+    firstName: nameParts[0] ?? c.name,
+    secondName: nameParts.slice(1).join(" ") || null,
+    firstLastName: lastParts[0] ?? c.lastnames,
+    secondLastName: lastParts.slice(1).join(" ") || null,
+    phone: c.phone,
+    email: c.email,
+  };
+}
+
+async function ensureDefaultUnit(prisma: PrismaClient) {
+  return prisma.unit.upsert({
+    where: { name: "Unidad" },
+    create: {
+      name: "Unidad",
+      abbreviation: "u",
+      description: "Unidad",
+    },
+    update: {},
+  });
+}
+
+async function upsertStaffAccount(
+  prisma: PrismaClient,
+  opts: {
+    username: string;
+    password: string;
+    fullName: string;
+    email: string;
+    phone?: string;
+    role: string;
+  },
+): Promise<SeedAccount> {
+  const { firstName, firstLastName } = parseFullName(opts.fullName);
+  let account = await prisma.account.findFirst({
+    where: { username: opts.username },
+    include: { person: true },
+  });
+
+  if (!account) {
+    const person = await prisma.person.create({
+      data: {
+        firstName,
+        firstLastName: firstLastName || null,
+        documentType: "05",
+      },
+    });
+    await prisma.personData.create({
+      data: {
+        idUser: person.id,
+        personalEmail: opts.email,
+        cellPhone: opts.phone ?? null,
+      },
+    });
+    account = await prisma.account.create({
+      data: {
+        username: opts.username,
+        password: opts.password,
+        userId: person.id,
+        isActive: true,
+      },
+      include: { person: true },
+    });
+  } else {
+    const personId = account.userId!;
+    await prisma.person.update({
+      where: { id: personId },
+      data: { firstName, firstLastName: firstLastName || null },
+    });
+    await prisma.personData.upsert({
+      where: { idUser: personId },
+      create: {
+        idUser: personId,
+        personalEmail: opts.email,
+        cellPhone: opts.phone ?? null,
+      },
+      update: {
+        personalEmail: opts.email,
+        cellPhone: opts.phone ?? null,
+      },
+    });
+    account = await prisma.account.update({
+      where: { id: account.id },
+      data: { password: opts.password, isActive: true },
+      include: { person: true },
+    });
+  }
+
+  const role = await prisma.role.findFirst({
+    where: { name: appRoleToDbRoleName(opts.role) },
+  });
+  if (role) {
+    await prisma.accountRole.upsert({
+      where: {
+        accountId_roleId: { accountId: account.id, roleId: role.id },
+      },
+      create: { accountId: account.id, roleId: role.id },
+      update: {},
+    });
+  }
+
+  return {
+    personId: account.userId!,
+    accountId: account.id,
+    username: account.username ?? opts.username,
+  };
+}
 
 const TARGET_APPOINTMENTS_MIN = 120;
 const TARGET_APPOINTMENTS_MAX = 140;
@@ -138,67 +290,298 @@ const DEMO = {
     },
   ],
   customers: [
-    { name: "María Fernanda", lastnames: "López Mendoza", phone: "0987654321", email: "maria.lopez@gmail.com" },
-    { name: "Carla Andrea", lastnames: "Vega Torres", phone: "0992345678", email: "carla.vega@hotmail.com" },
-    { name: "Pedro Javier", lastnames: "Ramírez Soto", phone: "0976543210", email: "pedro.ramirez@yahoo.com" },
-    { name: "Laura Patricia", lastnames: "Torres Medina", phone: "0965432109", email: "laura.torres@gmail.com" },
-    { name: "Sofía Isabel", lastnames: "Reyes Vega", phone: "0943210987", email: "sofia.reyes@gmail.com" },
-    { name: "Valentina", lastnames: "Morales Ruiz", phone: "0921098765", email: "valentina.morales@gmail.com" },
-    { name: "Andrea", lastnames: "Cevallos Ponce", phone: "0954329876", email: "andrea.cevallos@gmail.com" },
-    { name: "Daniela", lastnames: "Pulla Chiriboga", phone: "0932107654", email: "daniela.pulla@outlook.com" },
-    { name: "Camila", lastnames: "Ordóñez Castillo", phone: "0989012345", email: "camila.ordonez@gmail.com" },
-    { name: "Fernanda", lastnames: "Ávila Samaniego", phone: "0978901234", email: "fernanda.avila@hotmail.com" },
-    { name: "Gabriela", lastnames: "Jaramillo Peña", phone: "0967890123", email: "gabriela.jaramillo@outlook.com" },
-    { name: "Lucía", lastnames: "Maldonado Ríos", phone: "0956789012", email: "lucia.maldonado@gmail.com" },
-    { name: "Patricia", lastnames: "Burneo León", phone: "0945678901", email: "patricia.burneo@hotmail.com" },
-    { name: "Diana", lastnames: "Aguirre Celi", phone: "0934567890", email: "diana.aguirre@gmail.com" },
-    { name: "Katherine", lastnames: "Romero Valdivieso", phone: "0923456789", email: "katherine.romero@yahoo.com" },
-    { name: "Michelle", lastnames: "Salinas Quizhpe", phone: "0912345678", email: "michelle.salinas@gmail.com" },
-    { name: "Johanna", lastnames: "Piedra Armijos", phone: "0998761234", email: "johanna.piedra@hotmail.com" },
-    { name: "Carolina", lastnames: "Ochoa Vivanco", phone: "0987651234", email: "carolina.ochoa@gmail.com" },
-    { name: "Verónica", lastnames: "Cueva Palacios", phone: "0976541234", email: "veronica.cueva@outlook.com" },
-    { name: "Elizabeth", lastnames: "Guerrero Mora", phone: "0965431234", email: "elizabeth.guerrero@gmail.com" },
+    {
+      name: "María Fernanda",
+      lastnames: "López Mendoza",
+      phone: "0987654321",
+      email: "maria.lopez@gmail.com",
+    },
+    {
+      name: "Carla Andrea",
+      lastnames: "Vega Torres",
+      phone: "0992345678",
+      email: "carla.vega@hotmail.com",
+    },
+    {
+      name: "Pedro Javier",
+      lastnames: "Ramírez Soto",
+      phone: "0976543210",
+      email: "pedro.ramirez@yahoo.com",
+    },
+    {
+      name: "Laura Patricia",
+      lastnames: "Torres Medina",
+      phone: "0965432109",
+      email: "laura.torres@gmail.com",
+    },
+    {
+      name: "Sofía Isabel",
+      lastnames: "Reyes Vega",
+      phone: "0943210987",
+      email: "sofia.reyes@gmail.com",
+    },
+    {
+      name: "Valentina",
+      lastnames: "Morales Ruiz",
+      phone: "0921098765",
+      email: "valentina.morales@gmail.com",
+    },
+    {
+      name: "Andrea",
+      lastnames: "Cevallos Ponce",
+      phone: "0954329876",
+      email: "andrea.cevallos@gmail.com",
+    },
+    {
+      name: "Daniela",
+      lastnames: "Pulla Chiriboga",
+      phone: "0932107654",
+      email: "daniela.pulla@outlook.com",
+    },
+    {
+      name: "Camila",
+      lastnames: "Ordóñez Castillo",
+      phone: "0989012345",
+      email: "camila.ordonez@gmail.com",
+    },
+    {
+      name: "Fernanda",
+      lastnames: "Ávila Samaniego",
+      phone: "0978901234",
+      email: "fernanda.avila@hotmail.com",
+    },
+    {
+      name: "Gabriela",
+      lastnames: "Jaramillo Peña",
+      phone: "0967890123",
+      email: "gabriela.jaramillo@outlook.com",
+    },
+    {
+      name: "Lucía",
+      lastnames: "Maldonado Ríos",
+      phone: "0956789012",
+      email: "lucia.maldonado@gmail.com",
+    },
+    {
+      name: "Patricia",
+      lastnames: "Burneo León",
+      phone: "0945678901",
+      email: "patricia.burneo@hotmail.com",
+    },
+    {
+      name: "Diana",
+      lastnames: "Aguirre Celi",
+      phone: "0934567890",
+      email: "diana.aguirre@gmail.com",
+    },
+    {
+      name: "Katherine",
+      lastnames: "Romero Valdivieso",
+      phone: "0923456789",
+      email: "katherine.romero@yahoo.com",
+    },
+    {
+      name: "Michelle",
+      lastnames: "Salinas Quizhpe",
+      phone: "0912345678",
+      email: "michelle.salinas@gmail.com",
+    },
+    {
+      name: "Johanna",
+      lastnames: "Piedra Armijos",
+      phone: "0998761234",
+      email: "johanna.piedra@hotmail.com",
+    },
+    {
+      name: "Carolina",
+      lastnames: "Ochoa Vivanco",
+      phone: "0987651234",
+      email: "carolina.ochoa@gmail.com",
+    },
+    {
+      name: "Verónica",
+      lastnames: "Cueva Palacios",
+      phone: "0976541234",
+      email: "veronica.cueva@outlook.com",
+    },
+    {
+      name: "Elizabeth",
+      lastnames: "Guerrero Mora",
+      phone: "0965431234",
+      email: "elizabeth.guerrero@gmail.com",
+    },
   ],
   services: [
-    { name: "Corte de cabello", price: 12, durationMinutes: 30, commissionPct: 40 },
-    { name: "Corte infantil", price: 8, durationMinutes: 25, commissionPct: 40 },
-    { name: "Brushing y acabado", price: 6, durationMinutes: 20, commissionPct: 45 },
-    { name: "Tinte completo", price: 45, durationMinutes: 90, commissionPct: 30 },
-    { name: "Mechas balayage", price: 65, durationMinutes: 120, commissionPct: 28 },
-    { name: "Lavado + Blowout", price: 15, durationMinutes: 45, commissionPct: 35 },
-    { name: "Tratamiento capilar", price: 25, durationMinutes: 60, commissionPct: 32 },
-    { name: "Peinado para eventos", price: 30, durationMinutes: 60, commissionPct: 38 },
-    { name: "Corte + Blowout (combo)", price: 18, durationMinutes: 45, commissionPct: 38 },
-    { name: "Alisado permanente", price: 80, durationMinutes: 150, commissionPct: 25 },
-    { name: "Hidratación profunda", price: 22, durationMinutes: 50, commissionPct: 32 },
+    {
+      name: "Corte de cabello",
+      price: 12,
+      durationMinutes: 30,
+      commissionPct: 40,
+    },
+    {
+      name: "Corte infantil",
+      price: 8,
+      durationMinutes: 25,
+      commissionPct: 40,
+    },
+    {
+      name: "Brushing y acabado",
+      price: 6,
+      durationMinutes: 20,
+      commissionPct: 45,
+    },
+    {
+      name: "Tinte completo",
+      price: 45,
+      durationMinutes: 90,
+      commissionPct: 30,
+    },
+    {
+      name: "Mechas balayage",
+      price: 65,
+      durationMinutes: 120,
+      commissionPct: 28,
+    },
+    {
+      name: "Lavado + Blowout",
+      price: 15,
+      durationMinutes: 45,
+      commissionPct: 35,
+    },
+    {
+      name: "Tratamiento capilar",
+      price: 25,
+      durationMinutes: 60,
+      commissionPct: 32,
+    },
+    {
+      name: "Peinado para eventos",
+      price: 30,
+      durationMinutes: 60,
+      commissionPct: 38,
+    },
+    {
+      name: "Corte + Blowout (combo)",
+      price: 18,
+      durationMinutes: 45,
+      commissionPct: 38,
+    },
+    {
+      name: "Alisado permanente",
+      price: 80,
+      durationMinutes: 150,
+      commissionPct: 25,
+    },
+    {
+      name: "Hidratación profunda",
+      price: 22,
+      durationMinutes: 50,
+      commissionPct: 32,
+    },
     { name: "Manicura", price: 10, durationMinutes: 40, commissionPct: 45 },
     { name: "Pedicura", price: 14, durationMinutes: 50, commissionPct: 45 },
     { name: "Spa de uñas", price: 22, durationMinutes: 70, commissionPct: 40 },
-    { name: "Depilación facial", price: 8, durationMinutes: 25, commissionPct: 50 },
-    { name: "Depilación corporal", price: 18, durationMinutes: 40, commissionPct: 45 },
-    { name: "Maquillaje profesional", price: 35, durationMinutes: 60, commissionPct: 40 },
-    { name: "Perfilado de cejas", price: 5, durationMinutes: 15, commissionPct: 50 },
+    {
+      name: "Depilación facial",
+      price: 8,
+      durationMinutes: 25,
+      commissionPct: 50,
+    },
+    {
+      name: "Depilación corporal",
+      price: 18,
+      durationMinutes: 40,
+      commissionPct: 45,
+    },
+    {
+      name: "Maquillaje profesional",
+      price: 35,
+      durationMinutes: 60,
+      commissionPct: 40,
+    },
+    {
+      name: "Perfilado de cejas",
+      price: 5,
+      durationMinutes: 15,
+      commissionPct: 50,
+    },
   ],
   categories: [
-    { name: "Cuidado capilar", description: "Shampoos, acondicionadores y tratamientos" },
-    { name: "Styling profesional", description: "Serums, ceras modeladoras y kits de acabado" },
+    {
+      name: "Cuidado capilar",
+      description: "Shampoos, acondicionadores y tratamientos",
+    },
+    {
+      name: "Styling profesional",
+      description: "Serums, ceras modeladoras y kits de acabado",
+    },
     { name: "Uñas y spa", description: "Esmaltes, kits y cuidado de uñas" },
     { name: "Coloración", description: "Tintes y productos de color" },
     { name: "Accesorios", description: "Cepillos y herramientas de venta" },
   ],
   products: [
-    { name: "Shampoo profesional", price: 12, stock: 45, category: "Cuidado capilar" },
-    { name: "Acondicionador reparador", price: 14, stock: 38, category: "Cuidado capilar" },
-    { name: "Cera modeladora", price: 9.5, stock: 22, category: "Styling profesional" },
-    { name: "Mascarilla capilar", price: 18, stock: 8, category: "Cuidado capilar" },
-    { name: "Serum reparador", price: 11, stock: 30, category: "Styling profesional" },
-    { name: "Spray termoprotector", price: 13.5, stock: 3, category: "Styling profesional" },
+    {
+      name: "Shampoo profesional",
+      price: 12,
+      stock: 45,
+      category: "Cuidado capilar",
+    },
+    {
+      name: "Acondicionador reparador",
+      price: 14,
+      stock: 38,
+      category: "Cuidado capilar",
+    },
+    {
+      name: "Cera modeladora",
+      price: 9.5,
+      stock: 22,
+      category: "Styling profesional",
+    },
+    {
+      name: "Mascarilla capilar",
+      price: 18,
+      stock: 8,
+      category: "Cuidado capilar",
+    },
+    {
+      name: "Serum reparador",
+      price: 11,
+      stock: 30,
+      category: "Styling profesional",
+    },
+    {
+      name: "Spray termoprotector",
+      price: 13.5,
+      stock: 3,
+      category: "Styling profesional",
+    },
     { name: "Tinte retail", price: 22, stock: 12, category: "Coloración" },
-    { name: "Ampolla reparadora", price: 6.5, stock: 55, category: "Cuidado capilar" },
+    {
+      name: "Ampolla reparadora",
+      price: 6.5,
+      stock: 55,
+      category: "Cuidado capilar",
+    },
     { name: "Esmalte premium", price: 7.5, stock: 40, category: "Uñas y spa" },
-    { name: "Kit manicura casa", price: 16.9, stock: 14, category: "Uñas y spa" },
-    { name: "Cepillo desenredante", price: 15.9, stock: 18, category: "Accesorios" },
-    { name: "Serum puntas abiertas", price: 14.5, stock: 4, category: "Cuidado capilar" },
+    {
+      name: "Kit manicura casa",
+      price: 16.9,
+      stock: 14,
+      category: "Uñas y spa",
+    },
+    {
+      name: "Cepillo desenredante",
+      price: 15.9,
+      stock: 18,
+      category: "Accesorios",
+    },
+    {
+      name: "Serum puntas abiertas",
+      price: 14.5,
+      stock: 4,
+      category: "Cuidado capilar",
+    },
   ],
   suppliers: [
     {
@@ -217,46 +600,218 @@ const DEMO = {
     },
   ],
   appointmentTemplates: [
-    { title: "Corte de cabello", description: "Corte y perfilado.", serviceNames: ["Corte de cabello"] },
-    { title: "Corte y blowout", description: "Corte + brushing y acabado.", serviceNames: ["Corte + Blowout (combo)"] },
-    { title: "Tinte completo", description: "Coloración completa con gloss.", serviceNames: ["Tinte completo"] },
-    { title: "Mechas balayage", description: "Balayage en medios y puntas.", serviceNames: ["Mechas balayage"] },
-    { title: "Tratamiento capilar", description: "Hidratación profunda + blowout.", serviceNames: ["Tratamiento capilar", "Lavado + Blowout"] },
-    { title: "Spa de uñas", description: "Manicura y pedicura spa.", serviceNames: ["Spa de uñas"] },
-    { title: "Manicura", description: "Manicura clásica con esmaltado.", serviceNames: ["Manicura"] },
-    { title: "Pedicura", description: "Pedicura completa.", serviceNames: ["Pedicura"] },
-    { title: "Depilación", description: "Depilación facial y perfilado.", serviceNames: ["Depilación facial", "Perfilado de cejas"] },
-    { title: "Maquillaje evento", description: "Maquillaje profesional para evento.", serviceNames: ["Maquillaje profesional"] },
-    { title: "Peinado matrimonio", description: "Peinado recogido con ondas.", serviceNames: ["Peinado para eventos"] },
-    { title: "Alisado", description: "Alisado permanente con queratina.", serviceNames: ["Alisado permanente"] },
-    { title: "Combo premium", description: "Corte, blowout e hidratación.", serviceNames: ["Corte + Blowout (combo)", "Hidratación profunda"] },
-    { title: "Corte + productos", description: "Corte con venta de serum.", serviceNames: ["Corte de cabello"], productNames: ["Serum reparador"] },
+    {
+      title: "Corte de cabello",
+      description: "Corte y perfilado.",
+      serviceNames: ["Corte de cabello"],
+    },
+    {
+      title: "Corte y blowout",
+      description: "Corte + brushing y acabado.",
+      serviceNames: ["Corte + Blowout (combo)"],
+    },
+    {
+      title: "Tinte completo",
+      description: "Coloración completa con gloss.",
+      serviceNames: ["Tinte completo"],
+    },
+    {
+      title: "Mechas balayage",
+      description: "Balayage en medios y puntas.",
+      serviceNames: ["Mechas balayage"],
+    },
+    {
+      title: "Tratamiento capilar",
+      description: "Hidratación profunda + blowout.",
+      serviceNames: ["Tratamiento capilar", "Lavado + Blowout"],
+    },
+    {
+      title: "Spa de uñas",
+      description: "Manicura y pedicura spa.",
+      serviceNames: ["Spa de uñas"],
+    },
+    {
+      title: "Manicura",
+      description: "Manicura clásica con esmaltado.",
+      serviceNames: ["Manicura"],
+    },
+    {
+      title: "Pedicura",
+      description: "Pedicura completa.",
+      serviceNames: ["Pedicura"],
+    },
+    {
+      title: "Depilación",
+      description: "Depilación facial y perfilado.",
+      serviceNames: ["Depilación facial", "Perfilado de cejas"],
+    },
+    {
+      title: "Maquillaje evento",
+      description: "Maquillaje profesional para evento.",
+      serviceNames: ["Maquillaje profesional"],
+    },
+    {
+      title: "Peinado matrimonio",
+      description: "Peinado recogido con ondas.",
+      serviceNames: ["Peinado para eventos"],
+    },
+    {
+      title: "Alisado",
+      description: "Alisado permanente con queratina.",
+      serviceNames: ["Alisado permanente"],
+    },
+    {
+      title: "Combo premium",
+      description: "Corte, blowout e hidratación.",
+      serviceNames: ["Corte + Blowout (combo)", "Hidratación profunda"],
+    },
+    {
+      title: "Corte + productos",
+      description: "Corte con venta de serum.",
+      serviceNames: ["Corte de cabello"],
+      productNames: ["Serum reparador"],
+    },
   ],
   employeeMyDay: [
-    { dayOffset: 0, hour: 9, minute: 0, status: "completed" as const, templateIndex: 0, customerIndex: 0 },
-    { dayOffset: 0, hour: 10, minute: 30, status: "completed" as const, templateIndex: 1, customerIndex: 1 },
-    { dayOffset: 0, hour: 11, minute: 30, status: "completed" as const, templateIndex: 5, customerIndex: 2 },
-    { dayOffset: 0, hour: 14, minute: 0, status: "scheduled" as const, templateIndex: 3, customerIndex: 3 },
-    { dayOffset: 0, hour: 16, minute: 30, status: "scheduled" as const, templateIndex: 8, customerIndex: 4 },
-    { dayOffset: 1, hour: 10, minute: 0, status: "scheduled" as const, templateIndex: 9, customerIndex: 5 },
-    { dayOffset: 2, hour: 11, minute: 30, status: "paid_pending" as const, templateIndex: 6, customerIndex: 6 },
-    { dayOffset: 4, hour: 15, minute: 0, status: "scheduled" as const, templateIndex: 7, customerIndex: 7 },
+    {
+      dayOffset: 0,
+      hour: 9,
+      minute: 0,
+      status: "completed" as const,
+      templateIndex: 0,
+      customerIndex: 0,
+    },
+    {
+      dayOffset: 0,
+      hour: 10,
+      minute: 30,
+      status: "completed" as const,
+      templateIndex: 1,
+      customerIndex: 1,
+    },
+    {
+      dayOffset: 0,
+      hour: 11,
+      minute: 30,
+      status: "completed" as const,
+      templateIndex: 5,
+      customerIndex: 2,
+    },
+    {
+      dayOffset: 0,
+      hour: 14,
+      minute: 0,
+      status: "scheduled" as const,
+      templateIndex: 3,
+      customerIndex: 3,
+    },
+    {
+      dayOffset: 0,
+      hour: 16,
+      minute: 30,
+      status: "scheduled" as const,
+      templateIndex: 8,
+      customerIndex: 4,
+    },
+    {
+      dayOffset: 1,
+      hour: 10,
+      minute: 0,
+      status: "scheduled" as const,
+      templateIndex: 9,
+      customerIndex: 5,
+    },
+    {
+      dayOffset: 2,
+      hour: 11,
+      minute: 30,
+      status: "paid_pending" as const,
+      templateIndex: 6,
+      customerIndex: 6,
+    },
+    {
+      dayOffset: 4,
+      hour: 15,
+      minute: 0,
+      status: "scheduled" as const,
+      templateIndex: 7,
+      customerIndex: 7,
+    },
   ],
   paymentNotes: {
     cash: ["Pago en efectivo", "Cliente pagó en caja", ""],
     card: ["Datafast · Visa", "Datafast · Mastercard", "Débito aprobado"],
-    transfer: ["Transferencia Banco de Loja", "Depósito Banco Pichincha", "Transferencia Deuna"],
+    transfer: [
+      "Transferencia Banco de Loja",
+      "Depósito Banco Pichincha",
+      "Transferencia Deuna",
+    ],
   },
   tasks: [
-    { title: "Reponer shampoo y acondicionador", description: "Ambos locales — stock bajo.", status: "todo" as const, priority: "high" as const, assigneeIndex: 1, dueDays: 0, sortOrder: 1 },
-    { title: "Confirmar turnos de mañana", description: "WhatsApp a clientes 099 496 0155.", status: "todo" as const, priority: "medium" as const, assigneeIndex: 0, dueDays: 0, sortOrder: 2 },
-    { title: "Limpiar esterilizadora", description: "Protocolo de higiene semanal.", status: "todo" as const, priority: "low" as const, assigneeIndex: 2, dueDays: 2, sortOrder: 3 },
-    { title: "Actualizar precios en vitrina", description: "Incluir spa de uñas y maquillaje.", status: "in_progress" as const, priority: "medium" as const, assigneeIndex: 0, dueDays: 1, sortOrder: 1 },
-    { title: "Pedir esmaltes y guantes", description: "Proveedor Beauty Supply Loja.", status: "in_progress" as const, priority: "high" as const, assigneeIndex: 1, dueDays: 0, sortOrder: 2 },
-    { title: "Publicar promo fin de semana", description: "Facebook + Instagram Andrea Guerrero.", status: "done" as const, priority: "medium" as const, assigneeIndex: 3, dueDays: -1, sortOrder: 1 },
-    { title: "Capacitación técnicas de color", description: "Sesión interna con el equipo.", status: "done" as const, priority: "low" as const, assigneeIndex: 0, dueDays: -3, sortOrder: 2 },
+    {
+      title: "Reponer shampoo y acondicionador",
+      description: "Ambos locales — stock bajo.",
+      status: "todo" as const,
+      priority: "high" as const,
+      assigneeIndex: 1,
+      dueDays: 0,
+      sortOrder: 1,
+    },
+    {
+      title: "Confirmar turnos de mañana",
+      description: "WhatsApp a clientes 099 496 0155.",
+      status: "todo" as const,
+      priority: "medium" as const,
+      assigneeIndex: 0,
+      dueDays: 0,
+      sortOrder: 2,
+    },
+    {
+      title: "Limpiar esterilizadora",
+      description: "Protocolo de higiene semanal.",
+      status: "todo" as const,
+      priority: "low" as const,
+      assigneeIndex: 2,
+      dueDays: 2,
+      sortOrder: 3,
+    },
+    {
+      title: "Actualizar precios en vitrina",
+      description: "Incluir spa de uñas y maquillaje.",
+      status: "in_progress" as const,
+      priority: "medium" as const,
+      assigneeIndex: 0,
+      dueDays: 1,
+      sortOrder: 1,
+    },
+    {
+      title: "Pedir esmaltes y guantes",
+      description: "Proveedor Beauty Supply Loja.",
+      status: "in_progress" as const,
+      priority: "high" as const,
+      assigneeIndex: 1,
+      dueDays: 0,
+      sortOrder: 2,
+    },
+    {
+      title: "Publicar promo fin de semana",
+      description: "Facebook + Instagram Andrea Guerrero.",
+      status: "done" as const,
+      priority: "medium" as const,
+      assigneeIndex: 3,
+      dueDays: -1,
+      sortOrder: 1,
+    },
+    {
+      title: "Capacitación técnicas de color",
+      description: "Sesión interna con el equipo.",
+      status: "done" as const,
+      priority: "low" as const,
+      assigneeIndex: 0,
+      dueDays: -3,
+      sortOrder: 2,
+    },
   ],
-} as const;
 } as const;
 
 async function main() {
@@ -265,38 +820,27 @@ async function main() {
 
   const adminPassword = await hashPassword("123456");
 
-  const admin = await prisma.user.upsert({
-    where: { username: DEMO.admin.username },
-    update: {
-      password: adminPassword,
-      name: DEMO.admin.name,
-      email: DEMO.admin.email,
-      phone: DEMO.admin.phone,
-      bio: DEMO.admin.bio,
-      role: "owner",
-    },
-    create: {
-      username: DEMO.admin.username,
-      name: DEMO.admin.name,
-      email: DEMO.admin.email,
-      password: adminPassword,
-      role: "owner",
-      phone: DEMO.admin.phone,
-      bio: DEMO.admin.bio,
-    },
-  });
-
-  console.log("Owner user created:", admin.username);
-
-  for (const roleName of ["owner", "admin", "employee"] as const) {
-    const existing = await prisma.role.findFirst({ where: { name: roleName } });
+  for (const role of SYSTEM_ROLES) {
+    const existing = await prisma.role.findFirst({ where: { name: role.name } });
     if (!existing) {
-      await prisma.role.create({ data: { name: roleName } });
+      await prisma.role.create({ data: { name: role.name } });
     }
   }
-  console.log("System roles ensured: owner, admin, employee");
+  console.log("System roles ensured:", SYSTEM_ROLES.map((r) => r.name).join(", "));
 
-  await seedTestData(prisma, admin.id);
+  const admin = await upsertStaffAccount(prisma, {
+    username: DEMO.admin.username,
+    password: adminPassword,
+    fullName: DEMO.admin.name,
+    email: DEMO.admin.email,
+    phone: DEMO.admin.phone,
+    role: "owner",
+  });
+
+  console.log("Owner account created:", admin.username);
+
+  await seedTestData(prisma, admin);
+  await prisma.$disconnect();
 }
 
 function pick<T>(items: T[], index: number): T {
@@ -372,7 +916,7 @@ async function registerCompletedAppointmentPayment(
   );
   const method = pickPaymentMethod(params.paymentIndex);
 
-  await prisma.payment.create({
+  await prisma.appointmentPayment.create({
     data: {
       appointmentId: params.appointmentId,
       amount: total,
@@ -408,8 +952,8 @@ async function registerCompletedAppointmentPayment(
 async function seedEmployeeMyDayAppointments(
   prisma: PrismaClient,
   now: Date,
-  users: Array<{ id: number }>,
-  customers: Array<{ id: number; name: string; lastnames: string }>,
+  users: Array<{ personId: number }>,
+  customers: Array<{ id: number; name: string }>,
   services: SeedService[],
   products: Array<{ id: number; name: string; price: number }>,
   branches: Array<{ id: number }>,
@@ -419,16 +963,23 @@ async function seedEmployeeMyDayAppointments(
 
   for (let employeeIndex = 0; employeeIndex < users.length; employeeIndex++) {
     const user = users[employeeIndex];
-    const branch = branches[Math.floor(employeeIndex / STAFF_PER_BRANCH)] ?? branches[0];
+    const branch =
+      branches[Math.floor(employeeIndex / STAFF_PER_BRANCH)] ?? branches[0];
 
-    for (let planIndex = 0; planIndex < DEMO.employeeMyDay.length; planIndex++) {
+    for (
+      let planIndex = 0;
+      planIndex < DEMO.employeeMyDay.length;
+      planIndex++
+    ) {
       const plan = DEMO.employeeMyDay[planIndex];
       const template =
         appointmentTemplates[
           (plan.templateIndex + employeeIndex) % appointmentTemplates.length
         ];
       const customer =
-        customers[(plan.customerIndex + employeeIndex + planIndex) % customers.length];
+        customers[
+          (plan.customerIndex + employeeIndex + planIndex) % customers.length
+        ];
       const appointmentDate = atTime(
         addDays(startOfDay(now), plan.dayOffset),
         plan.hour,
@@ -440,7 +991,7 @@ async function seedEmployeeMyDayAppointments(
           title: template.title,
           description: template.description,
           customerId: customer.id,
-          userId: user.id,
+          userId: user.personId,
           branchId: branch.id,
           appointmentDate,
           status: plan.status,
@@ -454,7 +1005,7 @@ async function seedEmployeeMyDayAppointments(
         .filter((s): s is SeedService => Boolean(s));
 
       for (const svc of linkedServices) {
-        await prisma.appointmentsServices.create({
+        await prisma.appointmentService.create({
           data: { appointmentId: apt.id, serviceId: svc.id },
         });
       }
@@ -464,7 +1015,7 @@ async function seedEmployeeMyDayAppointments(
         const product = products.find((p) => p.name === productName);
         if (!product) continue;
         productLines.push({ price: product.price, quantity: 1 });
-        await prisma.appointmentsProducts.create({
+        await prisma.appointmentProduct.create({
           data: { appointmentId: apt.id, productId: product.id, quantity: 1 },
         });
       }
@@ -472,7 +1023,7 @@ async function seedEmployeeMyDayAppointments(
       if (plan.status === "completed") {
         await registerCompletedAppointmentPayment(prisma, {
           appointmentId: apt.id,
-          userId: user.id,
+          userId: user.personId,
           appointmentDate,
           linkedServices,
           productLines,
@@ -573,7 +1124,12 @@ function buildSubscriptionPayload(now: Date): Prisma.InputJsonValue {
             section(3, "/operacion/caja", "Caja", "planned"),
             section(4, "/operacion/turno", "Turno", "planned"),
             section(5, "/operacion/tareas", "Tareas"),
-            section(6, "/operacion/comprobantes-pos", "Comprobantes POS", "planned"),
+            section(
+              6,
+              "/operacion/comprobantes-pos",
+              "Comprobantes POS",
+              "planned",
+            ),
             section(
               7,
               "/operacion/comprobantes-pos/reimpresion",
@@ -598,7 +1154,12 @@ function buildSubscriptionPayload(now: Date): Prisma.InputJsonValue {
               "Emitidos",
               "planned",
             ),
-            section(11, "/operacion/supervision-caja", "Supervisión caja", "planned"),
+            section(
+              11,
+              "/operacion/supervision-caja",
+              "Supervisión caja",
+              "planned",
+            ),
           ],
         },
         {
@@ -657,7 +1218,12 @@ function buildSubscriptionPayload(now: Date): Prisma.InputJsonValue {
             section(1, "/marketing/promociones", "Promociones"),
             section(2, "/canal/catalogo", "Catálogo config", "planned"),
             section(3, "/publicidad", "Campañas", "planned"),
-            section(4, "/publicidad/dispositivos", "Dispositivos TV", "planned"),
+            section(
+              4,
+              "/publicidad/dispositivos",
+              "Dispositivos TV",
+              "planned",
+            ),
             section(5, "/publicidad/reproductor", "Reproductor", "planned"),
           ],
         },
@@ -723,7 +1289,6 @@ function buildSubscriptionPayload(now: Date): Prisma.InputJsonValue {
   };
 }
 
-
 function dayLoadFactor(date: Date): number {
   const dow = date.getDay();
   // Dom: cerrado parcial · Lun: moderado · Mar–Vie: pico · Sáb: muy concurrido
@@ -731,19 +1296,23 @@ function dayLoadFactor(date: Date): number {
   return weights[dow] ?? 1;
 }
 
-function appointmentsForDay(dayOffset: number, now: Date, base: number): number {
+function appointmentsForDay(
+  dayOffset: number,
+  now: Date,
+  base: number,
+): number {
   const day = addDays(startOfDay(now), dayOffset);
   return Math.max(1, Math.round(base * dayLoadFactor(day)));
 }
 
-function pickPaymentMethod(index: number): PaymentMethod {
+function pickPaymentMethod(index: number): SeedPaymentMethod {
   const roll = index % 20;
   if (roll < 10) return "cash";
   if (roll < 17) return "card";
   return "transfer";
 }
 
-function pickPaymentNote(method: PaymentMethod, index: number): string {
+function pickPaymentNote(method: SeedPaymentMethod, index: number): string {
   const notes = DEMO.paymentNotes[method];
   return pick([...notes], index);
 }
@@ -757,9 +1326,25 @@ type DayPlan = {
 
 function buildAppointmentPlans(now: Date): DayPlan[] {
   const timeSlots: Array<[number, number]> = [
-    [9, 0], [9, 30], [10, 0], [10, 30], [11, 0], [11, 30],
-    [12, 0], [12, 30], [14, 0], [14, 30], [15, 0], [15, 30],
-    [16, 0], [16, 30], [17, 0], [17, 30], [18, 0], [18, 30], [19, 0],
+    [9, 0],
+    [9, 30],
+    [10, 0],
+    [10, 30],
+    [11, 0],
+    [11, 30],
+    [12, 0],
+    [12, 30],
+    [14, 0],
+    [14, 30],
+    [15, 0],
+    [15, 30],
+    [16, 0],
+    [16, 30],
+    [17, 0],
+    [17, 30],
+    [18, 0],
+    [18, 30],
+    [19, 0],
   ];
 
   const plans: DayPlan[] = [];
@@ -767,24 +1352,41 @@ function buildAppointmentPlans(now: Date): DayPlan[] {
 
   const todayCount =
     TODAY_APPOINTMENTS_MIN +
-    ((now.getDate() + now.getMonth()) % (TODAY_APPOINTMENTS_MAX - TODAY_APPOINTMENTS_MIN + 1));
+    ((now.getDate() + now.getMonth()) %
+      (TODAY_APPOINTMENTS_MAX - TODAY_APPOINTMENTS_MIN + 1));
 
   for (let i = 0; i < todayCount; i++) {
     const [hour, minute] = pick(timeSlots, i);
     let status: AppointmentStatus;
     if (hour < currentHour - 1) {
       status = pick(
-        ["completed", "completed", "completed", "pending_payment", "cancelled"] as AppointmentStatus[],
+        [
+          "completed",
+          "completed",
+          "completed",
+          "pending_payment",
+          "cancelled",
+        ] as AppointmentStatus[],
         i,
       );
     } else if (hour <= currentHour) {
       status = pick(
-        ["completed", "pending_payment", "paid_pending", "scheduled"] as AppointmentStatus[],
+        [
+          "completed",
+          "pending_payment",
+          "paid_pending",
+          "scheduled",
+        ] as AppointmentStatus[],
         i,
       );
     } else {
       status = pick(
-        ["scheduled", "scheduled", "paid_pending", "rescheduled"] as AppointmentStatus[],
+        [
+          "scheduled",
+          "scheduled",
+          "paid_pending",
+          "rescheduled",
+        ] as AppointmentStatus[],
         i,
       );
     }
@@ -842,7 +1444,13 @@ function buildAppointmentPlans(now: Date): DayPlan[] {
     const dayOffset = 1 + (i % 14);
     const [hour, minute] = pick(timeSlots, i + 3);
     const status = pick(
-      ["scheduled", "scheduled", "scheduled", "paid_pending", "rescheduled"] as AppointmentStatus[],
+      [
+        "scheduled",
+        "scheduled",
+        "scheduled",
+        "paid_pending",
+        "rescheduled",
+      ] as AppointmentStatus[],
       i,
     );
     plans.push({ dayOffset, hour, minute, status });
@@ -874,7 +1482,12 @@ function buildAppointmentPlans(now: Date): DayPlan[] {
         hour,
         minute,
         status: pick(
-          ["completed", "completed", "pending_payment", "cancelled"] as AppointmentStatus[],
+          [
+            "completed",
+            "completed",
+            "pending_payment",
+            "cancelled",
+          ] as AppointmentStatus[],
           fill,
         ),
       });
@@ -887,9 +1500,9 @@ function buildAppointmentPlans(now: Date): DayPlan[] {
 
 async function refreshOperationalData(prisma: PrismaClient) {
   await prisma.commissionRecord.deleteMany({});
-  await prisma.payment.deleteMany({});
-  await prisma.appointmentsProducts.deleteMany({});
-  await prisma.appointmentsServices.deleteMany({});
+  await prisma.appointmentPayment.deleteMany({});
+  await prisma.appointmentProduct.deleteMany({});
+  await prisma.appointmentService.deleteMany({});
   await prisma.appointment.deleteMany({});
   await prisma.notification.deleteMany({});
 }
@@ -950,82 +1563,73 @@ async function seedBusinessSettings(prisma: PrismaClient) {
   });
 }
 
-async function seedUserRoles(
+async function seedAccountRoles(
   prisma: PrismaClient,
-  users: Array<{ id: number; role: string }>,
+  accounts: Array<{ accountId: number; role: string }>,
 ) {
   const roles = await prisma.role.findMany();
-  const roleByName = Object.fromEntries(roles.map((r) => [r.name, r.id]));
+  const roleByAppRole = Object.fromEntries(
+    SYSTEM_ROLES.map((r) => [r.appRole, r.name]),
+  );
 
-  for (const user of users) {
-    const roleId = roleByName[user.role];
+  for (const entry of accounts) {
+    const roleName = roleByAppRole[entry.role] ?? appRoleToDbRoleName(entry.role);
+    const roleId = roles.find((r) => r.name === roleName)?.id;
     if (!roleId) continue;
-    await prisma.userRole.upsert({
-      where: { userId_roleId: { userId: user.id, roleId } },
-      create: { userId: user.id, roleId },
+    await prisma.accountRole.upsert({
+      where: {
+        accountId_roleId: { accountId: entry.accountId, roleId },
+      },
+      create: { accountId: entry.accountId, roleId },
       update: {},
     });
   }
 }
 
-async function seedTestData(prisma: PrismaClient, adminId: number) {
+async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
+  const adminPersonId = admin.personId;
+  const adminAccountId = admin.accountId;
   const password = await hashPassword("123456");
   const now = new Date();
 
   await seedBusinessSettings(prisma);
 
-  const usersData = DEMO.staff.map((s) => ({
-    ...s,
-    password,
-    photo: null as string | null,
-  }));
-
   const users = await Promise.all(
-    usersData.map((u) =>
-      prisma.user.upsert({
-        where: { username: u.username },
-        update: {
-          name: u.name,
-          email: u.email,
-          password: u.password,
-          role: u.role,
-          phone: u.phone,
-          bio: u.bio,
-        },
-        create: u,
+    DEMO.staff.map((u) =>
+      upsertStaffAccount(prisma, {
+        username: u.username,
+        password,
+        fullName: u.name,
+        email: u.email,
+        phone: u.phone,
+        role: u.role,
       }),
     ),
   );
 
   const branchAdminUsers = await Promise.all(
     DEMO.branchAdmins.map((adminUser) =>
-      prisma.user.upsert({
-        where: { username: adminUser.username },
-        update: {
-          name: adminUser.name,
-          email: adminUser.email,
-          password,
-          role: "admin",
-          phone: adminUser.phone,
-          bio: adminUser.bio,
-        },
-        create: {
-          username: adminUser.username,
-          name: adminUser.name,
-          email: adminUser.email,
-          password,
-          role: "admin",
-          phone: adminUser.phone,
-          bio: adminUser.bio,
-        },
+      upsertStaffAccount(prisma, {
+        username: adminUser.username,
+        password,
+        fullName: adminUser.name,
+        email: adminUser.email,
+        phone: adminUser.phone,
+        role: "admin",
       }),
     ),
   );
 
-  await seedUserRoles(prisma, [
-    { id: adminId, role: "owner" },
-    ...branchAdminUsers.map((u) => ({ id: u.id, role: "admin" as const })),
-    ...users.map((u) => ({ id: u.id, role: u.role })),
+  await seedAccountRoles(prisma, [
+    { accountId: adminAccountId, role: "owner" },
+    ...branchAdminUsers.map((u) => ({
+      accountId: u.accountId,
+      role: "admin" as const,
+    })),
+    ...users.map((u, i) => ({
+      accountId: u.accountId,
+      role: DEMO.staff[i].role,
+    })),
   ]);
 
   const customersData = [...DEMO.customers];
@@ -1035,7 +1639,9 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
   await prisma.customer.deleteMany({});
 
   const customers = await Promise.all(
-    customersData.map((c) => prisma.customer.create({ data: c })),
+    customersData.map((c) =>
+      prisma.customer.create({ data: customerFromDemo(c) }),
+    ),
   );
 
   const demoCustomerPassword = await hashPassword("123456");
@@ -1061,7 +1667,9 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
     commissionPct: number;
   }> = [];
   for (const s of servicesData) {
-    const existing = await prisma.service.findFirst({ where: { name: s.name } });
+    const existing = await prisma.service.findFirst({
+      where: { name: s.name },
+    });
     if (existing) {
       services.push(
         await prisma.service.update({
@@ -1082,7 +1690,9 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
 
   const categories: Array<{ id: number; name: string }> = [];
   for (const c of categoriesData) {
-    const existing = await prisma.category.findFirst({ where: { name: c.name } });
+    const existing = await prisma.category.findFirst({
+      where: { name: c.name },
+    });
     if (existing) {
       categories.push(
         await prisma.category.update({
@@ -1095,20 +1705,33 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
     }
   }
 
-  const categoryByName = Object.fromEntries(categories.map((c) => [c.name, c.id]));
+  const categoryByName = Object.fromEntries(
+    categories.map((c) => [c.name, c.id]),
+  );
+
+  const defaultUnit = await ensureDefaultUnit(prisma);
 
   // Stocks finales deseados (incluye alertas ≤5 y uno en 0)
   const productsData = [...DEMO.products];
 
-  const products: Array<{ id: number; name: string; price: number; stock: number }> = [];
+  const products: Array<{
+    id: number;
+    name: string;
+    price: number;
+    stock: number;
+  }> = [];
   for (const p of productsData) {
     const payload = {
       name: p.name,
       price: p.price,
       stock: p.stock,
+      type: "final" as const,
+      unitId: defaultUnit.id,
       categoryId: categoryByName[p.category] ?? null,
     };
-    const existing = await prisma.product.findFirst({ where: { name: p.name } });
+    const existing = await prisma.product.findFirst({
+      where: { name: p.name },
+    });
     if (existing) {
       products.push(
         await prisma.product.update({
@@ -1147,7 +1770,9 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
   const branches: Array<{ id: number; name: string; key: string }> = [];
   for (const b of branchSeeds) {
     const { key, ...data } = b;
-    const existing = await prisma.branch.findFirst({ where: { name: data.name } });
+    const existing = await prisma.branch.findFirst({
+      where: { name: data.name },
+    });
     const row = existing
       ? await prisma.branch.update({
           where: { id: existing.id },
@@ -1166,17 +1791,27 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
 
   const mainBranch = branches.find((b) => b.key === "colon") ?? branches[0];
 
-  await prisma.userBranch.deleteMany();
-  await prisma.userBranch.create({
-    data: { userId: adminId, branchId: mainBranch.id, isPrimary: true },
+  await prisma.accountBranch.deleteMany();
+  await prisma.accountBranch.create({
+    data: {
+      accountId: adminAccountId,
+      branchId: mainBranch.id,
+      isPrimary: true,
+    },
   });
 
   for (const branchAdmin of branchAdminUsers) {
-    const seed = DEMO.branchAdmins.find((a) => a.username === branchAdmin.username);
+    const seed = DEMO.branchAdmins.find(
+      (a) => a.username === branchAdmin.username,
+    );
     const branch = branches.find((b) => b.key === seed?.branchCode);
     if (!branch) continue;
-    await prisma.userBranch.create({
-      data: { userId: branchAdmin.id, branchId: branch.id, isPrimary: true },
+    await prisma.accountBranch.create({
+      data: {
+        accountId: branchAdmin.accountId,
+        branchId: branch.id,
+        isPrimary: true,
+      },
     });
   }
 
@@ -1185,8 +1820,12 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
     for (let slot = 0; slot < STAFF_PER_BRANCH; slot++) {
       const user = users[branchIndex * STAFF_PER_BRANCH + slot];
       if (!user) continue;
-      await prisma.userBranch.create({
-        data: { userId: user.id, branchId: branch.id, isPrimary: true },
+      await prisma.accountBranch.create({
+        data: {
+          accountId: user.accountId,
+          branchId: branch.id,
+          isPrimary: true,
+        },
       });
     }
   }
@@ -1195,9 +1834,15 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
     for (const branch of branches) {
       const portion = Math.max(0, Math.floor(product.stock / branches.length));
       await prisma.branchStock.upsert({
-        where: { branchId_productId: { branchId: branch.id, productId: product.id } },
-        create: { branchId: branch.id, productId: product.id, stock: portion, minStock: 5 },
-        update: { stock: portion },
+        where: {
+          storeId_productId: { storeId: branch.id, productId: product.id },
+        },
+        create: {
+          storeId: branch.id,
+          productId: product.id,
+          quantity: portion,
+        },
+        update: { quantity: portion },
       });
     }
   }
@@ -1205,7 +1850,9 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
   for (const service of services) {
     for (const branch of branches) {
       await prisma.serviceBranch.upsert({
-        where: { serviceId_branchId: { serviceId: service.id, branchId: branch.id } },
+        where: {
+          serviceId_branchId: { serviceId: service.id, branchId: branch.id },
+        },
         create: { serviceId: service.id, branchId: branch.id, isActive: true },
         update: { isActive: true },
       });
@@ -1213,33 +1860,22 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
   }
 
   await prisma.expense.deleteMany();
-  await prisma.expenseCategory.deleteMany();
-  const expenseCategories = await Promise.all(
-    [
-      { name: "Insumos", type: "supplies" },
-      { name: "Alquiler", type: "rent" },
-      { name: "Servicios básicos", type: "utilities" },
-      { name: "Otros", type: "other" },
-    ].map((c) => prisma.expenseCategory.create({ data: c })),
-  );
 
   await prisma.expense.createMany({
     data: [
       {
-        branchId: branches[0].id,
-        categoryId: expenseCategories[0].id,
-        userId: adminId,
         amount: 120,
-        description: "Reposición insumos local Cristóbal Colón",
-        method: "transfer",
+        concept: "Reposición insumos local Cristóbal Colón",
+        category: "Insumos",
+        createdBy: adminAccountId,
+        status: "paid",
       },
       {
-        branchId: branches[1].id,
-        categoryId: expenseCategories[1].id,
-        userId: adminId,
         amount: 650,
-        description: "Alquiler local 18 de Noviembre",
-        method: "transfer",
+        concept: "Alquiler local 18 de Noviembre",
+        category: "Alquiler",
+        createdBy: adminAccountId,
+        status: "paid",
       },
     ],
   });
@@ -1254,9 +1890,11 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
   const corteService =
     services.find((s) => s.name.toLowerCase().includes("corte")) ?? services[0];
   const capilarProduct =
-    products.find((p) => p.name.toLowerCase().includes("shampoo")) ?? products[0];
+    products.find((p) => p.name.toLowerCase().includes("shampoo")) ??
+    products[0];
   const blowoutService =
-    services.find((s) => s.name.toLowerCase().includes("blowout")) ?? services[1];
+    services.find((s) => s.name.toLowerCase().includes("blowout")) ??
+    services[1];
 
   await prisma.reward.createMany({
     data: [
@@ -1291,12 +1929,15 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
   await prisma.servicePromotion.create({
     data: {
       name: "2x1 martes de blowout",
-      description: "Brushing y acabado 2x1 todos los martes en sucursales participantes",
+      description:
+        "Brushing y acabado 2x1 todos los martes en sucursales participantes",
       discountPct: 50,
       comboLabel: "2x1",
       startsAt: addDays(now, -14),
       endsAt: addDays(now, 45),
-      serviceIds: services.filter((s) => s.name.toLowerCase().includes("blowout")).map((s) => s.id),
+      serviceIds: services
+        .filter((s) => s.name.toLowerCase().includes("blowout"))
+        .map((s) => s.id),
       branchIds: branches.map((b) => b.id),
     },
   });
@@ -1355,18 +1996,25 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
     productNames?: readonly string[];
   };
 
-  const appointmentTemplates: AppointmentTemplate[] = DEMO.appointmentTemplates.map(
-    (t) => ({ ...t }),
-  );
+  const appointmentTemplates: AppointmentTemplate[] =
+    DEMO.appointmentTemplates.map((t) => ({ ...t }));
   const plans = buildAppointmentPlans(now);
-  const appointments: Array<{ id: number; appointmentDate: Date; status: AppointmentStatus }> = [];
+  const appointments: Array<{
+    id: number;
+    appointmentDate: Date;
+    status: AppointmentStatus;
+  }> = [];
 
   for (let i = 0; i < plans.length; i++) {
     const plan = plans[i];
     const template = pick(appointmentTemplates, i);
     const customer = pick(customers, i);
     const user = pick(users, i);
-    const appointmentDate = atTime(addDays(startOfDay(now), plan.dayOffset), plan.hour, plan.minute);
+    const appointmentDate = atTime(
+      addDays(startOfDay(now), plan.dayOffset),
+      plan.hour,
+      plan.minute,
+    );
     const status = plan.status;
 
     const branch = branches[i % branches.length];
@@ -1375,7 +2023,7 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
         title: template.title,
         description: template.description,
         customerId: customer.id,
-        userId: user.id,
+        userId: user.personId,
         branchId: branch.id,
         appointmentDate,
         status,
@@ -1389,30 +2037,46 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
       .filter((s): s is (typeof services)[number] => Boolean(s));
 
     for (const svc of linkedServices) {
-      await prisma.appointmentsServices
+      await prisma.appointmentService
         .create({ data: { appointmentId: apt.id, serviceId: svc.id } })
         .catch(() => {});
     }
 
-    const productLines: Array<{ productId: number; price: number; quantity: number }> = [];
+    const productLines: Array<{
+      productId: number;
+      price: number;
+      quantity: number;
+    }> = [];
 
     const templateProducts = template.productNames ?? [];
     for (const productName of templateProducts) {
       const product = products.find((p) => p.name === productName);
       if (!product) continue;
       const quantity = 1;
-      productLines.push({ productId: product.id, price: product.price, quantity });
-      await prisma.appointmentsProducts
-        .create({ data: { appointmentId: apt.id, productId: product.id, quantity } })
+      productLines.push({
+        productId: product.id,
+        price: product.price,
+        quantity,
+      });
+      await prisma.appointmentProduct
+        .create({
+          data: { appointmentId: apt.id, productId: product.id, quantity },
+        })
         .catch(() => {});
     }
 
     if (templateProducts.length === 0 && i % 2 === 0) {
       const product = pick(products, i);
       const quantity = 1 + (i % 3);
-      productLines.push({ productId: product.id, price: product.price, quantity });
-      await prisma.appointmentsProducts
-        .create({ data: { appointmentId: apt.id, productId: product.id, quantity } })
+      productLines.push({
+        productId: product.id,
+        price: product.price,
+        quantity,
+      });
+      await prisma.appointmentProduct
+        .create({
+          data: { appointmentId: apt.id, productId: product.id, quantity },
+        })
         .catch(() => {});
     }
 
@@ -1420,9 +2084,15 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
       const extra = pick(products, i + 3);
       const quantity = 1;
       if (!productLines.some((line) => line.productId === extra.id)) {
-        productLines.push({ productId: extra.id, price: extra.price, quantity });
-        await prisma.appointmentsProducts
-          .create({ data: { appointmentId: apt.id, productId: extra.id, quantity } })
+        productLines.push({
+          productId: extra.id,
+          price: extra.price,
+          quantity,
+        });
+        await prisma.appointmentProduct
+          .create({
+            data: { appointmentId: apt.id, productId: extra.id, quantity },
+          })
           .catch(() => {});
       }
     }
@@ -1430,7 +2100,7 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
     if (status === "completed") {
       await registerCompletedAppointmentPayment(prisma, {
         appointmentId: apt.id,
-        userId: user.id,
+        userId: user.personId,
         appointmentDate,
         linkedServices,
         productLines,
@@ -1472,14 +2142,46 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
   const lowStockProducts = productsData.filter((p) => p.stock <= 5);
 
   const notificationTemplates = [
-    { title: "Nuevo turno agendado", message: "Se agendó un turno para {customer} el {date} a las {time}.", type: "info" },
-    { title: "Recordatorio de turno", message: "Mañana a las {time} le toca a {customer}.", type: "warning" },
-    { title: "Turno completado", message: "Se cerró el turno de {customer} con pago registrado.", type: "success" },
-    { title: "Turno cancelado", message: "Se canceló el turno de {customer} del {date}.", type: "error" },
-    { title: "Turno reagendado", message: "{customer} reagendó para el {date} a las {time}.", type: "warning" },
-    { title: "Pago pendiente", message: "El turno de {customer} quedó pendiente de pago.", type: "info" },
-    { title: "Cliente frecuente", message: "{customer} reservó nuevamente esta semana.", type: "success" },
-    { title: "Cierre de caja", message: "Revisa el resumen de ingresos del día.", type: "info" },
+    {
+      title: "Nuevo turno agendado",
+      message: "Se agendó un turno para {customer} el {date} a las {time}.",
+      type: "info",
+    },
+    {
+      title: "Recordatorio de turno",
+      message: "Mañana a las {time} le toca a {customer}.",
+      type: "warning",
+    },
+    {
+      title: "Turno completado",
+      message: "Se cerró el turno de {customer} con pago registrado.",
+      type: "success",
+    },
+    {
+      title: "Turno cancelado",
+      message: "Se canceló el turno de {customer} del {date}.",
+      type: "error",
+    },
+    {
+      title: "Turno reagendado",
+      message: "{customer} reagendó para el {date} a las {time}.",
+      type: "warning",
+    },
+    {
+      title: "Pago pendiente",
+      message: "El turno de {customer} quedó pendiente de pago.",
+      type: "info",
+    },
+    {
+      title: "Cliente frecuente",
+      message: "{customer} reservó nuevamente esta semana.",
+      type: "success",
+    },
+    {
+      title: "Cierre de caja",
+      message: "Revisa el resumen de ingresos del día.",
+      type: "info",
+    },
   ];
 
   let notificationsCreated = 0;
@@ -1493,10 +2195,10 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
 
     await prisma.notification.create({
       data: {
-        userId: adminId,
+        userId: adminPersonId,
         title: tmpl.title,
         message: tmpl.message
-          .replace("{customer}", `${customer.name} ${customer.lastnames}`)
+          .replace("{customer}", customer.name)
           .replace("{date}", apt.appointmentDate.toLocaleDateString(LOCALE))
           .replace(
             "{time}",
@@ -1505,8 +2207,8 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
               minute: "2-digit",
             }),
           ),
-        type: tmpl.type,
-        read: i > 5,
+        type: mapNotificationType(tmpl.type),
+        seen: i > 5,
         createdAt,
       },
     });
@@ -1517,13 +2219,13 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
     const out = p.stock <= 0;
     await prisma.notification.create({
       data: {
-        userId: adminId,
+        userId: adminPersonId,
         title: out ? `Sin stock: ${p.name}` : `Stock bajo: ${p.name}`,
         message: out
           ? `"${p.name}" se quedó sin unidades. Reponer inventario.`
           : `"${p.name}" tiene solo ${p.stock} unidad(es) (mínimo 5).`,
-        type: "warning",
-        read: idx > 1,
+        type: "alert",
+        seen: idx > 1,
         createdAt: addDays(now, -idx),
       },
     });
@@ -1533,15 +2235,15 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
   // Algunas notificaciones para empleados
   for (const user of users) {
     for (let i = 0; i < 4; i++) {
-      const tmpl = pick(notificationTemplates, i + user.id);
-      const customer = pick(customers, i + user.id);
-      const apt = pick(appointments, i + user.id);
+      const tmpl = pick(notificationTemplates, i + user.personId);
+      const customer = pick(customers, i + user.personId);
+      const apt = pick(appointments, i + user.personId);
       await prisma.notification.create({
         data: {
-          userId: user.id,
+          userId: user.personId,
           title: tmpl.title,
           message: tmpl.message
-            .replace("{customer}", `${customer.name} ${customer.lastnames}`)
+            .replace("{customer}", customer.name)
             .replace("{date}", apt.appointmentDate.toLocaleDateString(LOCALE))
             .replace(
               "{time}",
@@ -1550,8 +2252,8 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
                 minute: "2-digit",
               }),
             ),
-          type: tmpl.type,
-          read: i > 1,
+          type: mapNotificationType(tmpl.type),
+          seen: i > 1,
           createdAt: addDays(now, -(i % 5)),
         },
       });
@@ -1559,16 +2261,27 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
     }
   }
 
-  const paymentsCount = await prisma.payment.count();
+  const paymentsCount = await prisma.appointmentPayment.count();
 
   // Proveedores y compras de ejemplo
-  await prisma.purchaseLine.deleteMany();
-  await prisma.purchase.deleteMany();
+  await prisma.supplierOrderPayment.deleteMany();
+  await prisma.purchaseOrderLine.deleteMany();
+  await prisma.purchaseOrder.deleteMany();
   await prisma.supplier.deleteMany();
 
   const suppliers: Array<{ id: number; name: string }> = [];
   for (const s of DEMO.suppliers) {
-    suppliers.push(await prisma.supplier.create({ data: s }));
+    suppliers.push(
+      await prisma.supplier.create({
+        data: {
+          name: s.name,
+          phone: s.phone,
+          email: s.email,
+          identNumber: s.taxId,
+          address: s.address,
+        },
+      }),
+    );
   }
 
   const productByName = Object.fromEntries(products.map((p) => [p.name, p]));
@@ -1577,18 +2290,17 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
   const cera = productByName["Cera modeladora"];
 
   if (suppliers[0] && shampoo && gel) {
-    await prisma.purchase.create({
+    await prisma.purchaseOrder.create({
       data: {
         supplierId: suppliers[0].id,
-        userId: adminId,
-        purchasedAt: addDays(now, -5),
+        date: addDays(now, -5),
         notes: "Factura #1042 · reposición mensual",
-        totalAmount: shampoo.price * 10 + gel.price * 8,
-        method: "transfer",
+        status: "recibido",
+        paymentMethod: "transfer",
         lines: {
           create: [
-            { productId: shampoo.id, quantity: 10, unitCost: 7.2 },
-            { productId: gel.id, quantity: 8, unitCost: 4.5 },
+            { productId: shampoo.id, quantity: 10, unitPrice: 7.2 },
+            { productId: gel.id, quantity: 8, unitPrice: 4.5 },
           ],
         },
       },
@@ -1597,41 +2309,52 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
 
   if (suppliers[1] && cera && productByName["Serum reparador"]) {
     const aceite = productByName["Serum reparador"];
-    await prisma.purchase.create({
+    await prisma.purchaseOrder.create({
       data: {
         supplierId: suppliers[1].id,
-        userId: adminId,
-        purchasedAt: addDays(now, -2),
+        date: addDays(now, -2),
         notes: "Compra mostrador · efectivo",
-        totalAmount: cera.price * 6 + aceite.price * 4,
-        method: "cash",
+        status: "recibido",
+        paymentMethod: "cash",
         lines: {
           create: [
-            { productId: cera.id, quantity: 6, unitCost: 5.8 },
-            { productId: aceite.id, quantity: 4, unitCost: 6.5 },
+            { productId: cera.id, quantity: 6, unitPrice: 5.8 },
+            { productId: aceite.id, quantity: 4, unitPrice: 6.5 },
           ],
         },
       },
     });
   }
 
-  const purchasesCount = await prisma.purchase.count();
+  const purchasesCount = await prisma.purchaseOrder.count();
 
   // Tareas de ejemplo para el Kanban
-  await prisma.task.deleteMany();
-  const staffPool = [{ id: adminId }, ...users];
-  const sampleTasks = DEMO.tasks.map((task) => ({
-    title: task.title,
-    description: task.description,
-    status: task.status,
-    priority: task.priority,
-    assigneeId: staffPool[task.assigneeIndex]?.id ?? adminId,
-    dueDate: addDays(now, task.dueDays),
-    sortOrder: task.sortOrder,
-  }));
+  await prisma.taskItem.deleteMany();
+  await prisma.taskPlan.deleteMany();
+  const staffPool = [{ id: adminPersonId }, ...users.map((u) => ({ id: u.personId }))];
+  const taskPlan = await prisma.taskPlan.create({
+    data: {
+      title: "Operaciones semana",
+      description: "Tareas demo del Kanban",
+      status: "published",
+      publishedAt: now,
+      createdByUserId: adminAccountId,
+    },
+  });
 
-  for (const task of sampleTasks) {
-    await prisma.task.create({ data: task });
+  for (const task of DEMO.tasks) {
+    await prisma.taskItem.create({
+      data: {
+        planId: taskPlan.id,
+        title: task.title,
+        status: task.status,
+        priority: task.priority,
+        assignedUserId: staffPool[task.assigneeIndex]?.id ?? adminPersonId,
+        dueDate: addDays(now, task.dueDays),
+        sortOrder: task.sortOrder,
+        resultNote: task.description,
+      },
+    });
   }
 
   const todayCount = appointments.filter((a) => {
@@ -1650,7 +2373,9 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
   const monthCount = appointments.filter(
     (a) => a.appointmentDate >= monthStart && a.appointmentDate <= now,
   ).length;
-  const futureCount = appointments.filter((a) => a.appointmentDate > now).length;
+  const futureCount = appointments.filter(
+    (a) => a.appointmentDate > now,
+  ).length;
   const statusCounts = appointments.reduce(
     (acc, a) => {
       acc[a.status] = (acc[a.status] ?? 0) + 1;
@@ -1662,12 +2387,18 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
   console.log("Datos de prueba insertados correctamente:");
   console.log(`  - ${DEMO.business.businessName} · ${DEMO.business.address}`);
   console.log("  - SRI ambiente pruebas");
-  console.log(`  - Owner: ${DEMO.admin.username} / 123456 (${DEMO.admin.email})`);
-  console.log(`  - ${branchAdminUsers.length} admins de sucursal (contraseña: 123456)`);
+  console.log(
+    `  - Owner: ${DEMO.admin.username} / 123456 (${DEMO.admin.email})`,
+  );
+  console.log(
+    `  - ${branchAdminUsers.length} admins de sucursal (contraseña: 123456)`,
+  );
   DEMO.branchAdmins.forEach((a) => {
     console.log(`      · ${a.username} → ${a.branchCode}`);
   });
-  console.log(`  - ${users.length} empleados (${STAFF_PER_BRANCH} por sucursal · contraseña: 123456)`);
+  console.log(
+    `  - ${users.length} empleados (${STAFF_PER_BRANCH} por sucursal · contraseña: 123456)`,
+  );
   console.log(`  - ${customers.length} clientes`);
   console.log(`  - ${services.length} servicios`);
   console.log(`  - ${categories.length} categorías`);
@@ -1682,17 +2413,15 @@ async function seedTestData(prisma: PrismaClient, adminId: number) {
   console.log(`      · futuros: ${futureCount}`);
   console.log(`      · estados: ${JSON.stringify(statusCounts)}`);
   console.log(`  - ${paymentsCount} pagos registrados`);
-  console.log(`  - ${suppliers.length} proveedores · ${purchasesCount} compras`);
-  console.log(`  - ${sampleTasks.length} tareas (Kanban)`);
+  console.log(
+    `  - ${suppliers.length} proveedores · ${purchasesCount} compras`,
+  );
+  console.log(`  - ${DEMO.tasks.length} tareas (Kanban)`);
   console.log(`  - ${notificationsCreated} notificaciones`);
   console.log(`  - entitlement: subscribed=true, maintenance=false`);
 }
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(async () => {
-    process.exit(0);
-  });
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
