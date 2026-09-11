@@ -5,6 +5,7 @@ import {
   buildCustomerAuthCookie,
   serializeCustomerSession,
 } from "@/shared/utils/check-customer-auth";
+import { findPortalCustomerByIdentifier } from "@/shared/utils/portal-customer-lookup";
 
 export async function POST(request: Request) {
   try {
@@ -20,13 +21,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const emailKey = rawId.toLowerCase();
-    const customer = await prisma.customer.findFirst({
-      where: {
-        isActive: true,
-        OR: [{ email: emailKey }, { email: rawId }, { cedula: rawId }],
-      },
-    });
+    const looked = await findPortalCustomerByIdentifier(prisma, rawId);
+    if (looked.error === "portal_login_disabled") {
+      return NextResponse.json(
+        { message: "El local no tiene habilitada la verificación del portal" },
+        { status: 403 },
+      );
+    }
+
+    const customer = looked.customer;
     if (!customer?.password || !(await verifyPassword(password, customer.password))) {
       return NextResponse.json(
         { message: "Credenciales inválidas" },

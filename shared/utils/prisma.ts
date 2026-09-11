@@ -2,7 +2,7 @@ import "dotenv/config";
 import { PrismaClient } from "@/generated/prisma/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
-const CLIENT_VERSION = "20260820150000-eddeli-aligned-v1";
+const CLIENT_VERSION = "20260910124000-task-mandates-v1";
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
@@ -33,7 +33,11 @@ function isClientUpToDate(client?: PrismaClient): boolean {
     typeof client.purchaseOrder?.findMany === "function" &&
     typeof client.appSettings?.findUnique === "function" &&
     typeof client.branch?.findMany === "function" &&
-    typeof client.financePayment?.findMany === "function"
+    typeof client.financePayment?.findMany === "function" &&
+    typeof client.paymentMedium?.findMany === "function" &&
+    typeof client.accountBranch?.findMany === "function" &&
+    typeof client.taskItem?.findMany === "function" &&
+    typeof client.taskPlan?.findFirst === "function"
   );
 }
 

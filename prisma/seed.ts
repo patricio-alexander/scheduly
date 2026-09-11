@@ -163,9 +163,18 @@ const TODAY_APPOINTMENTS_MIN = 12;
 const TODAY_APPOINTMENTS_MAX = 20;
 const LOCALE = "es-EC";
 
-const STAFF_PER_BRANCH = 5;
+/** 4 empleados por local · 4 bolitas de equipo en el simulador (×4 c/u) */
+const STAFF_PER_BRANCH = 4;
 
-/** ─── Datos demo: Andrea Guerrero Estética y Peluquería · Loja, Ecuador ─── */
+/** Credenciales compartidas con AppsWeb/simulador/scheduly/flows */
+const SEED_PASSWORDS = {
+  programmer: "12345678",
+  owner: "Andrea2026",
+  staff: "12345678",
+  customer: "12345678",
+} as const;
+
+/** ─── Datos demo: Andrea Guerrero · estructura bots (4 locales) ─── */
 const DEMO = {
   business: {
     businessName: "Andrea Guerrero Estética y Peluquería",
@@ -176,14 +185,21 @@ const DEMO = {
     instagram: "https://www.instagram.com/andreaguerrero_peluqueriayspa/",
     hours: "Lunes a sábado · 8:00 AM – 8:00 PM",
     description:
-      "Centro de belleza en Loja: peluquería, tratamientos capilares, spa de uñas, depilación y maquillaje profesional. Dos locales céntricos.",
+      "Centro de belleza en Loja: peluquería, tratamientos capilares, spa de uñas, depilación y maquillaje profesional. Cuatro locales.",
     accentColor: "#D4AF37",
     successColor: "#22C55E",
     warningColor: "#F0B429",
     dangerColor: "#F04438",
   },
+  programmer: {
+    username: "administrador",
+    name: "Mantenimiento Técnico",
+    email: "mantenimiento@andreaguerrero.ec",
+    phone: "0994000000",
+    bio: "Cuenta técnica compartida · rol Programador.",
+  },
   admin: {
-    username: "admin",
+    username: "andrea",
     name: "Andrea Guerrero",
     email: "andrea@andreaguerrero.ec",
     phone: "0994960155",
@@ -194,99 +210,163 @@ const DEMO = {
       username: "admin_colon",
       name: "Karla Espinoza",
       email: "colon@andreaguerrero.ec",
-      phone: "0994960155",
+      phone: "0995112233",
       bio: "Encargada local Cristóbal Colón",
       branchCode: "colon",
     },
     {
-      username: "admin_noviembre",
+      username: "admin_eguiguren",
       name: "Paola Jiménez",
-      email: "noviembre@andreaguerrero.ec",
-      phone: "0994960155",
-      bio: "Encargada local 18 de Noviembre",
-      branchCode: "noviembre",
+      email: "eguiguren@andreaguerrero.ec",
+      phone: "0995223344",
+      bio: "Encargada local Eguiguren",
+      branchCode: "eguiguren",
+    },
+    {
+      username: "admin_lourdes",
+      name: "Verónica Cueva",
+      email: "lourdes@andreaguerrero.ec",
+      phone: "0995334455",
+      bio: "Encargada local Lourdes",
+      branchCode: "lourdes",
+    },
+    {
+      username: "admin_centrosur",
+      name: "Diana Mora",
+      email: "centrosur@andreaguerrero.ec",
+      phone: "0995445566",
+      bio: "Encargada local Centro Sur",
+      branchCode: "centrosur",
     },
   ],
   staff: [
     {
-      username: "jperez",
-      name: "Juan Pérez",
-      email: "juan.perez@andreaguerrero.ec",
-      role: "employee" as const,
-      phone: "0987123456",
-      bio: "Estilista senior. Cortes y acabados.",
-    },
-    {
-      username: "mgarcia",
+      username: "est_colon_maria",
       name: "María García",
       email: "maria.garcia@andreaguerrero.ec",
       role: "employee" as const,
-      phone: "0998765432",
-      bio: "Colorista. Mechas, tintes y tratamientos.",
+      phone: "0987112233",
+      bio: "Estilista · local Colón.",
     },
     {
-      username: "crojas",
+      username: "est_colon_lucas",
+      name: "Lucas Vera",
+      email: "lucas.vera@andreaguerrero.ec",
+      role: "employee" as const,
+      phone: "0987112234",
+      bio: "Estilista · local Colón.",
+    },
+    {
+      username: "est_colon_sofia",
+      name: "Sofía Mendoza",
+      email: "sofia.mendoza@andreaguerrero.ec",
+      role: "employee" as const,
+      phone: "0987112235",
+      bio: "Estilista · local Colón.",
+    },
+    {
+      username: "est_colon_andres",
+      name: "Andrés Castro",
+      email: "andres.castro@andreaguerrero.ec",
+      role: "employee" as const,
+      phone: "0987112236",
+      bio: "Estilista · local Colón.",
+    },
+    {
+      username: "est_eguiguren_camila",
       name: "Camila Rojas",
       email: "camila.rojas@andreaguerrero.ec",
       role: "employee" as const,
-      phone: "0976543210",
-      bio: "Spa de uñas · manicura y pedicura.",
+      phone: "0987223344",
+      bio: "Estilista · local Eguiguren.",
     },
     {
-      username: "flopez",
-      name: "Felipe López",
-      email: "felipe.lopez@andreaguerrero.ec",
-      role: "employee" as const,
-      phone: "0965432109",
-      bio: "Estilista y recepción. Combos y retail.",
-    },
-    {
-      username: "amunoz",
-      name: "Andrés Muñoz",
-      email: "andres.munoz@andreaguerrero.ec",
-      role: "employee" as const,
-      phone: "0988112233",
-      bio: "Maquillaje profesional y peinados de evento.",
-    },
-    {
-      username: "dsalinas",
+      username: "est_eguiguren_diego",
       name: "Diego Salinas",
       email: "diego.salinas@andreaguerrero.ec",
       role: "employee" as const,
-      phone: "0987223344",
-      bio: "Estilista. Cortes modernos y blowout.",
+      phone: "0987223345",
+      bio: "Estilista · local Eguiguren.",
     },
     {
-      username: "pherrera",
-      name: "Paola Herrera",
-      email: "paola.herrera@andreaguerrero.ec",
+      username: "est_eguiguren_valeria",
+      name: "Valeria Núñez",
+      email: "valeria.nunez@andreaguerrero.ec",
       role: "employee" as const,
-      phone: "0987334455",
-      bio: "Tratamientos capilares e hidratación.",
+      phone: "0987223346",
+      bio: "Estilista · local Eguiguren.",
     },
     {
-      username: "rvelez",
-      name: "Ricardo Vélez",
-      email: "ricardo.velez@andreaguerrero.ec",
+      username: "est_eguiguren_marco",
+      name: "Marco Palacios",
+      email: "marco.palacios@andreaguerrero.ec",
       role: "employee" as const,
-      phone: "0987445566",
-      bio: "Depilación y perfilado.",
+      phone: "0987223347",
+      bio: "Estilista · local Eguiguren.",
     },
     {
-      username: "nortiz",
+      username: "est_lourdes_natalia",
       name: "Natalia Ortiz",
       email: "natalia.ortiz@andreaguerrero.ec",
       role: "employee" as const,
-      phone: "0987556677",
-      bio: "Manicura, pedicura y spa de uñas.",
+      phone: "0987334455",
+      bio: "Spa de uñas · local Lourdes.",
     },
     {
-      username: "mespinosa",
-      name: "Marco Espinosa",
-      email: "marco.espinosa@andreaguerrero.ec",
+      username: "est_lourdes_andre",
+      name: "André Pineda",
+      email: "andre.pineda@andreaguerrero.ec",
       role: "employee" as const,
-      phone: "0987667788",
-      bio: "Estilista. Combos corte + blowout.",
+      phone: "0987334456",
+      bio: "Estilista · local Lourdes.",
+    },
+    {
+      username: "est_lourdes_elena",
+      name: "Elena Vargas",
+      email: "elena.vargas@andreaguerrero.ec",
+      role: "employee" as const,
+      phone: "0987334457",
+      bio: "Spa de uñas · local Lourdes.",
+    },
+    {
+      username: "est_lourdes_julian",
+      name: "Julián Cordero",
+      email: "julian.cordero@andreaguerrero.ec",
+      role: "employee" as const,
+      phone: "0987334458",
+      bio: "Estilista · local Lourdes.",
+    },
+    {
+      username: "est_centrosur_paula",
+      name: "Paula Jiménez",
+      email: "paula.jimenez@andreaguerrero.ec",
+      role: "employee" as const,
+      phone: "0987445566",
+      bio: "Estilista · local Centro Sur.",
+    },
+    {
+      username: "est_centrosur_kevin",
+      name: "Kevin Mora",
+      email: "kevin.mora@andreaguerrero.ec",
+      role: "employee" as const,
+      phone: "0987445567",
+      bio: "Estilista · local Centro Sur.",
+    },
+    {
+      username: "est_centrosur_rosa",
+      name: "Rosa Aguilar",
+      email: "rosa.aguilar@andreaguerrero.ec",
+      role: "employee" as const,
+      phone: "0987445568",
+      bio: "Estilista · local Centro Sur.",
+    },
+    {
+      username: "est_centrosur_fernando",
+      name: "Fernando Ríos",
+      email: "fernando.rios@andreaguerrero.ec",
+      role: "employee" as const,
+      phone: "0987445569",
+      bio: "Estilista · local Centro Sur.",
     },
   ],
   customers: [
@@ -750,7 +830,7 @@ const DEMO = {
   tasks: [
     {
       title: "Reponer shampoo y acondicionador",
-      description: "Ambos locales — stock bajo.",
+      description: "Los cuatro locales — stock bajo.",
       status: "todo" as const,
       priority: "high" as const,
       assigneeIndex: 1,
@@ -818,7 +898,8 @@ async function main() {
   const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
   const prisma = new PrismaClient({ adapter });
 
-  const adminPassword = await hashPassword("123456");
+  const ownerPassword = await hashPassword(SEED_PASSWORDS.owner);
+  const programmerPassword = await hashPassword(SEED_PASSWORDS.programmer);
 
   for (const role of SYSTEM_ROLES) {
     const existing = await prisma.role.findFirst({ where: { name: role.name } });
@@ -828,9 +909,19 @@ async function main() {
   }
   console.log("System roles ensured:", SYSTEM_ROLES.map((r) => r.name).join(", "));
 
+  const programmer = await upsertStaffAccount(prisma, {
+    username: DEMO.programmer.username,
+    password: programmerPassword,
+    fullName: DEMO.programmer.name,
+    email: DEMO.programmer.email,
+    phone: DEMO.programmer.phone,
+    role: "programmer",
+  });
+  console.log("Programmer account ready:", programmer.username);
+
   const admin = await upsertStaffAccount(prisma, {
     username: DEMO.admin.username,
-    password: adminPassword,
+    password: ownerPassword,
     fullName: DEMO.admin.name,
     email: DEMO.admin.email,
     phone: DEMO.admin.phone,
@@ -1589,7 +1680,7 @@ async function seedAccountRoles(
 async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
   const adminPersonId = admin.personId;
   const adminAccountId = admin.accountId;
-  const password = await hashPassword("123456");
+  const staffPassword = await hashPassword(SEED_PASSWORDS.staff);
   const now = new Date();
 
   await seedBusinessSettings(prisma);
@@ -1598,7 +1689,7 @@ async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
     DEMO.staff.map((u) =>
       upsertStaffAccount(prisma, {
         username: u.username,
-        password,
+        password: staffPassword,
         fullName: u.name,
         email: u.email,
         phone: u.phone,
@@ -1611,7 +1702,7 @@ async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
     DEMO.branchAdmins.map((adminUser) =>
       upsertStaffAccount(prisma, {
         username: adminUser.username,
-        password,
+        password: staffPassword,
         fullName: adminUser.name,
         email: adminUser.email,
         phone: adminUser.phone,
@@ -1644,11 +1735,18 @@ async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
     ),
   );
 
-  const demoCustomerPassword = await hashPassword("123456");
-  await prisma.customer.update({
-    where: { id: customers[0].id },
-    data: { password: demoCustomerPassword },
-  });
+  const demoCustomerPassword = await hashPassword(SEED_PASSWORDS.customer);
+  try {
+    await prisma.customer.update({
+      where: { id: customers[0].id },
+      data: { password: demoCustomerPassword },
+    });
+  } catch {
+    // Client Prisma desfasado (generated owned by root) · hash vía SQL
+    await prisma.$executeRaw`
+      UPDATE Customer SET password = ${demoCustomerPassword} WHERE id = ${customers[0].id}
+    `;
+  }
   await prisma.customerLoyalty.create({
     data: {
       customerId: customers[0].id,
@@ -1748,22 +1846,46 @@ async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
     {
       key: "colon",
       name: "Andrea Guerrero · Cristóbal Colón",
-      address: "Cristóbal Colón y 18 de Noviembre, Loja",
+      address: "18 de Noviembre y Cristóbal Colón, Loja",
       phone: "0994960155",
       city: "Loja",
       province: "Loja",
       position: 1,
       locationKind: "propia" as const,
+      establishmentCode: "001",
     },
     {
-      key: "noviembre",
-      name: "Andrea Guerrero · 18 de Noviembre",
-      address: "18 de Noviembre y Cristóbal Colón, Loja",
+      key: "eguiguren",
+      name: "Andrea Guerrero · Eguiguren",
+      address: "18 de Noviembre y José Antonio Eguiguren, Loja",
       phone: "0994960155",
       city: "Loja",
       province: "Loja",
       position: 2,
+      locationKind: "propia" as const,
+      establishmentCode: "002",
+    },
+    {
+      key: "lourdes",
+      name: "Andrea Guerrero · Lourdes",
+      address: "Av. Lourdes y Quito, Loja",
+      phone: "0994960155",
+      city: "Loja",
+      province: "Loja",
+      position: 3,
       locationKind: "vitrina" as const,
+      establishmentCode: "003",
+    },
+    {
+      key: "centrosur",
+      name: "Andrea Guerrero · Centro Sur",
+      address: "18 de Noviembre y Mercadillo, Loja",
+      phone: "0994960155",
+      city: "Loja",
+      province: "Loja",
+      position: 4,
+      locationKind: "vitrina" as const,
+      establishmentCode: "004",
     },
   ];
 
@@ -1812,6 +1934,10 @@ async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
         branchId: branch.id,
         isPrimary: true,
       },
+    });
+    await prisma.branch.update({
+      where: { id: branch.id },
+      data: { managerAccountId: branchAdmin.accountId },
     });
   }
 
@@ -1872,8 +1998,22 @@ async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
       },
       {
         amount: 650,
-        concept: "Alquiler local 18 de Noviembre",
+        concept: "Alquiler local Eguiguren",
         category: "Alquiler",
+        createdBy: adminAccountId,
+        status: "paid",
+      },
+      {
+        amount: 80,
+        concept: "Insumos spa local Lourdes",
+        category: "Insumos",
+        createdBy: adminAccountId,
+        status: "paid",
+      },
+      {
+        amount: 95,
+        concept: "Materiales peinado Centro Sur",
+        category: "Insumos",
         createdBy: adminAccountId,
         status: "paid",
       },
@@ -1953,7 +2093,7 @@ async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
       },
       {
         title: "Tratamientos capilares",
-        body: "Hidratación y color profesional en ambos locales de Loja.",
+        body: "Hidratación y color profesional en los locales de Loja.",
         type: "service",
         sortOrder: 2,
       },
@@ -2286,10 +2426,10 @@ async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
 
   const productByName = Object.fromEntries(products.map((p) => [p.name, p]));
   const shampoo = productByName["Shampoo profesional"];
-  const gel = productByName["Gel fijador"];
+  const mascarilla = productByName["Mascarilla capilar"];
   const cera = productByName["Cera modeladora"];
 
-  if (suppliers[0] && shampoo && gel) {
+  if (suppliers[0] && shampoo && mascarilla) {
     await prisma.purchaseOrder.create({
       data: {
         supplierId: suppliers[0].id,
@@ -2300,7 +2440,7 @@ async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
         lines: {
           create: [
             { productId: shampoo.id, quantity: 10, unitPrice: 7.2 },
-            { productId: gel.id, quantity: 8, unitPrice: 4.5 },
+            { productId: mascarilla.id, quantity: 8, unitPrice: 4.5 },
           ],
         },
       },
@@ -2388,16 +2528,19 @@ async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
   console.log(`  - ${DEMO.business.businessName} · ${DEMO.business.address}`);
   console.log("  - SRI ambiente pruebas");
   console.log(
-    `  - Owner: ${DEMO.admin.username} / 123456 (${DEMO.admin.email})`,
+    `  - Programador: ${DEMO.programmer.username} / ${SEED_PASSWORDS.programmer}`,
   );
   console.log(
-    `  - ${branchAdminUsers.length} admins de sucursal (contraseña: 123456)`,
+    `  - Owner: ${DEMO.admin.username} / ${SEED_PASSWORDS.owner} (${DEMO.admin.email})`,
+  );
+  console.log(
+    `  - ${branchAdminUsers.length} admins de sucursal (contraseña: ${SEED_PASSWORDS.staff})`,
   );
   DEMO.branchAdmins.forEach((a) => {
     console.log(`      · ${a.username} → ${a.branchCode}`);
   });
   console.log(
-    `  - ${users.length} empleados (${STAFF_PER_BRANCH} por sucursal · contraseña: 123456)`,
+    `  - ${users.length} empleados (${STAFF_PER_BRANCH} por sucursal · contraseña: ${SEED_PASSWORDS.staff})`,
   );
   console.log(`  - ${customers.length} clientes`);
   console.log(`  - ${services.length} servicios`);

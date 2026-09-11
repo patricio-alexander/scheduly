@@ -1,11 +1,11 @@
 /**
- * Asegura rol Programador + cuentas andrea (Dueña) y edgar (Programador)
+ * Asegura rol Programador + cuentas andrea (Dueña) y administrador (Programador)
  * sin vaciar la BD. Útil si no querés correr db:reset completo.
  *
  * Uso: npx tsx scripts/ensure-programmer-owner.ts
  */
 import "dotenv/config";
-import { PrismaClient } from "../generated/prisma/client";
+import { PrismaClient } from "../generated/prisma-runtime/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { hashPassword } from "../shared/utils/password";
 import {

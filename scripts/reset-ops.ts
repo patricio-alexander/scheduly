@@ -17,7 +17,7 @@
  *   o menú → Utilidades → Reset operativo (sin ingresos)
  */
 import "dotenv/config";
-import { PrismaClient } from "../generated/prisma/client";
+import { PrismaClient } from "../generated/prisma-runtime/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 
 const DEMO_BRANCH_STOCK = 80;

@@ -3,7 +3,7 @@
  * Preferir `npm run db:reset` para vaciar y bootstrap completo.
  */
 import "dotenv/config";
-import { PrismaClient } from "../generated/prisma/client";
+import { PrismaClient } from "../generated/prisma-runtime/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { hashPassword } from "../shared/utils/password";
 import { SYSTEM_ROLES } from "../shared/utils/system-roles";

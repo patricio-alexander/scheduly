@@ -2,14 +2,14 @@
  * Vacía todas las tablas de Scheduly y deja demo Andrea Guerrero (Loja):
  * - Roles: Dueño, Administrador, Empleado, Programador
  * - Dueña: andrea / Andrea2026
- * - Programador: edgar / 12345678 (solo logs + tester live)
+ * - Programador: administrador / 12345678 (Mantenimiento Técnico)
  * - Encargadas (Administrador) + equipo (Empleado) · 12345678
- * - 2 locales, cajas, servicios, productos, clientes, proveedores
+ * - 4 locales, cajas, servicios, productos, clientes, proveedores
  *
  * Uso: npm run db:reset
  */
 import "dotenv/config";
-import { PrismaClient } from "../generated/prisma/client";
+import { PrismaClient } from "../generated/prisma-runtime/client";
 import { PrismaMariaDb } from "@prisma/adapter-mariadb";
 import { BACKUP_TABLE_KEYS } from "../src/features/backups/lib/export-database";
 import { hashPassword } from "../shared/utils/password";
@@ -171,7 +171,7 @@ async function seedBootstrap(prisma: PrismaClient) {
   });
   console.log(`  dueña: ${AG_OWNER.username} / ${AG_OWNER.password}`);
 
-  // Programador (Edgar) · solo observación
+  // Programador (Mantenimiento Técnico) · solo observación
   const programmerCreated = await createStaffAccount(prisma, {
     username: AG_PROGRAMMER.username,
     passwordHash,

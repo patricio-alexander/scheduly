@@ -92,7 +92,7 @@ const CATALOG: CatalogGroup[] = [
       {
         id: "login-tester",
         title: "Login multi-cuenta",
-        desc: "Prueba rápida de login (andrea, edgar, admins, empleados).",
+        desc: "Prueba rápida de login (andrea, administrador, admins, empleados).",
         danger: "low",
         action: "login-tester",
       },
@@ -181,7 +181,7 @@ const CATALOG: CatalogGroup[] = [
       {
         id: "db-reset",
         title: "Reset BD (Andrea Guerrero demo)",
-        desc: "Vacía tablas y carga roles, andrea/edgar + admins/empleados, 2 locales, catálogo.",
+        desc: "Vacía tablas y carga roles, andrea/administrador + admins/empleados, 2 locales, catálogo.",
         danger: "high",
         write: true,
         action: "db-reset",
@@ -196,8 +196,8 @@ const CATALOG: CatalogGroup[] = [
       },
       {
         id: "ensure-accounts",
-        title: "Asegurar andrea + edgar (sin wipe)",
-        desc: "Crea/actualiza Dueña andrea y Programador edgar sin vaciar la BD.",
+        title: "Asegurar andrea + administrador (sin wipe)",
+        desc: "Crea/actualiza Dueña andrea y Programador administrador sin vaciar la BD.",
         danger: "med",
         write: true,
         action: "ensure-accounts",
@@ -520,7 +520,7 @@ async function confirmAndRun(item: ScriptItem) {
 
   if (item.action === "ensure-accounts") {
     const ok = await askConfirm(
-      `${c.brightGreen}¿Asegurar cuentas andrea + edgar sin wipe?${c.reset}`,
+      `${c.brightGreen}¿Asegurar cuentas andrea + administrador sin wipe?${c.reset}`,
     );
     if (!ok) {
       console.log(`${c.dim}Cancelado.${c.reset}`);

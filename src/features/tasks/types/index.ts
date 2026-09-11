@@ -18,6 +18,15 @@ export interface Task {
   createdAt: string;
   updatedAt: string;
   assignee: TaskAssignee | null;
+  mandateKey?: string | null;
+  createdByRole?: string | null;
+  /** Sistema detectó cumplimiento; falta check de Dueña */
+  systemSuggested?: boolean;
+  systemSuggestedAt?: string | null;
+  ownerConfirmed?: boolean;
+  ownerConfirmedAt?: string | null;
+  checkedAt?: string | null;
+  message?: string;
 }
 
 export interface TaskFormData {

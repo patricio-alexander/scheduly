@@ -2,92 +2,119 @@
 
 @import "@heroui/styles";
 
-/* Tema Scheduly: acento dorado + oscuro profundo (no gris verdoso) */
+/*
+ * Tema Scheduly sobre HeroUI.
+ * La landing de heroui.com luce más “viva” porque usa acento saturado +
+ * superficies con borde claro. Aquí el brand es oro, pero con más contraste.
+ */
 :root,
 .light,
 .default,
 [data-theme="light"],
 [data-theme="default"] {
-  --accent: oklch(78% 0.14 90);
+  --accent: oklch(72% 0.16 88);
   --accent-foreground: oklch(18% 0.03 85);
-  --background: oklch(98.2% 0.006 92);
-  --border: oklch(90% 0.01 92);
-  --danger: oklch(65.32% 0.2335 12.08);
-  --danger-foreground: oklch(99.11% 0 0);
-  --default: oklch(94.5% 0.008 92);
-  --default-foreground: oklch(22% 0.015 85);
-  --field-background: oklch(100% 0.003 92);
-  --field-border: transparent;
-  --field-foreground: oklch(22% 0.015 85);
-  --field-placeholder: oklch(58% 0.02 85);
-  --focus: oklch(78% 0.14 90);
-  --foreground: oklch(20% 0.02 85);
-  --muted: oklch(48% 0.02 85);
-  --overlay: oklch(100% 0.002 92);
-  --overlay-foreground: oklch(20% 0.02 85);
-  --scrollbar: oklch(86% 0.01 92);
-  --segment: oklch(100% 0.003 92);
-  --segment-foreground: oklch(20% 0.02 85);
-  --separator: oklch(91% 0.01 92);
-  --success: oklch(68% 0.16 145);
-  --success-foreground: oklch(22% 0.03 145);
-  --surface: oklch(100% 0.003 92);
-  --surface-foreground: oklch(20% 0.02 85);
-  --surface-secondary: oklch(96.2% 0.008 92);
-  --surface-secondary-foreground: oklch(20% 0.02 85);
+  --background: oklch(98.5% 0.004 95);
+  --border: oklch(88% 0.012 92);
+  --danger: oklch(62% 0.22 25);
+  --danger-foreground: oklch(99% 0 0);
+  --default: oklch(94% 0.01 92);
+  --default-foreground: oklch(22% 0.02 85);
+  --field-background: oklch(100% 0.002 95);
+  --field-border: oklch(90% 0.01 92);
+  --field-foreground: oklch(22% 0.02 85);
+  --field-placeholder: oklch(55% 0.02 85);
+  --focus: oklch(72% 0.16 88);
+  --foreground: oklch(18% 0.02 85);
+  --muted: oklch(45% 0.02 85);
+  --overlay: oklch(100% 0.002 95);
+  --overlay-foreground: oklch(18% 0.02 85);
+  --scrollbar: oklch(82% 0.01 92);
+  --segment: oklch(100% 0.002 95);
+  --segment-foreground: oklch(18% 0.02 85);
+  --separator: oklch(90% 0.01 92);
+  --success: oklch(62% 0.17 145);
+  --success-foreground: oklch(99% 0 0);
+  --surface: oklch(100% 0.002 95);
+  --surface-foreground: oklch(18% 0.02 85);
+  --surface-secondary: oklch(96.5% 0.008 92);
+  --surface-secondary-foreground: oklch(18% 0.02 85);
   --surface-tertiary: oklch(94% 0.01 92);
-  --surface-tertiary-foreground: oklch(20% 0.02 85);
-  --warning: oklch(78% 0.15 75);
+  --surface-tertiary-foreground: oklch(18% 0.02 85);
+  --warning: oklch(75% 0.16 75);
   --warning-foreground: oklch(22% 0.04 75);
-  --radius: 0.5rem;
-  --field-radius: 0.75rem;
+  /* Radios más cercanos al look HeroUI */
+  --radius: 0.75rem;
+  --field-radius: 1rem;
   --font-sans: var(--font-inter);
+  --accent-soft: color-mix(in oklab, var(--accent) 18%, transparent);
+  --accent-soft-foreground: color-mix(in oklab, var(--accent) 78%, var(--foreground) 22%);
+  --accent-soft-hover: color-mix(in oklab, var(--accent) 26%, transparent);
+  --accent-hover: color-mix(in oklab, var(--accent) 88%, black 12%);
 }
 
 .dark,
 [data-theme="dark"] {
   color-scheme: dark;
-  /* Negro + oro neón */
-  --accent: #D4AF37;
-  --accent-foreground: #0A0804;
-  --background: #050505;
-  --border: #2A2418;
-  --danger: #e85a6b;
-  --danger-foreground: #fff8f9;
-  --default: #141414;
-  --default-foreground: #F3EBD4;
-  --field-background: #101010;
-  --field-border: #2A2418;
-  --field-foreground: #F3EBD4;
-  --field-placeholder: #888888;
-  --focus: #F0D060;
-  --foreground: #F3EBD4;
-  --muted: #A89F88;
-  --overlay: #101010;
-  --overlay-foreground: #F3EBD4;
-  --scrollbar: #333333;
-  --segment: #161616;
-  --segment-foreground: #F3EBD4;
-  --separator: #2A2418;
-  --success: #3dba7a;
-  --success-foreground: #06140e;
-  --surface: #0c0c0c;
-  --surface-foreground: #F3EBD4;
-  --surface-secondary: #141414;
-  --surface-secondary-foreground: #F3EBD4;
-  --surface-tertiary: #1a1a1a;
-  --surface-tertiary-foreground: #F3EBD4;
-  --warning: #e6c35c;
-  --warning-foreground: #1a1508;
+  /* Oro luminoso + negro puro (menos “barro”) */
+  --accent: #f0c14d;
+  --accent-foreground: #0a0804;
+  --background: #000000;
+  --border: #3a3a3a;
+  --danger: #f31260;
+  --danger-foreground: #ffffff;
+  --default: #18181b;
+  --default-foreground: #fafafa;
+  --field-background: #111113;
+  --field-border: #3f3f46;
+  --field-foreground: #fafafa;
+  --field-placeholder: #a1a1aa;
+  --focus: #f5d06a;
+  --foreground: #fafafa;
+  --muted: #a1a1aa;
+  --overlay: #111113;
+  --overlay-foreground: #fafafa;
+  --scrollbar: #3f3f46;
+  --segment: #18181b;
+  --segment-foreground: #fafafa;
+  --separator: #27272a;
+  --success: #17c964;
+  --success-foreground: #001a0f;
+  --surface: #0a0a0b;
+  --surface-foreground: #fafafa;
+  --surface-secondary: #141416;
+  --surface-secondary-foreground: #fafafa;
+  --surface-tertiary: #1c1c1f;
+  --surface-tertiary-foreground: #fafafa;
+  --warning: #f5a524;
+  --warning-foreground: #1a1200;
+  --radius: 0.75rem;
+  --field-radius: 1rem;
+  /* Softs más visibles (HeroUI default ~12% se ve opaco) */
+  --accent-soft: color-mix(in oklab, var(--accent) 22%, transparent);
+  --accent-soft-foreground: color-mix(in oklab, var(--accent) 92%, white 8%);
+  --accent-soft-hover: color-mix(in oklab, var(--accent) 30%, transparent);
+  --accent-hover: color-mix(in oklab, var(--accent) 86%, white 14%);
 }
 
-/* Fondo oscuro casi negro, sin glow azulado */
+/* Ambiente con halo del acento (estilo landing HeroUI) */
 html.dark,
 html[data-theme="dark"],
 .dark,
 [data-theme="dark"] {
   background-color: var(--background);
-  background-image: linear-gradient(180deg, #0a0a0a 0%, #050505 50%, #030303 100%);
+  background-image:
+    radial-gradient(
+      1200px 600px at 50% -12%,
+      color-mix(in srgb, var(--accent) 16%, transparent),
+      transparent 55%
+    ),
+    radial-gradient(
+      900px 480px at 100% 0%,
+      color-mix(in srgb, var(--accent) 8%, transparent),
+      transparent 50%
+    ),
+    linear-gradient(180deg, #0b0b0d 0%, #000000 55%, #000000 100%);
   background-attachment: fixed;
 }
 
@@ -99,8 +126,75 @@ html[data-theme="dark"],
 .dark .bg-background,
 [data-theme="dark"] .bg-background {
   background-color: transparent;
-  background-image: linear-gradient(180deg, #0a0a0a 0%, #050505 50%, #030303 100%);
-  background-attachment: fixed;
+  background-image: none;
+}
+
+/* Superficies / cards con borde vivo + lift */
+.dark .bg-surface,
+.dark [class*="bg-surface"]:not([class*="bg-surface-"]),
+[data-theme="dark"] .bg-surface {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, #fff 6%, transparent),
+    0 12px 40px color-mix(in srgb, #000 55%, transparent);
+}
+
+.dark .border-separator,
+.dark .border-border,
+[data-theme="dark"] .border-separator,
+[data-theme="dark"] .border-border {
+  border-color: color-mix(in srgb, #fff 12%, var(--border));
+}
+
+/* Botones primarios: glow del acento */
+.dark .button--primary,
+[data-theme="dark"] .button--primary {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent),
+    0 8px 28px color-mix(in srgb, var(--accent) 35%, transparent);
+  font-weight: 600;
+}
+
+.dark .button--primary:hover,
+[data-theme="dark"] .button--primary:hover {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent) 60%, transparent),
+    0 12px 36px color-mix(in srgb, var(--accent) 45%, transparent);
+  filter: brightness(1.06);
+}
+
+.dark .button--secondary,
+.dark .button--outline,
+[data-theme="dark"] .button--secondary,
+[data-theme="dark"] .button--outline {
+  border-color: color-mix(in srgb, #fff 14%, var(--border));
+  background: color-mix(in srgb, #fff 4%, transparent);
+}
+
+/* Inputs / fields más definidos */
+.dark .input,
+.dark .select__trigger,
+.dark .combo-box,
+.dark [data-slot="input-wrapper"],
+[data-theme="dark"] .input,
+[data-theme="dark"] .select__trigger {
+  border-color: color-mix(in srgb, #fff 12%, var(--field-border));
+  background: color-mix(in srgb, #fff 3%, var(--field-background));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, #fff 4%, transparent);
+}
+
+.dark .input:focus-within,
+.dark .select__trigger[data-focus-visible="true"],
+[data-theme="dark"] .input:focus-within {
+  border-color: color-mix(in srgb, var(--accent) 70%, var(--border));
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--accent) 28%, transparent),
+    inset 0 1px 0 color-mix(in srgb, #fff 4%, transparent);
+}
+
+/* Switch / controles activos más nítidos */
+.dark .switch[data-selected="true"] .switch__control,
+[data-theme="dark"] .switch[data-selected="true"] .switch__control {
+  box-shadow: 0 0 16px color-mix(in srgb, var(--accent) 50%, transparent);
 }
 
 /* Texto de inputs nativos: contraste claro vs placeholder */

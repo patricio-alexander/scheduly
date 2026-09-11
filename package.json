@@ -14,9 +14,10 @@
     "db:wipe-programmer": "tsx scripts/wipe-to-programmer.ts",
     "worker:sri-auth": "tsx workers/sri-authorization-poll.entry.ts",
     "lint": "eslint",
-    "seed": "npx tsx prisma/seed.ts",
+    "seed": "npm run db:generate && prisma db push && npx tsx prisma/seed.ts",
     "postinstall": "npm run db:generate",
-    "db:migrate": "prisma migrate deploy",
+    "db:push": "prisma db push",
+    "db:migrate": "prisma db push",
     "db:generate": "prisma generate"
   },
   "prisma": {

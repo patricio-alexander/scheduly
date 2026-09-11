@@ -2,6 +2,14 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { emitTaskCreated } from "@/shared/utils/socket";
 import { checkAuth } from "@/shared/utils/check-auth";
+import { isManagementRole, isOwnerRole } from "@/shared/utils/roles";
+import {
+  ensureOpsTaskPlan,
+  ensureOwnerMandateTasks,
+  resolveAssigneePersonId,
+  serializeTaskItem,
+  TASK_ITEM_INCLUDE,
+} from "@/shared/utils/tasks";
 
 const STATUSES = ["todo", "in_progress", "done"] as const;
 const PRIORITIES = ["low", "medium", "high"] as const;
@@ -25,24 +33,28 @@ export async function GET(request: Request) {
   if (!auth.ok) return auth.response;
 
   try {
+    const plan = await ensureOpsTaskPlan();
+    if (isOwnerRole(auth.user.role) || isManagementRole(auth.user.role)) {
+      await ensureOwnerMandateTasks(plan.id);
+    }
+
     const { searchParams } = new URL(request.url);
     const assigneeRaw = searchParams.get("assigneeId");
     const assigneeId =
       assigneeRaw != null && assigneeRaw !== ""
-        ? Number(assigneeRaw)
+        ? await resolveAssigneePersonId(Number(assigneeRaw))
         : null;
 
-    const tasks = await prisma.task.findMany({
-      where:
-        assigneeId != null && Number.isFinite(assigneeId)
-          ? { assigneeId }
-          : undefined,
-      include: {
-        assignee: { select: { id: true, name: true } },
+    const rows = await prisma.taskItem.findMany({
+      where: {
+        planId: plan.id,
+        ...(assigneeId != null ? { assignedUserId: assigneeId } : {}),
       },
+      include: TASK_ITEM_INCLUDE,
       orderBy: [{ sortOrder: "asc" }, { updatedAt: "desc" }],
     });
-    return NextResponse.json(tasks);
+
+    return NextResponse.json(rows.map(serializeTaskItem));
   } catch (error) {
     console.error("GET /api/tasks", error);
     return NextResponse.json(
@@ -66,40 +78,49 @@ export async function POST(request: Request) {
       );
     }
 
+    const plan = await ensureOpsTaskPlan();
     const status = parseStatus(body.status) ?? "todo";
     const priority = parsePriority(body.priority) ?? "medium";
     const description =
       typeof body.description === "string" ? body.description.trim() : "";
-    const assigneeId =
+    const assignedUserId = await resolveAssigneePersonId(
       body.assigneeId === null || body.assigneeId === ""
         ? null
-        : Number(body.assigneeId);
+        : Number(body.assigneeId),
+    );
     const dueDate = body.dueDate ? new Date(body.dueDate) : null;
+    const mandateKey =
+      typeof body.mandateKey === "string" ? body.mandateKey.trim() : null;
+    const createdByRole = isOwnerRole(auth.user.role)
+      ? "owner"
+      : isManagementRole(auth.user.role)
+        ? "admin"
+        : "employee";
 
-    const maxOrder = await prisma.task.aggregate({
-      where: { status },
+    const maxOrder = await prisma.taskItem.aggregate({
+      where: { planId: plan.id, status },
       _max: { sortOrder: true },
     });
 
-    const task = await prisma.task.create({
+    const row = await prisma.taskItem.create({
       data: {
+        planId: plan.id,
         title,
-        description,
+        resultNote: description,
         status,
         priority,
-        assigneeId:
-          assigneeId != null && Number.isFinite(assigneeId) ? assigneeId : null,
+        assignedUserId,
         dueDate:
           dueDate && !Number.isNaN(dueDate.getTime()) ? dueDate : null,
         sortOrder: (maxOrder._max.sortOrder ?? 0) + 1,
+        mandateKey: mandateKey || null,
+        createdByRole,
       },
-      include: {
-        assignee: { select: { id: true, name: true } },
-      },
+      include: TASK_ITEM_INCLUDE,
     });
 
+    const task = serializeTaskItem(row);
     emitTaskCreated(task);
-
     return NextResponse.json(task, { status: 201 });
   } catch (error) {
     console.error("POST /api/tasks", error);

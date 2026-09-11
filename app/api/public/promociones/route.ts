@@ -1,9 +1,24 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
+import { getBusinessSettings } from "@/shared/utils/business-settings";
 
-/** Promociones públicas (mismo origen que novedades, endpoint dedicado). */
+/** Promociones públicas (si la dueña las tiene activas). */
 export async function GET() {
   try {
+    const settings = await getBusinessSettings();
+    const enabled = settings.operationFlags?.showPublicPromos !== false;
+
+    if (!enabled) {
+      return NextResponse.json(
+        {
+          enabled: false,
+          promotions: [],
+          message: "Las promociones públicas están desactivadas por el local",
+        },
+        { status: 200 },
+      );
+    }
+
     const now = new Date();
     const promotions = await prisma.servicePromotion.findMany({
       where: {
@@ -25,6 +40,7 @@ export async function GET() {
     });
 
     return NextResponse.json({
+      enabled: true,
       promotions: promotions.map((p) => ({
         id: p.id,
         name: p.name,

@@ -6,7 +6,7 @@ import ListCheck from "@gravity-ui/icons/ListCheck";
 import Plus from "@gravity-ui/icons/Plus";
 import { PageHeader } from "@/shared/components/ui";
 import { useAuth } from "@/src/features/auth";
-import { isAdminRole } from "@/shared/utils/roles";
+import { isAdminRole, isOwnerRole } from "@/shared/utils/roles";
 import {
   TaskForm,
   TaskKanban,
@@ -36,9 +36,10 @@ interface StaffUser {
 export default function TasksPage() {
   const { user } = useAuth();
   const isAdmin = isAdminRole(user?.role);
-  const { tasks, loading, error, refetch, create, update, move, remove } =
+  const isOwner = isOwnerRole(user?.role);
+  const { tasks, loading, error, refetch, create, update, move, remove, confirm: confirmTask } =
     useTasks({
-      assigneeId: isAdmin ? null : (user?.id ?? null),
+      assigneeId: isAdmin ? null : (user?.personId ?? user?.id ?? null),
     });
   const [assignees, setAssignees] = useState<StaffUser[]>([]);
   const [editing, setEditing] = useState<Task | null>(null);
@@ -111,6 +112,8 @@ export default function TasksPage() {
         createdAt: now,
         updatedAt: now,
         assignee: null,
+        systemSuggested: false,
+        ownerConfirmed: false,
       };
     },
   });
@@ -166,17 +169,35 @@ export default function TasksPage() {
   const handleMove = useCallback(
     async (taskId: number, status: TaskStatus) => {
       try {
-        await move(taskId, status);
+        const task = await move(taskId, status);
+        if (status === "done" && !isOwner && task?.systemSuggested) {
+          toast.success("Sistema: marcado como hecho · la Dueña debe confirmar");
+        }
       } catch (e) {
         toast.danger(e instanceof Error ? e.message : "No se pudo mover");
       }
     },
-    [move],
+    [move, isOwner],
+  );
+
+  const handleConfirm = useCallback(
+    async (task: Task) => {
+      try {
+        await confirmTask(task.id);
+        toast.success("Confirmaste el cumplimiento");
+      } catch (e) {
+        toast.danger(e instanceof Error ? e.message : "No se pudo confirmar");
+      }
+    },
+    [confirmTask],
   );
 
   if (!user) return null;
 
   const doneCount = displayItems.filter((t) => t.status === "done").length;
+  const suggestedCount = displayItems.filter(
+    (t) => t.systemSuggested && t.status !== "done",
+  ).length;
   const openCount = displayItems.length - doneCount;
 
   return (
@@ -199,7 +220,11 @@ export default function TasksPage() {
                 ? isAdmin
                   ? "Todavía no hay tareas · crea la primera"
                   : "No tienes tareas asignadas"
-                : `${openCount} pendientes · ${doneCount} hechas`
+                : `${openCount} pendientes · ${doneCount} hechas${
+                    suggestedCount
+                      ? ` · ${suggestedCount} por confirmar Dueña`
+                      : ""
+                  }`
           }
           action={
             isAdmin ? (
@@ -237,6 +262,8 @@ export default function TasksPage() {
             onAdd={isAdmin ? openCreate : undefined}
             onEdit={openEdit}
             onDelete={isAdmin ? handleDelete : undefined}
+            onConfirm={isOwner ? handleConfirm : undefined}
+            canConfirm={isOwner}
             onMove={handleMove}
           />
         </div>

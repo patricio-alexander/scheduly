@@ -27,8 +27,20 @@ export type OperationFlags = {
   receiptApplyToNotaVenta: boolean;
   /** Catálogo público visible */
   showPublicCatalog: boolean;
+  /** Promociones públicas visibles */
+  showPublicPromos: boolean;
   /** Mostrar sucursales en vista pública */
   showPublicBranches: boolean;
+  /**
+   * Quién puede crear/activar la clave del portal del cliente.
+   * true = empleado también (además de dueña/admin).
+   * false = solo dueña/admin.
+   */
+  portalPasswordAllowEmployee: boolean;
+  /** Cliente puede verificar con correo */
+  portalLoginAllowEmail: boolean;
+  /** Cliente puede verificar con cédula / identificación */
+  portalLoginAllowCedula: boolean;
   /** Columna cliente visible en tablas de ventas */
   salesShowCustomerColumn: boolean;
   /** Columna proveedor visible en tablas de compras */
@@ -51,7 +63,11 @@ export const DEFAULT_OPERATION_FLAGS: OperationFlags = {
   receiptApplyToFactura: true,
   receiptApplyToNotaVenta: true,
   showPublicCatalog: true,
+  showPublicPromos: true,
   showPublicBranches: true,
+  portalPasswordAllowEmployee: true,
+  portalLoginAllowEmail: true,
+  portalLoginAllowCedula: true,
   salesShowCustomerColumn: true,
   purchasesShowSupplierColumn: true,
   showBranchColumn: true,

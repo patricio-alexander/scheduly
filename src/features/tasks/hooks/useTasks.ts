@@ -110,6 +110,12 @@ export function useTasks(options: UseTasksOptions = {}) {
     setTasks((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
+  const confirm = useCallback(async (id: number) => {
+    const task = await taskService.confirmTask(id);
+    setTasks((prev) => prev.map((t) => (t.id === id ? task : t)));
+    return task;
+  }, []);
+
   return {
     tasks,
     loading,
@@ -119,5 +125,6 @@ export function useTasks(options: UseTasksOptions = {}) {
     update,
     move,
     remove,
+    confirm,
   };
 }

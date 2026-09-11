@@ -1,6 +1,7 @@
 generator client {
   provider = "prisma-client"
-  output   = "../generated/prisma"
+  /** Carpeta writable (generated/prisma quedó owned by root y no regenera). */
+  output   = "../generated/prisma-runtime"
 }
 
 datasource db {
@@ -1139,8 +1140,16 @@ model TaskItem {
   dueDate          DateTime?        @db.Date
   actionType       String?
   actionPayload    Json?
+  /** Clave estable para mandatos de bots / onboarding (owner.config, etc.) */
+  mandateKey       String?
+  /** Quién originó el mandato: programmer | owner | admin */
+  createdByRole    String?
+  /** El sistema detectó cumplimiento; aún falta confirmación de Dueña */
+  systemSuggestedAt DateTime?
   checkedAt        DateTime?
   checkedByUserId  Int?
+  /** Confirmación explícita de la Dueña (check final) */
+  ownerConfirmedAt DateTime?
   resultNote       String?          @db.Text
   sortOrder        Int              @default(0)
   createdAt        DateTime         @default(now())
@@ -1151,6 +1160,7 @@ model TaskItem {
   checkedBy Person?  @relation("TaskChecker", fields: [checkedByUserId], references: [id])
 
   @@index([planId, status])
+  @@index([mandateKey])
 }
 
 // ——— Sistema ———

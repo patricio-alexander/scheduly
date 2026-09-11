@@ -1,8 +1,19 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { checkAuth } from "@/shared/utils/check-auth";
-import { isManagementRole } from "@/shared/utils/roles";
+import {
+  isManagementRole,
+  isPureEmployeeRole,
+} from "@/shared/utils/roles";
 import { hashPassword } from "@/shared/utils/password";
+import { getBusinessSettings } from "@/shared/utils/business-settings";
+
+async function canActivatePortal(role: string | null | undefined) {
+  if (isManagementRole(role)) return true;
+  if (!isPureEmployeeRole(role)) return false;
+  const settings = await getBusinessSettings();
+  return settings.operationFlags?.portalPasswordAllowEmployee !== false;
+}
 
 export async function POST(
   request: Request,
@@ -10,8 +21,14 @@ export async function POST(
 ) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
-  if (!isManagementRole(auth.user.role)) {
-    return NextResponse.json({ message: "No autorizado" }, { status: 403 });
+  if (!(await canActivatePortal(auth.user.role))) {
+    return NextResponse.json(
+      {
+        message:
+          "No autorizado · la dueña no permite que empleados activen el portal",
+      },
+      { status: 403 },
+    );
   }
 
   const { id } = await params;
@@ -35,6 +52,8 @@ export async function POST(
         firstLastName: true,
         email: true,
         phone: true,
+        cedula: true,
+        identType: true,
       },
     });
 
@@ -44,7 +63,10 @@ export async function POST(
       lastnames: customer.firstLastName ?? "",
       email: customer.email,
       phone: customer.phone,
+      identification: customer.cedula,
+      identificationType: customer.identType,
       hasPortalAccess: true,
+      activatedBy: isPureEmployeeRole(auth.user.role) ? "employee" : "management",
       message: "Cuenta de cliente activada",
     });
   } catch (error) {
@@ -62,7 +84,7 @@ export async function DELETE(
 ) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
-  if (!isManagementRole(auth.user.role)) {
+  if (!(await canActivatePortal(auth.user.role))) {
     return NextResponse.json({ message: "No autorizado" }, { status: 403 });
   }
 

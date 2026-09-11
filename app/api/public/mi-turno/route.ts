@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { verifyPassword } from "@/shared/utils/password";
+import { findPortalCustomerByIdentifier } from "@/shared/utils/portal-customer-lookup";
 
 /**
  * Canal público: consultar turnos con cédula o correo + clave del portal.
@@ -21,21 +22,15 @@ export async function POST(request: Request) {
       );
     }
 
-    const emailKey = rawId.toLowerCase();
-    const found = await prisma.customer.findFirst({
-      where: {
-        isActive: true,
-        OR: [{ email: emailKey }, { email: rawId }, { cedula: rawId }],
-      },
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        cedula: true,
-        password: true,
-      },
-    });
+    const looked = await findPortalCustomerByIdentifier(prisma, rawId);
+    if (looked.error === "portal_login_disabled") {
+      return NextResponse.json(
+        { message: "El local no tiene habilitada la verificación del portal" },
+        { status: 403 },
+      );
+    }
 
+    const found = looked.customer;
     if (!found?.password || !(await verifyPassword(password, found.password))) {
       return NextResponse.json(
         { message: "No encontramos ese turno o la clave no coincide" },
@@ -82,6 +77,7 @@ export async function POST(request: Request) {
         name: found.name,
         email: found.email,
         cedula: found.cedula,
+        identificationType: found.identType,
       },
       appointments: appointments.map((a) => {
         const staffName = [

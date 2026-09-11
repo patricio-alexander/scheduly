@@ -1,6 +1,12 @@
 import fs from "fs/promises";
 import path from "path";
 import { prisma } from "@/shared/utils/prisma";
+import {
+  BACKUP_TABLE_KEYS,
+  type BackupTableKey,
+} from "./backup-table-keys";
+
+export { BACKUP_TABLE_KEYS, type BackupTableKey };
 
 /** Carpeta de backups (como EdDeli / Gestor). */
 export const BACKUPS_DIR = path.join(process.cwd(), "backups");
@@ -11,85 +17,6 @@ export type DbClient = typeof prisma;
 type Delegate = {
   findMany: (args?: object) => Promise<unknown[]>;
 };
-
-/**
- * Orden de INSERT (padres → hijos). El delete va en reverse.
- * Claves = nombre del modelo Prisma (PascalCase).
- */
-export const BACKUP_TABLE_KEYS = [
-  "Role",
-  "Person",
-  "Account",
-  "AccountRole",
-  "AccountBranch",
-  "PersonData",
-  "Notification",
-  "NotificationProgram",
-  "NotificationDispatchLog",
-  "Category",
-  "Unit",
-  "Product",
-  "Recipe",
-  "StockMovement",
-  "Batch",
-  "Branch",
-  "CashRegister",
-  "BranchShelf",
-  "CashShift",
-  "CashShiftMovement",
-  "Customer",
-  "Sale",
-  "SaleLine",
-  "SalePaymentInstallment",
-  "Supplier",
-  "PurchaseOrder",
-  "PurchaseOrderLine",
-  "PurchaseOrderPaymentInstallment",
-  "SupplierProductCode",
-  "TaskPlan",
-  "TaskItem",
-  "Expense",
-  "Income",
-  "BranchStock",
-  "RecurringExpenseTemplate",
-  "RecurringExpenseOccurrence",
-  "HomeProduct",
-  "CatalogEntry",
-  "ProductCompareGroup",
-  "ProductCompareGroupItem",
-  "PricingTierGroup",
-  "BranchProduct",
-  "ItemGroup",
-  "ItemGroupItem",
-  "FinancePayment",
-  "SupplierOrderPayment",
-  "SupplierPack",
-  "SupplierPackItem",
-  "DocumentAttachment",
-  "FinancialObligation",
-  "ObligationPayment",
-  "License",
-  "SystemLog",
-  "AppSettings",
-  "AppEntitlement",
-  "SriBillingSettings",
-  "ElectronicInvoice",
-  "Service",
-  "Appointment",
-  "AppointmentService",
-  "AppointmentProduct",
-  "AppointmentPayment",
-  "ServiceBranch",
-  "ServicePromotion",
-  "LoyaltySettings",
-  "CustomerLoyalty",
-  "PointTransaction",
-  "Reward",
-  "FeedPost",
-  "CommissionRecord",
-] as const;
-
-export type BackupTableKey = (typeof BACKUP_TABLE_KEYS)[number];
 
 export function backupTableDelegate(
   db: DbClient,

@@ -17,6 +17,8 @@ interface Props {
   onAdd?: (status: TaskStatus) => void;
   onEdit: (task: Task) => void;
   onDelete?: (task: Task) => void;
+  onConfirm?: (task: Task) => void;
+  canConfirm?: boolean;
   onMove: (taskId: number, status: TaskStatus) => Promise<void> | void;
 }
 
@@ -26,6 +28,8 @@ export function TaskKanban({
   onAdd,
   onEdit,
   onDelete,
+  onConfirm,
+  canConfirm,
   onMove,
 }: Props) {
   const [draggingId, setDraggingId] = useState<number | null>(null);
@@ -141,6 +145,8 @@ export function TaskKanban({
                     isDragging={draggingId === task.id}
                     onEdit={onEdit}
                     onDelete={onDelete}
+                    onConfirm={onConfirm}
+                    canConfirm={canConfirm}
                     onDragStart={(t) => setDraggingId(t.id)}
                     onDragEnd={() => {
                       setDraggingId(null);

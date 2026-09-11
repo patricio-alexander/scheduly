@@ -380,12 +380,52 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
             }
           />
           <SettingsRow
+            label="Mostrar promociones"
+            description="Promos visibles en el canal público del cliente."
+            control={
+              <SettingsSwitch
+                checked={flags.showPublicPromos}
+                onChange={(v) => setFlag("showPublicPromos", v)}
+              />
+            }
+          />
+          <SettingsRow
             label="Mostrar sucursales"
             description="Lista de locales en la vista pública."
             control={
               <SettingsSwitch
                 checked={flags.showPublicBranches}
                 onChange={(v) => setFlag("showPublicBranches", v)}
+              />
+            }
+          />
+          <SettingsRow
+            label="Empleado puede activar portal"
+            description="Si está off, solo dueña/admin crean la clave del cliente."
+            control={
+              <SettingsSwitch
+                checked={flags.portalPasswordAllowEmployee}
+                onChange={(v) => setFlag("portalPasswordAllowEmployee", v)}
+              />
+            }
+          />
+          <SettingsRow
+            label="Verificar con correo"
+            description="El cliente entra a Mi turno con su email + clave."
+            control={
+              <SettingsSwitch
+                checked={flags.portalLoginAllowEmail}
+                onChange={(v) => setFlag("portalLoginAllowEmail", v)}
+              />
+            }
+          />
+          <SettingsRow
+            label="Verificar con cédula / doc"
+            description="El cliente entra con cédula o identificación + clave."
+            control={
+              <SettingsSwitch
+                checked={flags.portalLoginAllowCedula}
+                onChange={(v) => setFlag("portalLoginAllowCedula", v)}
               />
             }
           />

@@ -22,27 +22,27 @@ export const PUBLIC_BRAND_NAME = "Andrea Guerrero";
 export const DEFAULT_BUSINESS_NAME = "Andrea Guerrero Estética y Peluquería";
 
 export const DEFAULT_THEME_COLORS: ThemeColors = {
-  accentColor: "#D4AF37",
-  successColor: "#22C55E",
-  warningColor: "#F0B429",
-  dangerColor: "#F04438",
+  accentColor: "#F0C14D",
+  successColor: "#17C964",
+  warningColor: "#F5A524",
+  dangerColor: "#F31260",
 };
 
-/** v4: oro neón (invalida rosa / acentos viejos) */
-export const THEME_COLOR_STORAGE_KEY = "scheduly.theme-colors.v4";
+/** v5: oro luminoso + softs vivos (invalida v4 apagado) */
+export const THEME_COLOR_STORAGE_KEY = "scheduly.theme-colors.v5";
 
 export const ACCENT_PRESETS = [
-  { label: "Oro neón", value: "#D4AF37" },
-  { label: "Oro intenso", value: "#C5A028" },
+  { label: "Oro vivo", value: "#F0C14D" },
+  { label: "Oro clásico", value: "#D4AF37" },
   { label: "Ámbar", value: "#FFB020" },
-  { label: "Champagne", value: "#E8C547" },
-  { label: "Azul", value: "#5B8CFF" },
-  { label: "Cian", value: "#2DD4BF" },
+  { label: "Azul Hero", value: "#006FEE" },
+  { label: "Violeta", value: "#7828C8" },
+  { label: "Cian", value: "#06B6D4" },
 ] as const;
 
 const HEX_RE = /^#([0-9a-fA-F]{6})$/;
 
-/** Acentos legacy → oro */
+/** Acentos legacy → oro vivo */
 const LEGACY_ACCENTS = new Set([
   "#7DFF7A",
   "#C8F542",
@@ -116,6 +116,16 @@ export function applyThemeColors(colors: ThemeColors) {
     ["--accent", theme.accentColor],
     ["--accent-foreground", contrastForeground(theme.accentColor)],
     ["--focus", theme.accentColor],
+    ["--accent-hover", `color-mix(in oklab, ${theme.accentColor} 86%, white 14%)`],
+    ["--accent-soft", `color-mix(in oklab, ${theme.accentColor} 22%, transparent)`],
+    [
+      "--accent-soft-foreground",
+      `color-mix(in oklab, ${theme.accentColor} 92%, white 8%)`,
+    ],
+    [
+      "--accent-soft-hover",
+      `color-mix(in oklab, ${theme.accentColor} 30%, transparent)`,
+    ],
     ["--success", theme.successColor],
     ["--success-foreground", contrastForeground(theme.successColor)],
     ["--warning", theme.warningColor],

@@ -46,6 +46,32 @@ export async function moveTask(id: number, status: TaskStatus): Promise<Task> {
   return updateTask(id, { status });
 }
 
+/** Dueña confirma el check final (sistema pudo haber sugerido “ya hecho”). */
+export async function confirmTask(id: number): Promise<Task> {
+  const res = await fetch(apiUrl(`/api/tasks/${id}/confirm`), {
+    method: "POST",
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? "Error al confirmar la tarea");
+  }
+  return res.json() as Promise<Task>;
+}
+
+/** Marca sugerencia de sistema / staff (sin check Dueña). */
+export async function suggestTaskDone(id: number): Promise<Task> {
+  const res = await fetch(apiUrl(`/api/tasks/${id}`), {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ suggestDone: true }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? "Error al sugerir cumplimiento");
+  }
+  return res.json() as Promise<Task>;
+}
+
 export async function deleteTask(id: number): Promise<void> {
   const res = await fetch(apiUrl(`/api/tasks/${id}`), { method: "DELETE" });
   if (!res.ok) {

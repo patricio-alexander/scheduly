@@ -27,10 +27,10 @@ export const SEED_LOGIN_ACCOUNTS: TestAccount[] = [
     label: "Dueña · andrea",
   },
   {
-    username: "edgar",
+    username: "administrador",
     password: "12345678",
     expectedRole: "programmer",
-    label: "Programador · edgar",
+    label: "Programador · administrador",
   },
   {
     username: "admin_colon",
