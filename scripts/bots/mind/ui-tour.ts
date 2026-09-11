@@ -67,14 +67,6 @@ export const UI_TOUR: UiTourStop[] = [
     roles: ["owner", "admin"],
   },
   {
-    id: "cobranzas",
-    href: "/finanzas/cobranzas",
-    label: "Cobranzas",
-    intent: "Revisa workbench de cobros",
-    probeIds: ["finance-collections", "orders-calendar"],
-    roles: ["owner", "admin"],
-  },
-  {
     id: "inventario",
     href: "/inventario/movimientos",
     label: "Kardex",
@@ -100,10 +92,10 @@ export const UI_TOUR: UiTourStop[] = [
   },
   {
     id: "compras",
-    href: "/compras/proveedores",
+    href: "/compras",
     label: "Compras",
-    intent: "Proveedores y compras",
-    probeIds: ["suppliers", "purchases"],
+    intent: "Compras e ingresos de stock",
+    probeIds: ["purchases"],
     roles: ["owner", "admin"],
   },
   {

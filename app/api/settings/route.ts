@@ -7,10 +7,7 @@ import {
   saveBusinessLogo,
   updateBusinessSettings,
 } from "@/shared/utils/business-settings";
-import { normalizeThemeColors } from "@/shared/utils/business-profile";
-import { emitThemeColorsUpdated } from "@/shared/utils/socket";
-
-/** Perfil público del negocio (landing, reserva, ticket, tema) */
+/** Perfil público del negocio (landing, reserva, ticket) */
 export async function GET() {
   try {
     const settings = await getBusinessSettings();
@@ -59,18 +56,6 @@ export async function PUT(request: Request) {
         obligationAccounting: form.has("obligationAccounting")
           ? String(form.get("obligationAccounting") ?? "") === "1"
           : settings.obligationAccounting,
-        accentColor: form.has("accentColor")
-          ? String(form.get("accentColor") ?? "")
-          : settings.accentColor,
-        successColor: form.has("successColor")
-          ? String(form.get("successColor") ?? "")
-          : settings.successColor,
-        warningColor: form.has("warningColor")
-          ? String(form.get("warningColor") ?? "")
-          : settings.warningColor,
-        dangerColor: form.has("dangerColor")
-          ? String(form.get("dangerColor") ?? "")
-          : settings.dangerColor,
       });
 
       if (removeLogo) {
@@ -79,7 +64,6 @@ export async function PUT(request: Request) {
         settings = await saveBusinessLogo(logo);
       }
 
-      emitThemeColorsUpdated(normalizeThemeColors(settings));
       return NextResponse.json(settings);
     }
 
@@ -98,22 +82,6 @@ export async function PUT(request: Request) {
         body.obligationAccounting !== undefined
           ? Boolean(body.obligationAccounting)
           : current.obligationAccounting,
-      accentColor:
-        body.accentColor !== undefined
-          ? String(body.accentColor)
-          : current.accentColor,
-      successColor:
-        body.successColor !== undefined
-          ? String(body.successColor)
-          : current.successColor,
-      warningColor:
-        body.warningColor !== undefined
-          ? String(body.warningColor)
-          : current.warningColor,
-      dangerColor:
-        body.dangerColor !== undefined
-          ? String(body.dangerColor)
-          : current.dangerColor,
       operationFlags:
         body.operationFlags !== undefined
           ? (body.operationFlags as import("@/shared/utils/operation-flags").OperationFlags)
@@ -139,7 +107,6 @@ export async function PUT(request: Request) {
           ? Boolean(body.payrollAllowBranchAdmin)
           : current.payrollAllowBranchAdmin,
     });
-    emitThemeColorsUpdated(normalizeThemeColors(settings));
     return NextResponse.json(settings);
   } catch (error) {
     console.error("PUT /api/settings", error);

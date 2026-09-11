@@ -827,71 +827,6 @@ const DEMO = {
       "Transferencia Deuna",
     ],
   },
-  tasks: [
-    {
-      title: "Reponer shampoo y acondicionador",
-      description: "Los cuatro locales — stock bajo.",
-      status: "todo" as const,
-      priority: "high" as const,
-      assigneeIndex: 1,
-      dueDays: 0,
-      sortOrder: 1,
-    },
-    {
-      title: "Confirmar turnos de mañana",
-      description: "WhatsApp a clientes 099 496 0155.",
-      status: "todo" as const,
-      priority: "medium" as const,
-      assigneeIndex: 0,
-      dueDays: 0,
-      sortOrder: 2,
-    },
-    {
-      title: "Limpiar esterilizadora",
-      description: "Protocolo de higiene semanal.",
-      status: "todo" as const,
-      priority: "low" as const,
-      assigneeIndex: 2,
-      dueDays: 2,
-      sortOrder: 3,
-    },
-    {
-      title: "Actualizar precios en vitrina",
-      description: "Incluir spa de uñas y maquillaje.",
-      status: "in_progress" as const,
-      priority: "medium" as const,
-      assigneeIndex: 0,
-      dueDays: 1,
-      sortOrder: 1,
-    },
-    {
-      title: "Pedir esmaltes y guantes",
-      description: "Proveedor Beauty Supply Loja.",
-      status: "in_progress" as const,
-      priority: "high" as const,
-      assigneeIndex: 1,
-      dueDays: 0,
-      sortOrder: 2,
-    },
-    {
-      title: "Publicar promo fin de semana",
-      description: "Facebook + Instagram Andrea Guerrero.",
-      status: "done" as const,
-      priority: "medium" as const,
-      assigneeIndex: 3,
-      dueDays: -1,
-      sortOrder: 1,
-    },
-    {
-      title: "Capacitación técnicas de color",
-      description: "Sesión interna con el equipo.",
-      status: "done" as const,
-      priority: "low" as const,
-      assigneeIndex: 0,
-      dueDays: -3,
-      sortOrder: 2,
-    },
-  ],
 } as const;
 
 async function main() {
@@ -1195,7 +1130,6 @@ function buildSubscriptionPayload(now: Date): Prisma.InputJsonValue {
           end_trial: null,
           sections: [
             section(1, "/finanzas/centro", "Finanzas"),
-            section(2, "/finanzas/cobranzas", "Cobranzas"),
           ],
         },
         {
@@ -1214,9 +1148,8 @@ function buildSubscriptionPayload(now: Date): Prisma.InputJsonValue {
             section(2, "/operacion/servicios", "Servicios"),
             section(3, "/operacion/caja", "Caja", "planned"),
             section(4, "/operacion/turno", "Turno", "planned"),
-            section(5, "/operacion/tareas", "Tareas"),
             section(
-              6,
+              5,
               "/operacion/comprobantes-pos",
               "Comprobantes POS",
               "planned",
@@ -1265,11 +1198,9 @@ function buildSubscriptionPayload(now: Date): Prisma.InputJsonValue {
           limit_days_trial: null,
           end_trial: null,
           sections: [
-            section(1, "/ventas/pedidos", "Pedidos", "planned"),
-            section(2, "/ventas/clientes", "Clientes"),
-            section(3, "/compras/proveedores", "Proveedores"),
-            section(4, "/ventas/ventas", "Ventas"),
-            section(5, "/compras", "Compras"),
+            section(1, "/ventas/clientes", "Clientes"),
+            section(2, "/ventas/ventas", "Ventas"),
+            section(3, "/compras", "Compras"),
           ],
         },
         {
@@ -1288,10 +1219,9 @@ function buildSubscriptionPayload(now: Date): Prisma.InputJsonValue {
             section(2, "/administracion/sucursales", "Sucursales / locales"),
             section(3, "/inventario/movimientos", "Movimientos", "planned"),
             section(4, "/inventario/categorias", "Categorías"),
-            section(5, "/inventario/tramos", "Tramos", "planned"),
-            section(6, "/inventario/unidades", "Unidades"),
-            section(7, "/inventario/lotes", "Lotes y vencimientos", "planned"),
-            section(8, "/inventario/valor", "Inventario valorizado"),
+            section(5, "/inventario/unidades", "Unidades"),
+            section(6, "/inventario/lotes", "Lotes y vencimientos", "planned"),
+            section(7, "/inventario/valor", "Inventario valorizado"),
           ],
         },
         {
@@ -2468,35 +2398,6 @@ async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
 
   const purchasesCount = await prisma.purchaseOrder.count();
 
-  // Tareas de ejemplo para el Kanban
-  await prisma.taskItem.deleteMany();
-  await prisma.taskPlan.deleteMany();
-  const staffPool = [{ id: adminPersonId }, ...users.map((u) => ({ id: u.personId }))];
-  const taskPlan = await prisma.taskPlan.create({
-    data: {
-      title: "Operaciones semana",
-      description: "Tareas demo del Kanban",
-      status: "published",
-      publishedAt: now,
-      createdByUserId: adminAccountId,
-    },
-  });
-
-  for (const task of DEMO.tasks) {
-    await prisma.taskItem.create({
-      data: {
-        planId: taskPlan.id,
-        title: task.title,
-        status: task.status,
-        priority: task.priority,
-        assignedUserId: staffPool[task.assigneeIndex]?.id ?? adminPersonId,
-        dueDate: addDays(now, task.dueDays),
-        sortOrder: task.sortOrder,
-        resultNote: task.description,
-      },
-    });
-  }
-
   const todayCount = appointments.filter((a) => {
     const d = a.appointmentDate;
     return (
@@ -2559,7 +2460,6 @@ async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
   console.log(
     `  - ${suppliers.length} proveedores · ${purchasesCount} compras`,
   );
-  console.log(`  - ${DEMO.tasks.length} tareas (Kanban)`);
   console.log(`  - ${notificationsCreated} notificaciones`);
   console.log(`  - entitlement: subscribed=true, maintenance=false`);
 }

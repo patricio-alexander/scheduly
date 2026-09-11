@@ -23,11 +23,6 @@ export const ENTITY_CREATE_DEMOS = {
     phone: "0990001111",
     email: "ana.demo@scheduly.test",
   },
-  suppliers: {
-    name: "Distribuidora Demo",
-    phone: "0987654321",
-    email: "demo@proveedor.test",
-  },
   services: {
     name: "Corte demo",
     price: 15,
@@ -39,10 +34,6 @@ export const ENTITY_CREATE_DEMOS = {
     price: 12,
     stock: 10,
     commissionPct: 8,
-  },
-  tasks: {
-    title: "Reponer insumos demo",
-    description: "Tarea de prueba del tutorial",
   },
   accounts: {
     username: "demo.empleado",
@@ -180,43 +171,6 @@ const CUSTOMERS_CFG: EntityCreateTourConfig = {
   ],
 };
 
-const SUPPLIERS_CFG: EntityCreateTourConfig = {
-  tourId: "suppliers-create",
-  prefix: "suppliers",
-  moduleId: "suppliers",
-  helpTitle: "Tutorial de Proveedores",
-  helpDescription:
-    "Simulamos empezar sin proveedores. Creas uno de prueba y lo ves en la lista. Nada se guarda de verdad.",
-  emptyTitle: "Sin proveedores",
-  emptyDescription: "Así se ve al inicio. Agrega tu primer proveedor.",
-  createTitle: "Agregar proveedor",
-  createDescription: "Abrimos el formulario.",
-  listTitle: "Listo: tu proveedor",
-  listDescription: "Los proveedores se usan al registrar compras.",
-  fields: [
-    {
-      key: "name",
-      label: "Nombre",
-      description: "Nombre del proveedor.",
-      value: ENTITY_CREATE_DEMOS.suppliers.name,
-    },
-    {
-      key: "phone",
-      label: "Teléfono",
-      description: "Teléfono de contacto.",
-      value: ENTITY_CREATE_DEMOS.suppliers.phone,
-      msPerChar: 40,
-    },
-    {
-      key: "email",
-      label: "Correo",
-      description: "Correo del proveedor.",
-      value: ENTITY_CREATE_DEMOS.suppliers.email,
-      msPerChar: 32,
-    },
-  ],
-};
-
 const SERVICES_CFG: EntityCreateTourConfig = {
   tourId: "services-create",
   prefix: "services",
@@ -320,37 +274,6 @@ const PRODUCTS_CFG: EntityCreateTourConfig = {
   ],
 };
 
-const TASKS_CFG: EntityCreateTourConfig = {
-  tourId: "tasks-create",
-  prefix: "tasks",
-  moduleId: "tasks",
-  helpTitle: "Tutorial de Tareas",
-  helpDescription:
-    "Simulamos empezar sin tareas. Creas una de prueba y la ves en el tablero. Nada se guarda de verdad.",
-  emptyTitle: "Sin tareas",
-  emptyDescription: "Así se ve al inicio. Crea la primera tarea del equipo.",
-  createTitle: "Nueva tarea",
-  createDescription: "Abrimos el formulario.",
-  listTitle: "Listo: tu tarea",
-  listDescription: "El tablero organiza Por hacer, En progreso y Hecho.",
-  fields: [
-    {
-      key: "title",
-      label: "Título",
-      description: "Título de la tarea.",
-      value: ENTITY_CREATE_DEMOS.tasks.title,
-    },
-    {
-      key: "description",
-      label: "Descripción",
-      description: "Detalle breve (opcional).",
-      value: ENTITY_CREATE_DEMOS.tasks.description,
-      control: "textarea",
-      msPerChar: 28,
-    },
-  ],
-};
-
 const ACCOUNTS_CFG: EntityCreateTourConfig = {
   tourId: "accounts-create",
   prefix: "accounts",
@@ -400,10 +323,8 @@ export const ENTITY_CREATE_TOUR_CONFIGS = {
   categories: CATEGORIES_CFG,
   units: UNITS_CFG,
   customers: CUSTOMERS_CFG,
-  suppliers: SUPPLIERS_CFG,
   services: SERVICES_CFG,
   products: PRODUCTS_CFG,
-  tasks: TASKS_CFG,
   accounts: ACCOUNTS_CFG,
 } as const;
 

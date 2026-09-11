@@ -12,7 +12,6 @@ export const appRoutes = {
     services: "/operacion/servicios",
     cash: "/operacion/caja",
     shifts: "/operacion/turno",
-    tasks: "/operacion/tareas",
     shiftSupervision: "/operacion/supervision-caja",
     multiCash: "/operacion/turno/multi-caja",
     /** Hub Comprobantes POS (facturas SRI, reimpresión caja, etc.) */
@@ -35,7 +34,6 @@ export const appRoutes = {
     register: "/ventas/registrar-venta",
     history: "/ventas/historial",
     productSales: "/ventas/productos-vendidos",
-    orders: "/ventas/pedidos",
     customers: "/ventas/clientes",
     customerAccounts: "/ventas/clientes/cuentas",
   },
@@ -43,7 +41,6 @@ export const appRoutes = {
     products: "/inventario/productos",
     movement: "/inventario/movimientos",
     categories: "/inventario/categorias",
-    tierGroups: "/inventario/tramos",
     units: "/inventario/unidades",
     warehouses: "/inventario/bodegas",
     batches: "/inventario/lotes",
@@ -56,12 +53,10 @@ export const appRoutes = {
     hub: "/compras",
     register: "/compras/registrar",
     history: "/compras/historial",
-    suppliers: "/compras/proveedores",
   },
   finance: {
     hub: "/finanzas/centro",
     transactions: "/finanzas/centro",
-    collections: "/finanzas/cobranzas",
     loansDebts: "/finanzas/prestamos-deudas",
     recurringExpenses: "/finanzas/gastos-recurrentes",
     /** Páginas Scheduly que siguen existiendo pero no van en el menú EdDeli */

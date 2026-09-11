@@ -24,7 +24,6 @@ import ArrowRightFromSquare from "@gravity-ui/icons/ArrowRightFromSquare";
 import Database from "@gravity-ui/icons/Database";
 import Gift from "@gravity-ui/icons/Gift";
 import LayoutHeaderCells from "@gravity-ui/icons/LayoutHeaderCells";
-import Car from "@gravity-ui/icons/Car";
 import HandCoins from "@gravity-ui/icons/CreditCard";
 import Receipt from "@gravity-ui/icons/Receipt";
 import DisplayPulse from "@gravity-ui/icons/DisplayPulse";
@@ -130,12 +129,6 @@ export const navModules: NavModule[] = [
         tourId: "nav-shift",
       },
       {
-        href: appRoutes.operation.tasks,
-        label: "Tareas",
-        icon: ListCheck,
-        tourId: "nav-tasks",
-      },
-      {
         href: appRoutes.employee.myPayroll,
         label: "Mi liquidación",
         icon: CircleDollar,
@@ -168,22 +161,10 @@ export const navModules: NavModule[] = [
     entitlementKey: "sales",
     items: [
       {
-        href: appRoutes.sales.orders,
-        label: "Pedidos",
-        icon: ListCheck,
-        adminOnly: true,
-      },
-      {
         href: appRoutes.sales.customers,
         label: "Clientes",
         icon: Person,
         tourId: "nav-customers",
-      },
-      {
-        href: appRoutes.purchases.suppliers,
-        label: "Proveedores",
-        icon: Car,
-        adminOnly: true,
       },
       {
         href: appRoutes.sales.salesHub,
@@ -211,12 +192,6 @@ export const navModules: NavModule[] = [
         href: appRoutes.finance.transactions,
         label: "Finanzas",
         icon: ChartColumn,
-        adminOnly: true,
-      },
-      {
-        href: appRoutes.finance.collections,
-        label: "Cobranzas",
-        icon: HandCoins,
         adminOnly: true,
       },
       {
@@ -280,12 +255,6 @@ export const navModules: NavModule[] = [
         href: appRoutes.inventory.categories,
         label: "Categorías",
         icon: Tag,
-        adminOnly: true,
-      },
-      {
-        href: appRoutes.inventory.tierGroups,
-        label: "Tramos",
-        icon: LayoutHeaderCells,
         adminOnly: true,
       },
       {

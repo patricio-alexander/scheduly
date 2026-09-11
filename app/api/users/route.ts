@@ -17,10 +17,12 @@ import {
 import {
   canAccessAccountsModule,
   canManageBranchStaff,
-  getManagerBranchId,
-  listManagedAccountIds,
   rolesAllowedForBranchAdmin,
 } from "@/shared/utils/staff-scope";
+import {
+  getManagerBranchId,
+  listManagedAccountIds,
+} from "@/shared/utils/staff-scope.server";
 import { ensureAccountBranchTable } from "@/shared/utils/account-branch";
 
 function parseBranchIdFromBody(body: Record<string, unknown>): number | null {

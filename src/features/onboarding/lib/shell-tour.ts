@@ -9,8 +9,8 @@ import {
 const MODULE_PURPOSE: Record<string, string> = {
   home: "Acceso directo a la portada del negocio y al resumen operativo.",
   operation:
-    "El día a día del salón: agenda, servicios, caja, turnos y tareas del equipo.",
-  sales: "Clientes, pedidos, ventas y compras relacionadas con la operación.",
+    "El día a día del salón: agenda, servicios, caja y turnos.",
+  sales: "Clientes, ventas y compras relacionadas con la operación.",
   finance: "Dinero del negocio: gastos, sueldos, liquidaciones y cuadre.",
   inventory: "Productos, stock, movimientos y locales.",
   marketing: "Promociones, canal público y publicidad.",
@@ -28,7 +28,6 @@ const ITEM_PURPOSE: Record<string, string> = {
   "nav-services": "Catálogo de servicios que se agendan a los clientes.",
   "nav-cash": "Caja del día: cobros y movimientos de efectivo.",
   "nav-shift": "Apertura y control del turno de caja.",
-  "nav-tasks": "Tablero de tareas del equipo.",
   "nav-customers": "Ficha y búsqueda de clientes.",
   "nav-register-sale": "Registrar una venta de productos o servicios.",
   "nav-inventory": "Productos y existencias del inventario.",

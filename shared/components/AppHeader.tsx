@@ -1,6 +1,6 @@
 "use client";
 
-import { Button, Dropdown } from "@heroui/react";
+import { Dropdown } from "@heroui/react";
 import { useTheme } from "next-themes";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useMemo, useState, type Key } from "react";
@@ -147,49 +147,48 @@ export function AppHeader({ collapsed, onToggleCollapsed }: AppHeaderProps) {
   };
 
   return (
-    <header className="sticky top-0 z-40 flex h-14 shrink-0 items-center gap-2 border-b border-separator bg-surface px-3 sm:px-4">
-      <Button
-        isIconOnly
-        size="sm"
-        variant="ghost"
+    <header className="scheduly-navbar z-40 flex h-14 shrink-0 items-center gap-2 px-3 sm:px-4">
+      <button
+        type="button"
+        className="scheduly-navbar__icon-btn"
         aria-label={collapsed ? "Expandir menú" : "Recoger menú"}
-        onPress={onToggleCollapsed}
+        onClick={onToggleCollapsed}
       >
         {collapsed ? (
           <ArrowChevronRight width={16} height={16} />
         ) : (
           <ArrowChevronLeft width={16} height={16} />
         )}
-      </Button>
+      </button>
 
       <button
         type="button"
-        className="flex min-w-0 items-center gap-2 rounded-lg px-1.5 py-1 text-left hover:bg-surface-secondary"
+        className="scheduly-navbar__brand min-w-0 px-1 py-1"
         data-onboarding="shell-brand"
         onClick={() => router.push(appRoutes.inicio)}
       >
-        <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-accent/10 text-accent">
+        <span className="scheduly-navbar__brand-mark h-8 w-8">
           <Calendar width={18} height={18} />
         </span>
         <span className="hidden min-w-0 sm:block">
-          <span className="block truncate text-sm font-bold leading-tight tracking-tight">
+          <span className="scheduly-navbar__brand-title block text-sm">
             {APP_BRAND_NAME}
           </span>
-          <span className="block truncate text-[10px] text-muted leading-tight">
+          <span className="scheduly-navbar__brand-sub">
             Gestión de turnos
           </span>
         </span>
       </button>
 
-      <div className="ml-2 min-w-0 flex-1">
+      <div className="ml-1 min-w-0 flex-1">
         {user ? (
           <div
-            className={`inline-flex max-w-full items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-medium leading-none ${
+            className={`scheduly-navbar__chip ${
               hasLinkedBranch
-                ? "border-success/35 bg-success/10 text-success"
+                ? "scheduly-navbar__chip--success"
                 : branchNeedsLink
-                  ? "border-danger/35 bg-danger/10 text-danger"
-                  : "border-separator bg-surface-secondary text-muted"
+                  ? "scheduly-navbar__chip--danger"
+                  : ""
             }`}
             title={
               hasLinkedBranch
@@ -221,50 +220,46 @@ export function AppHeader({ collapsed, onToggleCollapsed }: AppHeaderProps) {
         ) : null}
       </div>
 
-      <div className="flex shrink-0 items-center gap-1">
-        <Button
-          isIconOnly
-          size="sm"
-          variant="ghost"
+      <div className="scheduly-navbar__actions">
+        <button
+          type="button"
+          className="scheduly-navbar__icon-btn"
           aria-label="Guía de uso"
           data-onboarding="onboarding-help"
-          onPress={startPageGuide}
+          onClick={startPageGuide}
         >
           <CircleQuestion width={16} height={16} />
-        </Button>
-        <Button
-          isIconOnly
-          size="sm"
-          variant="ghost"
+        </button>
+        <button
+          type="button"
+          className="scheduly-navbar__icon-btn relative"
           aria-label={
             unreadCount > 0
               ? `Notificaciones (${unreadCount} sin leer)`
               : "Notificaciones"
           }
           data-onboarding="nav-notifications"
-          className="relative"
-          onPress={() => router.push(appRoutes.system.notifications)}
+          onClick={() => router.push(appRoutes.system.notifications)}
         >
           <Bell width={16} height={16} />
           {unreadCount > 0 ? (
-            <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-4 items-center justify-center rounded-full bg-accent px-1 text-[10px] font-bold text-accent-foreground">
+            <span className="scheduly-navbar__badge">
               {unreadCount > 9 ? "9+" : unreadCount}
             </span>
           ) : null}
-        </Button>
-        <Button
-          isIconOnly
-          size="sm"
-          variant="ghost"
+        </button>
+        <button
+          type="button"
+          className="scheduly-navbar__icon-btn"
           aria-label={themeLabel}
-          onPress={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
+          onClick={() => setTheme(resolvedTheme === "dark" ? "light" : "dark")}
         >
           {resolvedTheme === "dark" ? (
             <Sun width={16} height={16} />
           ) : (
             <Moon width={16} height={16} />
           )}
-        </Button>
+        </button>
 
         {user ? (
           <>
@@ -273,9 +268,9 @@ export function AppHeader({ collapsed, onToggleCollapsed }: AppHeaderProps) {
                 id="user-menu-button"
                 aria-label="Menú de usuario"
                 data-onboarding="nav-user-menu"
-                className="flex max-w-[220px] items-center gap-2 rounded-lg px-2 py-1.5 text-left outline-none hover:bg-surface-secondary data-[pressed]:bg-surface-secondary"
+                className="scheduly-navbar__brand max-w-[220px] px-2 py-1.5 outline-none data-[pressed]:bg-surface-secondary"
               >
-                <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-accent/15 text-[10px] font-bold text-accent">
+                <span className="scheduly-navbar__brand-mark h-7 w-7 rounded-full text-[10px] font-bold">
                   {initials}
                 </span>
                 <span className="hidden min-w-0 flex-col truncate leading-tight lg:flex">

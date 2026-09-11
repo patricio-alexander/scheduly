@@ -3,7 +3,7 @@ import { createServer } from "node:http";
 import { parse } from "node:url";
 import next from "next";
 import { Server as IOServer } from "socket.io";
-import { setIO, TASKS_ROOM, APPOINTMENTS_ROOM } from "./shared/utils/socket";
+import { setIO, APPOINTMENTS_ROOM } from "./shared/utils/socket";
 import { startSriAuthorizationPollWorker } from "./workers/sri-authorization-poll";
 
 const dev = process.env.NODE_ENV !== "production";
@@ -37,7 +37,6 @@ app
     setIO(io);
 
     io.on("connection", (socket) => {
-      socket.join(TASKS_ROOM);
       socket.join(APPOINTMENTS_ROOM);
     });
 

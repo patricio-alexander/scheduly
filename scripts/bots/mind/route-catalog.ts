@@ -141,12 +141,6 @@ export const API_PROBES: ApiProbe[] = [
     expect: { owner: "allow", admin: "allow", employee: "deny" },
   },
   {
-    id: "finance-collections",
-    label: "Cobranzas workbench",
-    path: "/api/orders/workbench/all",
-    expect: { owner: "allow", admin: "allow", employee: "deny" },
-  },
-  {
     id: "inventory-movements",
     label: "Kardex movimientos",
     path: "/api/inventory/movements?take=20",
@@ -156,12 +150,6 @@ export const API_PROBES: ApiProbe[] = [
     id: "inventory-value",
     label: "Inventario valorizado",
     path: "/api/inventory/value-summary",
-    expect: { owner: "allow", admin: "allow", employee: "deny" },
-  },
-  {
-    id: "orders-calendar",
-    label: "Pedidos calendario",
-    path: "/api/orders/calendar",
     expect: { owner: "allow", admin: "allow", employee: "deny" },
   },
   {

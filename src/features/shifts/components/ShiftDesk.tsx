@@ -688,7 +688,7 @@ export function ShiftDesk() {
                 label="Tarjeta"
                 value={formatMoney(shift.sales.salesCard)}
               />
-              <StatCell label="Pedidos" value={String(shift.orderCount)} />
+              <StatCell label="Ventas" value={String(shift.orderCount)} />
             </div>
 
             {canArqueo ? (

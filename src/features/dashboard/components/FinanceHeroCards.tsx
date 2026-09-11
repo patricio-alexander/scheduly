@@ -65,7 +65,7 @@ function HeroCard({
   footer,
 }: HeroCardProps) {
   return (
-    <div className="flex min-h-[7.5rem] flex-col rounded-2xl border border-separator bg-surface p-3.5 md:p-4">
+    <div className="dashboard-card flex min-h-[7.5rem] flex-col p-3.5 md:p-4">
       <div className="flex items-start justify-between gap-2">
         <div className="min-w-0 flex-1">
           <p className="truncate text-xs font-semibold text-muted">{title}</p>
@@ -193,7 +193,7 @@ export function FinanceHeroCards({ summary, loading }: FinanceHeroCardsProps) {
         id: "with-pending",
         title: "Con por cobrar",
         value: formatPct(summary.marginWithPendingPct),
-        subtitle: `Caja + pedidos · ${formatCurrency(summary.pendingReceivable)} · ${summary.periodLabel}`,
+        subtitle: `Caja + por cobrar · ${formatCurrency(summary.pendingReceivable)} · ${summary.periodLabel}`,
         icon: <Receipt width={18} height={18} />,
         tone: (summary.marginWithPendingPct >= 0 ? "success" : "danger") as Tone,
       },
@@ -247,7 +247,7 @@ export function FinanceHeroCards({ summary, loading }: FinanceHeroCardsProps) {
         <RotatingHeroCard slides={pendingSlides} />
 
         <HeroCard
-          title="Por cobrar (pedidos)"
+          title="Por cobrar"
           value={formatCurrency(summary.pendingReceivable)}
           subtitle="Pendiente de cobro"
           icon={<Clock width={18} height={18} />}
@@ -256,7 +256,7 @@ export function FinanceHeroCards({ summary, loading }: FinanceHeroCardsProps) {
         <HeroCard
           title="Compras"
           value={formatCurrency(summary.purchases)}
-          subtitle="Compras a proveedores"
+          subtitle="Compras del período"
           icon={<ShoppingCart width={18} height={18} />}
           tone="danger"
         />
@@ -287,7 +287,7 @@ export function FinanceHeroCards({ summary, loading }: FinanceHeroCardsProps) {
         />
       </div>
 
-      <div className="flex flex-wrap items-center justify-center gap-2 rounded-2xl border border-separator bg-surface px-3 py-3 md:gap-3 md:px-4">
+      <div className="dashboard-formula-bar">
         <FormulaChip
           label="Balance"
           value={formatCurrency(summary.balance)}

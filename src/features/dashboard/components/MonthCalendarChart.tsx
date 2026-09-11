@@ -50,7 +50,7 @@ const LINE_COLORS = {
 } as const;
 
 const LEGEND = [
-  { key: "appointments", label: "Pedidos", color: LINE_COLORS.appointments },
+  { key: "appointments", label: "Ventas", color: LINE_COLORS.appointments },
   { key: "products", label: "Productos", color: LINE_COLORS.products },
   { key: "income", label: "Ingresos", color: LINE_COLORS.income },
   { key: "expense", label: "Gastos", color: LINE_COLORS.expense },
@@ -267,7 +267,7 @@ export function MonthCalendarChart({
             <div className="min-w-0">
               <h2 className="text-base font-semibold">Calendario financiero</h2>
               <p className="text-xs text-muted">
-                Pedidos, productos, ingresos y gastos por día · clic para detalle
+                Ventas, productos, ingresos y gastos por día · clic para detalle
               </p>
             </div>
           </div>
@@ -319,7 +319,7 @@ export function MonthCalendarChart({
         {data ? (
           <div className="mb-4 grid grid-cols-2 gap-2 md:grid-cols-4">
             <div className="rounded-xl border border-separator bg-surface-secondary/25 px-3 py-2">
-              <p className="text-[11px] text-muted">Pedidos</p>
+              <p className="text-[11px] text-muted">Ventas</p>
               <p
                 className="mt-0.5 text-sm font-extrabold tabular-nums"
                 style={{ color: LINE_COLORS.appointments }}

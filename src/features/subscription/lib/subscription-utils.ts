@@ -27,7 +27,6 @@ export const routeModuleKeys: Array<{ prefix: string; moduleKey: string }> = [
   // Legacies / aliases
   { prefix: "/inventory", moduleKey: "inventory" },
   { prefix: "/agenda", moduleKey: "operation" },
-  { prefix: "/tasks", moduleKey: "operation" },
   { prefix: "/customers", moduleKey: "sales" },
   { prefix: "/users", moduleKey: "admin" },
   { prefix: "/roles", moduleKey: "admin" },

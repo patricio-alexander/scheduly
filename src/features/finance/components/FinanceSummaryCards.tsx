@@ -317,9 +317,9 @@ export function FinanceSummaryCards({
         <RotatingCard slides={marginSlides} />
         <RotatingCard slides={pendingSlides} />
         <SummaryCard
-          title="Por cobrar (pedidos)"
+          title="Por cobrar"
           value={formatMoney(collectionsPending)}
-          subtitle="Pendiente en Cobranzas"
+          subtitle="Pendiente de cobro"
           icon={<Clock width={18} height={18} />}
           tone="warning"
         />

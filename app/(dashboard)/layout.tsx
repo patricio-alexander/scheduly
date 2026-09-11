@@ -21,7 +21,6 @@ function isEmployeeBlockedPath(pathname: string) {
   if (pathname.startsWith(appRoutes.loyalty.hub)) return true;
   if (pathname.startsWith(appRoutes.sales.history)) return true;
   if (pathname.startsWith(appRoutes.sales.register)) return true;
-  if (pathname.startsWith(appRoutes.sales.orders)) return true;
   if (pathname.startsWith(appRoutes.sales.salesHub)) return true;
   if (pathname.startsWith(appRoutes.inventory.categories)) return true;
   if (pathname.startsWith("/compras")) return true;
@@ -42,7 +41,6 @@ function isEmployeeBlockedPath(pathname: string) {
 }
 
 function isOwnerOnlyPath(pathname: string) {
-  // Proveedores: admin de sucursal también opera (alineado a menú adminOnly).
   if (pathname.startsWith("/comprobantes-electronicos")) return true;
   // Admin de sucursal puede gestionar cuentas (empleados de su local).
   if (pathname.startsWith("/administracion")) {
@@ -93,7 +91,7 @@ function AuthGuard({ children }: { children: React.ReactNode }) {
       return;
     }
     if (isEmployeeRole(user.role) && isEmployeeBlockedPath(pathname)) {
-      router.replace(appRoutes.operation.tasks);
+      router.replace(appRoutes.operation.agenda);
       return;
     }
     if (

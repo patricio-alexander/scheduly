@@ -15,11 +15,13 @@ import {
   splitPersonName,
 } from "@/shared/utils/account-serialize";
 import {
-  assertCanManageTargetAccount,
   canManageBranchStaff,
-  getManagerBranchId,
   rolesAllowedForBranchAdmin,
 } from "@/shared/utils/staff-scope";
+import {
+  assertCanManageTargetAccount,
+  getManagerBranchId,
+} from "@/shared/utils/staff-scope.server";
 
 function parseBranchIdFromBody(body: Record<string, unknown>): number | null {
   const raw = body.branchId;

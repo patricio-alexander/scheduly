@@ -7,16 +7,7 @@ import MapPin from "@gravity-ui/icons/MapPin";
 import Picture from "@gravity-ui/icons/Picture";
 import TrashBin from "@gravity-ui/icons/TrashBin";
 import { apiUrl } from "@/shared/utils/api";
-import {
-  ACCENT_PRESETS,
-  DEFAULT_BUSINESS_NAME,
-  DEFAULT_THEME_COLORS,
-  broadcastThemeColorsLocally,
-  applyThemeColors,
-  normalizeHex,
-  normalizeThemeColors,
-  type ThemeColors,
-} from "@/shared/utils/business-profile";
+import { DEFAULT_BUSINESS_NAME } from "@/shared/utils/business-profile";
 import type { BusinessSettings } from "../types";
 
 type FormSnapshot = {
@@ -26,88 +17,11 @@ type FormSnapshot = {
   tradeName: string;
   obligationAccounting: boolean;
   logoPath: string | null;
-  colors: ThemeColors;
 };
-
-function colorsEqual(a: ThemeColors, b: ThemeColors) {
-  return (
-    a.accentColor === b.accentColor &&
-    a.successColor === b.successColor &&
-    a.warningColor === b.warningColor &&
-    a.dangerColor === b.dangerColor
-  );
-}
 
 function logoSrc(logoPath: string | null) {
   if (!logoPath) return null;
   return apiUrl(logoPath);
-}
-
-function ColorField({
-  id,
-  label,
-  value,
-  onChange,
-  presets,
-}: {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (hex: string) => void;
-  presets?: readonly { label: string; value: string }[];
-}) {
-  return (
-    <div className="flex flex-col gap-2">
-      <Label htmlFor={id}>{label}</Label>
-      <div className="flex items-center gap-3">
-        <input
-          id={id}
-          type="color"
-          value={value}
-          onChange={(e) => onChange(normalizeHex(e.target.value, value))}
-          className="h-11 w-14 cursor-pointer rounded-xl border border-separator bg-field-background p-1"
-        />
-        <input
-          type="text"
-          value={value}
-          onChange={(e) => {
-            const next = e.target.value.trim();
-            if (/^#[0-9a-fA-F]{0,6}$/.test(next) || next === "") {
-              onChange(next.toUpperCase() || value);
-            }
-          }}
-          onBlur={() => onChange(normalizeHex(value, DEFAULT_THEME_COLORS.accentColor))}
-          className="w-28 rounded-xl border border-separator bg-field-background px-3 py-2.5 font-mono text-sm uppercase tracking-wide focus:border-focus focus:outline-none focus:ring-2 focus:ring-focus"
-          spellCheck={false}
-          maxLength={7}
-        />
-        <div
-          className="h-11 flex-1 rounded-xl border border-separator"
-          style={{ background: value }}
-          aria-hidden
-        />
-      </div>
-      {presets ? (
-        <div className="flex flex-wrap gap-2 pt-1">
-          {presets.map((preset) => (
-            <button
-              key={preset.value}
-              type="button"
-              title={preset.label}
-              onClick={() => onChange(preset.value)}
-              className={`h-8 w-8 rounded-lg border transition-transform hover:scale-105 ${
-                value.toUpperCase() === preset.value.toUpperCase()
-                  ? "border-foreground ring-2 ring-focus"
-                  : "border-separator"
-              }`}
-              style={{ background: preset.value }}
-              aria-label={preset.label}
-            />
-          ))}
-        </div>
-      ) : null}
-    </div>
-  );
 }
 
 export function BusinessSettingsForm() {
@@ -122,11 +36,8 @@ export function BusinessSettingsForm() {
   const [logoFile, setLogoFile] = useState<File | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
   const [removeLogo, setRemoveLogo] = useState(false);
-  const [colors, setColors] = useState<ThemeColors>(DEFAULT_THEME_COLORS);
   const [baseline, setBaseline] = useState<FormSnapshot | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
-  const persistedColorsRef = useRef<ThemeColors>(DEFAULT_THEME_COLORS);
-  const colorsReadyRef = useRef(false);
 
   const dirty = useMemo(() => {
     if (!baseline || loading) return false;
@@ -137,7 +48,6 @@ export function BusinessSettingsForm() {
     if (tradeName !== baseline.tradeName) return true;
     if (obligationAccounting !== baseline.obligationAccounting) return true;
     if (logoPath !== baseline.logoPath) return true;
-    if (!colorsEqual(colors, baseline.colors)) return true;
     return false;
   }, [
     baseline,
@@ -150,7 +60,6 @@ export function BusinessSettingsForm() {
     tradeName,
     obligationAccounting,
     logoPath,
-    colors,
   ]);
 
   useEffect(() => {
@@ -169,16 +78,12 @@ export function BusinessSettingsForm() {
           const nextTrade = json.tradeName || "";
           const nextOblig = json.obligationAccounting ?? true;
           const nextLogo = json.logoPath;
-          const loaded = normalizeThemeColors(json);
           setBusinessName(name);
           setAddress(addr);
           setRuc(nextRuc);
           setTradeName(nextTrade);
           setObligationAccounting(nextOblig);
           setLogoPath(nextLogo);
-          setColors(loaded);
-          persistedColorsRef.current = loaded;
-          colorsReadyRef.current = true;
           setBaseline({
             businessName: name,
             address: addr,
@@ -186,7 +91,6 @@ export function BusinessSettingsForm() {
             tradeName: nextTrade,
             obligationAccounting: nextOblig,
             logoPath: nextLogo,
-            colors: loaded,
           });
         }
       } catch {
@@ -210,48 +114,6 @@ export function BusinessSettingsForm() {
     return () => URL.revokeObjectURL(url);
   }, [logoFile]);
 
-  // Vista previa en vivo de los colores (pestaña actual)
-  useEffect(() => {
-    if (loading) return;
-    applyThemeColors(colors);
-  }, [colors, loading]);
-
-  // Propaga colores a todas las sucursales mientras se editan (debounced)
-  useEffect(() => {
-    if (loading || !colorsReadyRef.current) return;
-
-    const unchanged = (
-      Object.keys(colors) as Array<keyof ThemeColors>
-    ).every((key) => colors[key] === persistedColorsRef.current[key]);
-    if (unchanged) return;
-
-    const timer = setTimeout(() => {
-      void (async () => {
-        try {
-          const res = await fetch(apiUrl("/api/settings/theme"), {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(colors),
-          });
-          if (!res.ok) return;
-          const json = (await res.json().catch(() => null)) as
-            | Partial<ThemeColors>
-            | null;
-          if (!json) return;
-          const saved = normalizeThemeColors(json);
-          persistedColorsRef.current = saved;
-          setBaseline((prev) =>
-            prev ? { ...prev, colors: saved } : prev,
-          );
-        } catch {
-          // ignore; el usuario puede guardar manualmente
-        }
-      })();
-    }, 500);
-
-    return () => clearTimeout(timer);
-  }, [colors, loading]);
-
   const displayedLogo = removeLogo
     ? null
     : logoPreview || logoSrc(logoPath);
@@ -270,15 +132,6 @@ export function BusinessSettingsForm() {
     setRemoveLogo(false);
   };
 
-  const setColor =
-    (key: keyof ThemeColors) =>
-    (hex: string) => {
-      setColors((prev) => ({
-        ...prev,
-        [key]: normalizeHex(hex, prev[key]),
-      }));
-    };
-
   const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!dirty || pending) return;
@@ -294,10 +147,6 @@ export function BusinessSettingsForm() {
       form.set("ruc", ruc.trim());
       form.set("tradeName", tradeName.trim());
       form.set("obligationAccounting", obligationAccounting ? "1" : "0");
-      form.set("accentColor", colors.accentColor);
-      form.set("successColor", colors.successColor);
-      form.set("warningColor", colors.warningColor);
-      form.set("dangerColor", colors.dangerColor);
       if (removeLogo) form.set("removeLogo", "1");
       if (logoFile) form.set("logo", logoFile);
 
@@ -319,10 +168,6 @@ export function BusinessSettingsForm() {
       setTradeName(json.tradeName ?? "");
       setObligationAccounting(json.obligationAccounting ?? true);
       setLogoPath(json.logoPath);
-      const nextColors = normalizeThemeColors(json);
-      setColors(nextColors);
-      persistedColorsRef.current = nextColors;
-      broadcastThemeColorsLocally(nextColors);
       setLogoFile(null);
       setRemoveLogo(false);
       setBaseline({
@@ -332,7 +177,6 @@ export function BusinessSettingsForm() {
         tradeName: json.tradeName ?? "",
         obligationAccounting: json.obligationAccounting ?? true,
         logoPath: json.logoPath,
-        colors: nextColors,
       });
       toast.success("Configuración guardada");
     } catch (err) {
@@ -480,67 +324,7 @@ export function BusinessSettingsForm() {
         </div>
       </div>
 
-      <div className="border-t border-separator pt-6">
-        <h3 className="mb-4 text-sm font-semibold uppercase tracking-wide text-muted">
-          Colores del sistema
-        </h3>
-        <div className="flex flex-col gap-5">
-          <ColorField
-            id="accentColor"
-            label="Color de acento"
-            value={colors.accentColor}
-            onChange={setColor("accentColor")}
-            presets={ACCENT_PRESETS}
-          />
-          <div className="grid gap-5 sm:grid-cols-3">
-            <ColorField
-              id="successColor"
-              label="Éxito"
-              value={colors.successColor}
-              onChange={setColor("successColor")}
-            />
-            <ColorField
-              id="warningColor"
-              label="Advertencia"
-              value={colors.warningColor}
-              onChange={setColor("warningColor")}
-            />
-            <ColorField
-              id="dangerColor"
-              label="Peligro"
-              value={colors.dangerColor}
-              onChange={setColor("dangerColor")}
-            />
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <span className="rounded-xl bg-accent px-3 py-1.5 text-xs font-semibold text-accent-foreground">
-              Acento
-            </span>
-            <span className="rounded-xl bg-success px-3 py-1.5 text-xs font-semibold text-success-foreground">
-              Éxito
-            </span>
-            <span className="rounded-xl bg-warning px-3 py-1.5 text-xs font-semibold text-warning-foreground">
-              Advertencia
-            </span>
-            <span className="rounded-xl bg-danger px-3 py-1.5 text-xs font-semibold text-danger-foreground">
-              Peligro
-            </span>
-          </div>
-          <Button
-            type="button"
-            variant="secondary"
-            className="self-start"
-            onPress={() => setColors(DEFAULT_THEME_COLORS)}
-          >
-            Restaurar colores por defecto
-          </Button>
-        </div>
-      </div>
-
-      <div
-        className="sticky bottom-4 z-10 flex justify-end"
-        data-tour="settings-marca-save"
-      >
+      <div className="sticky bottom-4 z-10 flex justify-end">
         <Button
           type="submit"
           variant="primary"

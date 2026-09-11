@@ -46,13 +46,6 @@ export const TUTORIAL_HUB_ENTRIES: TutorialHubEntry[] = [
     route: appRoutes.operation.shifts,
   },
   {
-    id: "tasks",
-    title: "Tareas",
-    description: "Tablero de tareas del equipo.",
-    group: "Operación",
-    route: appRoutes.operation.tasks,
-  },
-  {
     id: "products",
     title: "Productos",
     description: "Alta de productos, precio, comisión y stock.",
@@ -79,13 +72,6 @@ export const TUTORIAL_HUB_ENTRIES: TutorialHubEntry[] = [
     description: "Alta y ficha de clientes.",
     group: "Ventas y compras",
     route: appRoutes.sales.customers,
-  },
-  {
-    id: "suppliers",
-    title: "Proveedores",
-    description: "Proveedores para compras e inventario.",
-    group: "Ventas y compras",
-    route: appRoutes.purchases.suppliers,
   },
   {
     id: "branches",

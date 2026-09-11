@@ -1,14 +1,20 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Button, toast } from "@heroui/react";
 import ArrowChevronLeft from "@gravity-ui/icons/ArrowChevronLeft";
 import ArrowChevronRight from "@gravity-ui/icons/ArrowChevronRight";
-import ChartColumn from "@gravity-ui/icons/ChartColumn";
 import { apiUrl } from "@/shared/utils/api";
 import { formatMoney } from "@/shared/utils/money";
 import { useAuth } from "@/src/features/auth";
 import { isManagementRole } from "@/shared/utils/roles";
+import { EmployeeProductionPanel } from "./EmployeeProductionPanel";
+import type {
+  EmployeeProduction,
+  EmployeeProductionTotals,
+} from "./EmployeeProductionPanel";
+
+type PeriodView = "week" | "day";
 
 type WeekDay = {
   date: string;
@@ -33,6 +39,8 @@ type WeeklyReport = {
     cashOutTotal: number;
     ordersCount: number;
   };
+  employees?: EmployeeProduction[];
+  employeeSummary?: EmployeeProductionTotals;
 };
 
 type DailyReport = {
@@ -44,6 +52,8 @@ type DailyReport = {
     cashOutTotal: number;
     ordersCount: number;
   };
+  employeeSummary?: EmployeeProductionTotals;
+  employees?: EmployeeProduction[];
   shifts: Array<{
     id: number;
     status: string;
@@ -113,57 +123,38 @@ function formatWeekRange(start: string, end: string) {
 function formatDayTitle(dateStr: string) {
   try {
     return new Date(`${dateStr}T12:00:00`).toLocaleDateString("es-EC", {
-      weekday: "long",
+      weekday: "short",
       day: "numeric",
-      month: "long",
-      year: "numeric",
+      month: "short",
     });
   } catch {
     return dateStr;
   }
 }
 
-function SummaryChip({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: string;
-  tone?: "blue" | "green" | "red" | "yellow";
-}) {
-  const color =
-    tone === "blue"
-      ? "text-sky-500"
-      : tone === "green"
-        ? "text-success"
-        : tone === "red"
-          ? "text-danger"
-          : tone === "yellow"
-            ? "text-warning"
-            : "";
-  return (
-    <div className="min-w-[7rem] flex-1 rounded-xl border border-separator px-3 py-2">
-      <p className="text-[11px] text-muted">{label}</p>
-      <p className={`text-sm font-extrabold tabular-nums ${color}`}>{value}</p>
-    </div>
-  );
+function dayNumber(dateStr: string) {
+  return new Date(`${dateStr}T12:00:00`).getDate();
 }
 
 export function CashSupervision() {
   const { user } = useAuth();
   const canView = user ? isManagementRole(user.role) : false;
 
+  const [view, setView] = useState<PeriodView>("day");
   const [weekAnchor, setWeekAnchor] = useState(todayKey);
   const [selectedDate, setSelectedDate] = useState(todayKey);
   const [weekly, setWeekly] = useState<WeeklyReport | null>(null);
   const [daily, setDaily] = useState<DailyReport | null>(null);
   const [loadingWeek, setLoadingWeek] = useState(true);
   const [loadingDay, setLoadingDay] = useState(true);
-  const [tab, setTab] = useState<"gastos" | "ventas">("gastos");
+  const [tab, setTab] = useState<"empleados" | "gastos" | "ventas">(
+    "empleados",
+  );
   const [expandedSale, setExpandedSale] = useState<number | null>(null);
+  const selectedDateRef = useRef(selectedDate);
+  selectedDateRef.current = selectedDate;
 
-  const loadWeekly = useCallback(async (anchor: string) => {
+  const loadWeekly = useCallback(async (anchor: string, keepDate?: string) => {
     setLoadingWeek(true);
     try {
       const res = await fetch(
@@ -172,9 +163,13 @@ export function CashSupervision() {
       if (!res.ok) throw new Error("No se pudo cargar la semana");
       const data = (await res.json()) as WeeklyReport;
       setWeekly(data);
-      const today = todayKey();
-      const inWeek = data.days.some((d) => d.date === today);
-      setSelectedDate(inWeek ? today : data.days[0]?.date ?? anchor);
+      const keep =
+        keepDate && data.days.some((day) => day.date === keepDate);
+      if (!keep) {
+        const today = todayKey();
+        const todayInWeek = data.days.some((day) => day.date === today);
+        setSelectedDate(todayInWeek ? today : data.days[0]?.date ?? anchor);
+      }
     } catch (err) {
       toast.danger(err instanceof Error ? err.message : "Error semanal");
       setWeekly(null);
@@ -202,18 +197,52 @@ export function CashSupervision() {
 
   useEffect(() => {
     if (!canView) return;
-    void loadWeekly(weekAnchor);
+    void loadWeekly(weekAnchor, selectedDateRef.current);
   }, [canView, weekAnchor, loadWeekly]);
 
   useEffect(() => {
-    if (!canView || !selectedDate) return;
+    if (!canView || view !== "day" || !selectedDate) return;
     void loadDaily(selectedDate);
-  }, [canView, selectedDate, loadDaily]);
+  }, [canView, view, selectedDate, loadDaily]);
 
   const weekLabel = useMemo(() => {
     if (!weekly) return "—";
     return formatWeekRange(weekly.weekStart, weekly.weekEnd);
   }, [weekly]);
+
+  const openDay = useCallback(
+    (date: string) => {
+      setSelectedDate(date);
+      if (weekly && !weekly.days.some((day) => day.date === date)) {
+        setWeekAnchor(date);
+      }
+      setView("day");
+    },
+    [weekly],
+  );
+
+  const shiftPeriod = (delta: number) => {
+    if (view === "week") {
+      setWeekAnchor((date) => addDays(date, delta * 7));
+      return;
+    }
+    const next = addDays(selectedDate, delta);
+    setSelectedDate(next);
+    if (weekly && !weekly.days.some((day) => day.date === next)) {
+      setWeekAnchor(next);
+    }
+  };
+
+  const goToday = () => {
+    const today = todayKey();
+    setSelectedDate(today);
+    setWeekAnchor(today);
+  };
+
+  const showingToday =
+    view === "day"
+      ? selectedDate === todayKey()
+      : Boolean(weekly?.days.some((day) => day.date === todayKey()));
 
   if (!user) return null;
 
@@ -226,396 +255,402 @@ export function CashSupervision() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-4">
-      <div>
-        <div className="flex items-center gap-2">
-          <ChartColumn width={22} height={22} />
-          <h1 className="text-xl font-bold tracking-tight">Supervisión de caja</h1>
-        </div>
-        <p className="mt-1 text-sm text-muted">
-          Revisá la semana, tocá un día y mirá salidas, ventas y turnos.
-        </p>
-      </div>
-
+    <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-2.5">
       <div className="flex flex-wrap items-center gap-2">
-        <Button
-          isIconOnly
-          size="sm"
-          variant="secondary"
-          aria-label="Semana anterior"
-          onPress={() => setWeekAnchor((d) => addDays(d, -7))}
-        >
-          <ArrowChevronLeft width={16} height={16} />
-        </Button>
-        <p className="min-w-[10rem] text-center text-sm font-semibold">{weekLabel}</p>
-        <Button
-          isIconOnly
-          size="sm"
-          variant="secondary"
-          aria-label="Semana siguiente"
-          onPress={() => setWeekAnchor((d) => addDays(d, 7))}
-        >
-          <ArrowChevronRight width={16} height={16} />
-        </Button>
+        <h1 className="mr-auto text-lg font-bold tracking-tight">
+          Supervisión de caja
+        </h1>
+        <div className="dashboard-period">
+          <button
+            type="button"
+            className={`dashboard-period__btn !px-3 !py-1 ${
+              view === "week" ? "dashboard-period__btn--active" : ""
+            }`}
+            onClick={() => setView("week")}
+          >
+            Semana
+          </button>
+          <button
+            type="button"
+            className={`dashboard-period__btn !px-3 !py-1 ${
+              view === "day" ? "dashboard-period__btn--active" : ""
+            }`}
+            onClick={() => setView("day")}
+          >
+            Día
+          </button>
+        </div>
+        <div className="flex items-center gap-1">
+          <Button
+            isIconOnly
+            size="sm"
+            variant="secondary"
+            aria-label={view === "week" ? "Semana anterior" : "Día anterior"}
+            onPress={() => shiftPeriod(-1)}
+          >
+            <ArrowChevronLeft width={14} height={14} />
+          </Button>
+          <p className="min-w-[7.5rem] text-center text-xs font-semibold capitalize">
+            {view === "week" ? weekLabel : formatDayTitle(selectedDate)}
+          </p>
+          <Button
+            isIconOnly
+            size="sm"
+            variant="secondary"
+            aria-label={view === "week" ? "Semana siguiente" : "Día siguiente"}
+            onPress={() => shiftPeriod(1)}
+          >
+            <ArrowChevronRight width={14} height={14} />
+          </Button>
+          <Button
+            size="sm"
+            variant="secondary"
+            isDisabled={showingToday}
+            onPress={goToday}
+          >
+            Hoy
+          </Button>
+        </div>
       </div>
 
-      <section className="rounded-2xl border border-separator bg-surface p-3">
-        <h2 className="mb-2 text-sm font-bold">Ganancias semanales</h2>
-        {loadingWeek ? (
-          <p className="py-6 text-center text-sm text-muted">Cargando semana…</p>
-        ) : !weekly ? (
-          <p className="py-6 text-center text-sm text-muted">Sin datos</p>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] text-left text-sm">
-              <thead className="border-b border-separator text-xs">
-                <tr>
-                  <th className="px-2 py-2 font-medium text-muted">Día</th>
-                  <th className="px-2 py-2 font-medium text-muted">Fecha</th>
-                  <th className="px-2 py-2 text-right font-semibold text-sky-500">
-                    Inicial
-                  </th>
-                  <th className="px-2 py-2 text-right font-semibold text-success">
-                    Ventas tienda
-                  </th>
-                  <th className="px-2 py-2 text-right font-semibold text-danger">
-                    Gastos
-                  </th>
-                  <th className="px-2 py-2 text-right font-semibold text-warning">
-                    Cierre
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {weekly.days.map((day) => {
-                  const selected = day.date === selectedDate;
-                  const isToday = day.date === todayKey();
-                  return (
-                    <tr
-                      key={day.date}
-                      className={`cursor-pointer border-b border-separator/50 last:border-0 ${
-                        selected ? "bg-accent/10" : "hover:bg-surface-secondary/50"
-                      }`}
-                      onClick={() => setSelectedDate(day.date)}
-                    >
-                      <td className="px-2 py-2 capitalize">
-                        {day.weekdayShort}
-                        {isToday ? (
-                          <span className="ml-1 rounded-full bg-accent/15 px-1.5 py-0.5 text-[10px] font-semibold text-accent">
-                            Hoy
-                          </span>
-                        ) : null}
-                      </td>
-                      <td className="px-2 py-2 text-muted">{day.dateLabel}</td>
-                      <td className="px-2 py-2 text-right font-semibold tabular-nums text-sky-500">
-                        {formatMoney(day.openingCashTotal)}
-                      </td>
-                      <td className="px-2 py-2 text-right font-semibold tabular-nums text-success">
-                        {formatMoney(day.salesTotal)}
-                      </td>
-                      <td className="px-2 py-2 text-right font-semibold tabular-nums text-danger">
-                        {formatMoney(day.cashOutTotal)}
-                      </td>
-                      <td className="px-2 py-2 text-right font-semibold tabular-nums text-warning">
-                        {formatMoney(day.closingCashTotal)}
-                      </td>
-                    </tr>
-                  );
-                })}
-                <tr className="border-t border-separator bg-surface-secondary/40 font-bold">
-                  <td className="px-2 py-2" colSpan={2}>
-                    Total semana
-                  </td>
-                  <td className="px-2 py-2 text-right tabular-nums text-sky-500">
-                    {formatMoney(weekly.summary.openingCashTotal)}
-                  </td>
-                  <td className="px-2 py-2 text-right tabular-nums text-success">
-                    {formatMoney(weekly.summary.salesTotal)}
-                  </td>
-                  <td className="px-2 py-2 text-right tabular-nums text-danger">
-                    {formatMoney(weekly.summary.cashOutTotal)}
-                  </td>
-                  <td className="px-2 py-2 text-right tabular-nums text-warning">
-                    {formatMoney(weekly.summary.closingCashTotal)}
-                  </td>
-                </tr>
-              </tbody>
-            </table>
+      {view === "week" ? (
+        <WeeklyView
+          weekly={weekly}
+          loading={loadingWeek}
+          selectedDate={selectedDate}
+          onOpenDay={openDay}
+        />
+      ) : (
+        <DailyView
+          weekly={weekly}
+          daily={daily}
+          loading={loadingDay}
+          selectedDate={selectedDate}
+          tab={tab}
+          onTab={setTab}
+          onOpenDay={openDay}
+          expandedSale={expandedSale}
+          onExpandSale={setExpandedSale}
+        />
+      )}
+    </div>
+  );
+}
+
+function MetricsBar({
+  commissions,
+  services,
+  products,
+  expenses,
+}: {
+  commissions: number;
+  services: number;
+  products: number;
+  expenses: number;
+}) {
+  return (
+    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs">
+      <span>
+        <span className="text-muted">Comisiones </span>
+        <span className="font-bold tabular-nums">{formatMoney(commissions)}</span>
+      </span>
+      <span className="text-accent">
+        Se <span className="font-semibold tabular-nums">{formatMoney(services)}</span>
+      </span>
+      <span className="text-sky-500">
+        Pr <span className="font-semibold tabular-nums">{formatMoney(products)}</span>
+      </span>
+      <span className="text-danger">
+        Gastos{" "}
+        <span className="font-semibold tabular-nums">{formatMoney(expenses)}</span>
+      </span>
+    </div>
+  );
+}
+
+function DayStrip({
+  days,
+  selectedDate,
+  onOpenDay,
+  showAmounts,
+}: {
+  days: WeekDay[];
+  selectedDate: string;
+  onOpenDay: (date: string) => void;
+  showAmounts?: boolean;
+}) {
+  return (
+    <div className="cash-day-strip">
+      {days.map((day) => {
+        const selected = day.date === selectedDate;
+        const isToday = day.date === todayKey();
+        return (
+          <button
+            key={day.date}
+            type="button"
+            className={`cash-day-chip ${selected ? "cash-day-chip--active" : ""}`}
+            onClick={() => onOpenDay(day.date)}
+          >
+            <p className="text-[9px] font-semibold uppercase leading-none text-muted">
+              {day.weekdayShort}
+              {isToday ? "*" : ""}
+            </p>
+            <p className="mt-0.5 text-sm font-bold leading-none tabular-nums">
+              {dayNumber(day.date)}
+            </p>
+            {showAmounts ? (
+              <p className="mt-0.5 truncate text-[9px] tabular-nums text-success">
+                {formatMoney(day.salesTotal)}
+              </p>
+            ) : null}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function WeeklyView({
+  weekly,
+  loading,
+  selectedDate,
+  onOpenDay,
+}: {
+  weekly: WeeklyReport | null;
+  loading: boolean;
+  selectedDate: string;
+  onOpenDay: (date: string) => void;
+}) {
+  if (loading) {
+    return <p className="py-6 text-center text-xs text-muted">Cargando…</p>;
+  }
+  if (!weekly) {
+    return <p className="py-6 text-center text-xs text-muted">Sin datos</p>;
+  }
+
+  const commissions = weekly.employeeSummary;
+
+  return (
+    <section className="rounded-xl border border-separator bg-surface p-3">
+      <MetricsBar
+        commissions={commissions?.total ?? 0}
+        services={commissions?.servicesTotal ?? 0}
+        products={commissions?.productsTotal ?? 0}
+        expenses={weekly.summary.cashOutTotal}
+      />
+      <div className="mt-2">
+        <DayStrip
+          days={weekly.days}
+          selectedDate={selectedDate}
+          onOpenDay={onOpenDay}
+          showAmounts
+        />
+      </div>
+      <div className="mt-2 border-t border-separator pt-2">
+        <EmployeeProductionPanel
+          key={weekly.weekStart}
+          employees={weekly.employees ?? []}
+          summary={weekly.employeeSummary ?? null}
+        />
+      </div>
+    </section>
+  );
+}
+
+function DailyView({
+  weekly,
+  daily,
+  loading,
+  selectedDate,
+  tab,
+  onTab,
+  onOpenDay,
+  expandedSale,
+  onExpandSale,
+}: {
+  weekly: WeeklyReport | null;
+  daily: DailyReport | null;
+  loading: boolean;
+  selectedDate: string;
+  tab: "empleados" | "gastos" | "ventas";
+  onTab: (tab: "empleados" | "gastos" | "ventas") => void;
+  onOpenDay: (date: string) => void;
+  expandedSale: number | null;
+  onExpandSale: (id: number | null) => void;
+}) {
+  return (
+    <section className="rounded-xl border border-separator bg-surface p-3">
+      {weekly?.days?.length ? (
+        <DayStrip
+          days={weekly.days}
+          selectedDate={selectedDate}
+          onOpenDay={onOpenDay}
+        />
+      ) : null}
+
+      {loading ? (
+        <p className="py-6 text-center text-xs text-muted">Cargando…</p>
+      ) : !daily ? (
+        <p className="py-6 text-center text-xs text-muted">Sin datos del día</p>
+      ) : (
+        <>
+          <div className="mt-2">
+            <MetricsBar
+              commissions={daily.employeeSummary?.total ?? 0}
+              services={daily.employeeSummary?.servicesTotal ?? 0}
+              products={daily.employeeSummary?.productsTotal ?? 0}
+              expenses={daily.summary.cashOutTotal}
+            />
           </div>
-        )}
-        <p className="mt-2 text-[11px] text-muted">
-          Cierre = inicial + ventas tienda (no es el arqueo físico del cierre).
-        </p>
-      </section>
+          <p className="mt-1 text-[11px] text-muted">
+            Caja {formatMoney(daily.summary.openingCashTotal)} + ventas{" "}
+            {formatMoney(daily.summary.salesTotal)} ≈{" "}
+            <span className="font-semibold text-warning">
+              {formatMoney(daily.summary.closingCashTotal)}
+            </span>
+          </p>
 
-      <section className="rounded-2xl border border-separator bg-surface p-4">
-        <h2 className="mb-1 text-sm font-bold capitalize">
-          {formatDayTitle(selectedDate)}
-        </h2>
+          <div className="dashboard-period mt-2 w-full">
+            <button
+              type="button"
+              className={`dashboard-period__btn !px-2.5 !py-1 ${
+                tab === "empleados" ? "dashboard-period__btn--active" : ""
+              }`}
+              onClick={() => onTab("empleados")}
+            >
+              Empleados ({daily.employees?.length ?? 0})
+            </button>
+            <button
+              type="button"
+              className={`dashboard-period__btn !px-2.5 !py-1 ${
+                tab === "gastos" ? "dashboard-period__btn--active" : ""
+              }`}
+              onClick={() => onTab("gastos")}
+            >
+              Gastos ({daily.outflows.length})
+            </button>
+            <button
+              type="button"
+              className={`dashboard-period__btn !px-2.5 !py-1 ${
+                tab === "ventas" ? "dashboard-period__btn--active" : ""
+              }`}
+              onClick={() => onTab("ventas")}
+            >
+              Tienda ({daily.sales.length})
+            </button>
+          </div>
 
-        {loadingDay ? (
-          <p className="py-6 text-center text-sm text-muted">Cargando día…</p>
-        ) : !daily ? (
-          <p className="py-6 text-center text-sm text-muted">Sin datos del día</p>
-        ) : (
-          <>
-            <div className="mb-4 flex flex-wrap gap-2">
-              <SummaryChip
-                label="Inicial"
-                value={formatMoney(daily.summary.openingCashTotal)}
-                tone="blue"
+          <div className="mt-2">
+            {tab === "empleados" ? (
+              <EmployeeProductionPanel
+                key={daily.date}
+                employees={daily.employees ?? []}
+                summary={daily.employeeSummary ?? null}
+                showTickets
               />
-              <SummaryChip
-                label="Ventas tienda"
-                value={formatMoney(daily.summary.salesTotal)}
-                tone="green"
-              />
-              <SummaryChip
-                label="Gastos"
-                value={formatMoney(daily.summary.cashOutTotal)}
-                tone="red"
-              />
-              <SummaryChip
-                label="Cierre"
-                value={formatMoney(daily.summary.closingCashTotal)}
-                tone="yellow"
-              />
-              <SummaryChip
-                label="Tickets"
-                value={String(daily.summary.ordersCount)}
-              />
-            </div>
-
-            <div className="mb-3 inline-flex overflow-hidden rounded-xl border border-separator">
-              <button
-                type="button"
-                className={`px-3 py-1.5 text-xs font-semibold ${
-                  tab === "gastos"
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted hover:bg-surface-secondary"
-                }`}
-                onClick={() => setTab("gastos")}
-              >
-                Gastos ({daily.outflows.length})
-              </button>
-              <button
-                type="button"
-                className={`px-3 py-1.5 text-xs font-semibold ${
-                  tab === "ventas"
-                    ? "bg-accent text-accent-foreground"
-                    : "text-muted hover:bg-surface-secondary"
-                }`}
-                onClick={() => setTab("ventas")}
-              >
-                Ventas ({daily.sales.length})
-              </button>
-            </div>
-
-            {tab === "gastos" ? (
-              <div className="mb-4 overflow-x-auto rounded-xl border border-separator">
-                <table className="w-full min-w-[560px] text-left text-xs">
-                  <thead className="border-b border-separator bg-surface-secondary/40 text-muted">
-                    <tr>
-                      <th className="px-3 py-2 font-medium">Hora</th>
-                      <th className="px-3 py-2 font-medium">Operador</th>
-                      <th className="px-3 py-2 font-medium">Categoría</th>
-                      <th className="px-3 py-2 font-medium">Concepto</th>
-                      <th className="px-3 py-2 text-right font-medium">Monto</th>
-                      <th className="px-3 py-2 font-medium">Turno</th>
-                    </tr>
-                  </thead>
+            ) : tab === "gastos" ? (
+              daily.outflows.length === 0 ? (
+                <p className="py-4 text-center text-xs text-muted">Sin gastos</p>
+              ) : (
+                <table className="w-full text-xs">
                   <tbody>
-                    {daily.outflows.length === 0 ? (
-                      <tr>
-                        <td
-                          colSpan={6}
-                          className="px-3 py-6 text-center text-muted"
-                        >
-                          Sin gastos este día
+                    {daily.outflows.map((movement) => (
+                      <tr
+                        key={movement.id}
+                        className="border-b border-separator/50 last:border-0"
+                      >
+                        <td className="whitespace-nowrap py-1.5 text-muted">
+                          {new Date(movement.createdAt).toLocaleTimeString(
+                            "es-EC",
+                            { hour: "2-digit", minute: "2-digit" },
+                          )}
+                        </td>
+                        <td className="py-1.5">
+                          {movement.categoryLabel}
+                          {movement.concept ? ` · ${movement.concept}` : ""}
+                          <span className="ml-1 text-muted">
+                            {movement.operatorName}
+                          </span>
+                        </td>
+                        <td className="py-1.5 text-right font-semibold tabular-nums text-danger">
+                          −{formatMoney(movement.amount)}
                         </td>
                       </tr>
-                    ) : (
-                      daily.outflows.map((m) => (
-                        <tr
-                          key={m.id}
-                          className="border-b border-separator/50 last:border-0"
-                        >
-                          <td className="px-3 py-2 whitespace-nowrap">
-                            {new Date(m.createdAt).toLocaleTimeString("es-EC", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              second: "2-digit",
-                            })}
-                          </td>
-                          <td className="px-3 py-2">{m.operatorName}</td>
-                          <td className="px-3 py-2">{m.categoryLabel}</td>
-                          <td className="px-3 py-2">{m.concept || "—"}</td>
-                          <td className="px-3 py-2 text-right font-semibold tabular-nums text-danger">
-                            -{formatMoney(m.amount)}
-                          </td>
-                          <td className="px-3 py-2">#{m.shiftId}</td>
-                        </tr>
-                      ))
-                    )}
+                    ))}
                   </tbody>
                 </table>
-              </div>
+              )
+            ) : daily.sales.length === 0 ? (
+              <p className="py-4 text-center text-xs text-muted">
+                Sin ventas de tienda
+              </p>
             ) : (
-              <div className="mb-4 flex flex-col gap-2">
-                {daily.sales.length === 0 ? (
-                  <p className="rounded-xl border border-separator px-3 py-6 text-center text-sm text-muted">
-                    Sin ventas este día
-                  </p>
-                ) : (
-                  daily.sales.map((sale) => {
+              <table className="w-full text-xs">
+                <tbody>
+                  {daily.sales.map((sale) => {
                     const open = expandedSale === sale.id;
                     return (
-                      <div
-                        key={sale.id}
-                        className="rounded-xl border border-separator"
-                      >
-                        <button
-                          type="button"
-                          className="flex w-full flex-wrap items-center justify-between gap-2 px-3 py-2 text-left text-sm hover:bg-surface-secondary/40"
-                          onClick={() =>
-                            setExpandedSale(open ? null : sale.id)
-                          }
+                      <Fragment key={sale.id}>
+                        <tr
+                          className="cursor-pointer border-b border-separator/50 hover:bg-surface-secondary/40"
+                          onClick={() => onExpandSale(open ? null : sale.id)}
                         >
-                          <span className="font-semibold">
-                            #{sale.id} ·{" "}
+                          <td className="whitespace-nowrap py-1.5 text-muted">
                             {new Date(sale.paidAt).toLocaleTimeString("es-EC", {
                               hour: "2-digit",
                               minute: "2-digit",
-                              second: "2-digit",
                             })}
-                          </span>
-                          <span className="text-xs text-muted">
-                            {sale.documentType || "documento"} ·{" "}
-                            {sale.customerName} · {sale.paymentMethod || "—"}
-                          </span>
-                          <span className="font-bold tabular-nums text-success">
+                          </td>
+                          <td className="max-w-[12rem] truncate py-1.5">
+                            {sale.customerName || "Cliente"}
+                            <span className="ml-1 text-muted">
+                              {sale.operatorName}
+                            </span>
+                          </td>
+                          <td className="py-1.5 text-right font-semibold tabular-nums text-success">
                             {formatMoney(sale.total)}
-                          </span>
-                        </button>
-                        {open ? (
-                          <div className="border-t border-separator px-3 py-2">
-                            <table className="w-full text-xs">
-                              <thead className="text-muted">
-                                <tr>
-                                  <th className="py-1 text-left font-medium">
-                                    Producto
-                                  </th>
-                                  <th className="py-1 text-right font-medium">
-                                    Cant.
-                                  </th>
-                                  <th className="py-1 text-right font-medium">
-                                    P. unit.
-                                  </th>
-                                  <th className="py-1 text-right font-medium">
-                                    Subtotal
-                                  </th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {sale.items.map((item) => (
-                                  <tr key={item.id}>
-                                    <td className="py-1">{item.name}</td>
-                                    <td className="py-1 text-right tabular-nums">
-                                      {item.quantity}
-                                    </td>
-                                    <td className="py-1 text-right tabular-nums">
-                                      {formatMoney(item.price)}
-                                    </td>
-                                    <td className="py-1 text-right tabular-nums">
-                                      {formatMoney(item.lineTotal)}
-                                    </td>
-                                  </tr>
-                                ))}
-                              </tbody>
-                            </table>
-                          </div>
-                        ) : null}
-                      </div>
+                          </td>
+                        </tr>
+                        {open
+                          ? sale.items.map((item) => (
+                              <tr
+                                key={item.id}
+                                className="border-b border-separator/40 bg-surface-secondary/30"
+                              >
+                                <td />
+                                <td className="py-1 text-muted">
+                                  {item.name}
+                                  {item.quantity > 1 ? ` ×${item.quantity}` : ""}
+                                </td>
+                                <td className="py-1 text-right tabular-nums">
+                                  {formatMoney(item.lineTotal)}
+                                </td>
+                              </tr>
+                            ))
+                          : null}
+                      </Fragment>
                     );
-                  })
-                )}
-              </div>
-            )}
-
-            <h3 className="mb-2 text-sm font-bold">Turnos del día</h3>
-            <div className="overflow-x-auto rounded-xl border border-separator">
-              <table className="w-full min-w-[640px] text-left text-xs">
-                <thead className="border-b border-separator bg-surface-secondary/40 text-muted">
-                  <tr>
-                    <th className="px-3 py-2 font-medium">#</th>
-                    <th className="px-3 py-2 font-medium">Operador</th>
-                    <th className="px-3 py-2 font-medium">Estado</th>
-                    <th className="px-3 py-2 text-right font-medium text-sky-500">
-                      Inicial
-                    </th>
-                    <th className="px-3 py-2 text-right font-medium text-success">
-                      Ventas
-                    </th>
-                    <th className="px-3 py-2 text-right font-medium text-danger">
-                      Gastos
-                    </th>
-                    <th className="px-3 py-2 text-right font-medium text-warning">
-                      Cierre
-                    </th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {daily.shifts.length === 0 ? (
-                    <tr>
-                      <td
-                        colSpan={7}
-                        className="px-3 py-6 text-center text-muted"
-                      >
-                        Sin turnos activos este día
-                      </td>
-                    </tr>
-                  ) : (
-                    daily.shifts.map((s) => (
-                      <tr
-                        key={s.id}
-                        className="border-b border-separator/50 last:border-0"
-                      >
-                        <td className="px-3 py-2">#{s.id}</td>
-                        <td className="px-3 py-2">{s.operatorName}</td>
-                        <td className="px-3 py-2">
-                          <span
-                            className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                              s.status === "open"
-                                ? "bg-success/15 text-success"
-                                : "bg-surface-secondary text-muted"
-                            }`}
-                          >
-                            {s.status === "open" ? "Abierto" : "Cerrado"}
-                          </span>
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums text-sky-500">
-                          {s.openingCashOnDay == null
-                            ? "—"
-                            : formatMoney(s.openingCashOnDay)}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums text-success">
-                          {formatMoney(s.salesTotalDay)}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums text-danger">
-                          {formatMoney(s.cashOutDay)}
-                        </td>
-                        <td className="px-3 py-2 text-right tabular-nums text-warning">
-                          {formatMoney(s.closingCashOnDay)}
-                        </td>
-                      </tr>
-                    ))
-                  )}
+                  })}
                 </tbody>
               </table>
-            </div>
-          </>
-        )}
-      </section>
-    </div>
+            )}
+          </div>
+
+          {daily.shifts.length > 0 ? (
+            <p className="mt-2 border-t border-separator pt-2 text-[11px] text-muted">
+              Cajas:{" "}
+              {daily.shifts
+                .map(
+                  (shift) =>
+                    `${shift.operatorName} ${formatMoney(shift.closingCashOnDay)}${
+                      shift.status === "open" ? " (abierta)" : ""
+                    }`,
+                )
+                .join(" · ")}
+            </p>
+          ) : null}
+        </>
+      )}
+    </section>
   );
 }

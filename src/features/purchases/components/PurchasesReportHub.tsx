@@ -3,13 +3,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button, Input, Label, toast, useOverlayState } from "@heroui/react";
 import ShoppingCart from "@gravity-ui/icons/ShoppingCart";
-import ArrowUpRightFromSquare from "@gravity-ui/icons/ArrowUpRightFromSquare";
 import Plus from "@gravity-ui/icons/Plus";
 import Eye from "@gravity-ui/icons/Eye";
 import Printer from "@gravity-ui/icons/Printer";
-import { useRouter } from "next/navigation";
 import { apiUrl } from "@/shared/utils/api";
-import { appRoutes } from "@/shared/utils/app-routes";
 import { formatMoney } from "@/shared/utils/money";
 import {
   printInvoiceHubReceipt,
@@ -19,8 +16,8 @@ import {
   ORDER_SEVERITY_META,
   type OrderSeverity,
 } from "@/shared/utils/order-status";
-import { InvoiceHubDetailDialog } from "@/src/features/orders/components/InvoiceHubDetailDialog";
-import { SupplierOrderDialog } from "@/src/features/orders/components/SupplierOrderDialog";
+import { InvoiceHubDetailDialog } from "@/src/features/sales/components/InvoiceHubDetailDialog";
+import { SupplierOrderDialog } from "./SupplierOrderDialog";
 
 type PurchaseRow = InvoiceHubRow & {
   date: string;
@@ -56,7 +53,6 @@ function moneyCell(n: number) {
 }
 
 export function PurchasesReportHub() {
-  const router = useRouter();
   const detailModal = useOverlayState();
   const createModal = useOverlayState();
   const [from, setFrom] = useState(monthStartKey);
@@ -103,19 +99,11 @@ export function PurchasesReportHub() {
           <div>
             <h1 className="text-xl font-bold tracking-tight">Compras</h1>
             <p className="text-sm text-muted">
-              Compras a proveedores y reporte por día.
+              Compras e ingresos de stock por día.
             </p>
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            onPress={() => router.push(appRoutes.sales.orders)}
-          >
-            <ArrowUpRightFromSquare width={14} height={14} />
-            Ver pedidos
-          </Button>
           <Button size="sm" variant="primary" onPress={() => createModal.open()}>
             <Plus width={14} height={14} />
             Nueva compra

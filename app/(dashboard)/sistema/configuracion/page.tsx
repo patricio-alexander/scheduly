@@ -194,7 +194,7 @@ function SettingsContent() {
             data-tour="settings-marca-form"
           >
             <h2 className="mb-5 text-sm font-semibold uppercase tracking-wide text-muted">
-              Negocio y apariencia
+              Datos del negocio
             </h2>
             <BusinessSettingsForm />
           </section>

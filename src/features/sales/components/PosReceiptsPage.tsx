@@ -29,7 +29,7 @@ import {
   type InvoiceHubItem,
   type InvoiceHubRow,
 } from "@/shared/utils/invoice-hub";
-import { InvoiceHubDetailDialog } from "@/src/features/orders/components/InvoiceHubDetailDialog";
+import { InvoiceHubDetailDialog } from "./InvoiceHubDetailDialog";
 
 type PosSaleItem = InvoiceHubItem & {
   productId?: number | null;

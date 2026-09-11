@@ -73,8 +73,7 @@ export const MODULE_DRIVER_TOURS: ModuleDriverTour[] = [
       (t) =>
         t.id !== "agenda" &&
         t.id !== "customers" &&
-        t.id !== "inventory" &&
-        t.id !== "tasks",
+        t.id !== "inventory",
     )
     .map((t) => ({
       id: t.id,
@@ -121,23 +120,9 @@ export const MODULE_DRIVER_TOURS: ModuleDriverTour[] = [
     steps: [],
   },
   {
-    id: "suppliers",
-    label: "Proveedores",
-    match: [appRoutes.purchases.suppliers],
-    skipAuto: true,
-    steps: [],
-  },
-  {
     id: "services",
     label: "Servicios",
     match: [appRoutes.operation.services, "/services"],
-    skipAuto: true,
-    steps: [],
-  },
-  {
-    id: "tasks",
-    label: "Tareas",
-    match: [appRoutes.operation.tasks],
     skipAuto: true,
     steps: [],
   },
@@ -284,15 +269,6 @@ export const MODULE_DRIVER_TOURS: ModuleDriverTour[] = [
 
   // Ventas / compras — el tour «sales» de moduleTours cubre hub/historial
   {
-    id: "orders",
-    label: "Pedidos",
-    match: [appRoutes.sales.orders],
-    steps: pageIntro(
-      "Pedidos",
-      "Pedidos y órdenes vinculadas a la operación de ventas.",
-    ),
-  },
-  {
     id: "customer-accounts",
     label: "Cuentas de clientes",
     match: [appRoutes.sales.customerAccounts],
@@ -307,7 +283,7 @@ export const MODULE_DRIVER_TOURS: ModuleDriverTour[] = [
     match: [appRoutes.purchases.hub],
     steps: pageIntro(
       "Compras",
-      "Registro e historial de compras a proveedores.",
+      "Registro e historial de compras e ingresos de stock.",
     ),
   },
 

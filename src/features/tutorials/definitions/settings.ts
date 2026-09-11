@@ -134,9 +134,9 @@ export function getSettingsTabTourSteps(
           element: "[data-tour='settings-marca-form']",
           dwellMs: 3200,
           popover: {
-            title: "Negocio y apariencia",
+            title: "Datos del negocio",
             description:
-              "Aquí editas nombre, dirección, logo y colores. Los cambios se reflejan en la app y en documentos.",
+              "Aquí editas nombre, dirección y logo. Los cambios se reflejan en documentos como la factura.",
             side: "right",
             align: "start",
           },

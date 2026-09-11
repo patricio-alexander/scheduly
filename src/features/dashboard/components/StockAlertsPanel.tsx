@@ -51,19 +51,18 @@ export function StockAlertsPanel({ alerts }: StockAlertsPanelProps) {
   const slots = Array.from({ length: GAUGE_SLOTS }, (_, i) => items[i] ?? null);
 
   return (
-    <div className="flex h-full min-h-[18rem] min-w-0 flex-col rounded-2xl border border-separator bg-surface p-4 md:p-5">
-      <div className="mb-3 flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2">
-          <TriangleExclamation width={18} height={18} className="text-warning" />
+    <div className="dashboard-card flex h-full min-h-[18rem] min-w-0 flex-col p-4 md:p-5">
+      <div className="mb-4 flex items-start justify-between gap-2">
+        <div className="flex items-center gap-2.5">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-warning/15 text-warning">
+            <TriangleExclamation width={18} height={18} />
+          </span>
           <div>
-            <h2 className="text-base font-semibold">Alertas de inventario</h2>
+            <h2 className="text-base font-semibold text-foreground">Alertas de inventario</h2>
             <p className="text-xs text-muted">Velocímetros de stock vs mínimo</p>
           </div>
         </div>
-        <Link
-          href={appRoutes.inventory.products}
-          className="inline-flex items-center gap-1 text-xs font-semibold text-accent hover:underline"
-        >
+        <Link href={appRoutes.inventory.products} className="dashboard-card-link">
           Ver inventario
           <ArrowRight width={12} height={12} />
         </Link>

@@ -20,7 +20,7 @@ const nextConfig: NextConfig = {
       { source: "/inventory/units", destination: "/inventario/unidades", permanent: true },
       { source: "/inventory/categories", destination: "/inventario/categorias", permanent: true },
       { source: "/agenda", destination: "/operacion/agenda", permanent: true },
-      { source: "/tasks", destination: "/operacion/tareas", permanent: true },
+      { source: "/tasks", destination: "/operacion/agenda", permanent: true },
       { source: "/customers", destination: "/ventas/clientes", permanent: true },
       { source: "/users", destination: "/administracion/usuarios", permanent: true },
       { source: "/roles", destination: "/administracion/roles", permanent: true },

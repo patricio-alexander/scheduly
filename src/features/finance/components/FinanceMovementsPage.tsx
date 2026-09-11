@@ -21,7 +21,6 @@ import {
 } from "@/shared/components/TablePro";
 import { AppNumberField } from "@/shared/components/AppNumberField";
 import { apiUrl } from "@/shared/utils/api";
-import { appRoutes } from "@/shared/utils/app-routes";
 import { formatMoney } from "@/shared/utils/money";
 import {
   FinanceSummaryCards,
@@ -403,15 +402,7 @@ export function FinanceMovementsPage() {
           Finanzas
         </h1>
         <p className="mt-0.5 text-sm text-muted">
-          Resumen de ingresos y gastos registrados. El detalle de cobros está
-          en{" "}
-          <a
-            href={appRoutes.finance.collections}
-            className="font-semibold text-accent underline-offset-2 hover:underline"
-          >
-            Finanzas → Cobranzas
-          </a>
-          .
+          Resumen de ingresos y gastos registrados.
         </p>
       </div>
 

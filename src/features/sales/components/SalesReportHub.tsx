@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button, Input, Label, toast, useOverlayState } from "@heroui/react";
 import Boxes3 from "@gravity-ui/icons/Boxes3";
-import ArrowUpRightFromSquare from "@gravity-ui/icons/ArrowUpRightFromSquare";
 import Eye from "@gravity-ui/icons/Eye";
 import Printer from "@gravity-ui/icons/Printer";
 import { useRouter } from "next/navigation";
@@ -15,7 +14,7 @@ import {
   type InvoiceHubRow,
 } from "@/shared/utils/invoice-hub";
 import { ORDER_SEVERITY_META, type OrderSeverity } from "@/shared/utils/order-status";
-import { InvoiceHubDetailDialog } from "@/src/features/orders/components/InvoiceHubDetailDialog";
+import { InvoiceHubDetailDialog } from "./InvoiceHubDetailDialog";
 
 type SaleRow = InvoiceHubRow & {
   date: string;
@@ -100,14 +99,6 @@ export function SalesReportHub() {
           </div>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            size="sm"
-            variant="secondary"
-            onPress={() => router.push(appRoutes.sales.orders)}
-          >
-            <ArrowUpRightFromSquare width={14} height={14} />
-            Ver pedidos
-          </Button>
           <Button
             size="sm"
             variant="primary"

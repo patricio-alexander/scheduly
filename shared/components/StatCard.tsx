@@ -29,7 +29,7 @@ export function StatCard({
   }[variant];
 
   return (
-    <div className="min-w-0 rounded-2xl border border-separator bg-surface p-3.5 md:p-4">
+    <div className="dashboard-stat-card p-3.5 md:p-4">
       <div className="flex items-start justify-between gap-2 md:gap-3">
         <div className="min-w-0 flex-1">
           <div className="flex items-start justify-between gap-2">

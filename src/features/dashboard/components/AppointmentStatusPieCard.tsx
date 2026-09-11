@@ -37,14 +37,14 @@ export function AppointmentStatusPieCard({
   if (statusChartData.length === 0) {
     return (
       <div
-        className={`flex h-full min-h-[14rem] min-w-0 flex-col rounded-2xl border border-separator bg-surface p-4 md:p-5 ${className}`}
+        className={`dashboard-card flex h-full min-h-[14rem] min-w-0 flex-col p-4 md:p-5 ${className}`}
         data-onboarding="dash-status"
       >
         <div className="mb-3 flex items-center gap-2">
           <Calendar width={18} height={18} className="text-accent" />
           <div>
             <h2 className="text-base font-semibold">
-              {unitLabel === "pedidos" ? "Pedidos por estado" : "Turnos por estado"}
+              {unitLabel === "ventas" ? "Ventas por estado" : "Turnos por estado"}
             </h2>
             <p className="text-xs text-muted">
               Distribución del período
@@ -55,7 +55,7 @@ export function AppointmentStatusPieCard({
         <div className="flex flex-1 flex-col items-center justify-center">
           <Gear width={28} height={28} className="mb-2 text-muted opacity-40" />
           <p className="text-xs text-muted">
-            {unitLabel === "pedidos" ? "Sin datos de pedidos aún" : "Sin datos de turnos aún"}
+            {unitLabel === "ventas" ? "Sin datos de ventas aún" : "Sin datos de turnos aún"}
           </p>
         </div>
       </div>
@@ -64,14 +64,14 @@ export function AppointmentStatusPieCard({
 
   return (
     <div
-      className={`flex h-full min-w-0 flex-col rounded-2xl border border-separator bg-surface p-4 md:p-5 ${className}`}
+      className={`dashboard-card flex h-full min-w-0 flex-col p-4 md:p-5 ${className}`}
       data-onboarding="dash-status"
     >
       <div className="mb-3 flex items-center gap-2">
         <Calendar width={18} height={18} className="text-accent" />
         <div>
             <h2 className="text-base font-semibold">
-              {unitLabel === "pedidos" ? "Pedidos por estado" : "Turnos por estado"}
+              {unitLabel === "ventas" ? "Ventas por estado" : "Turnos por estado"}
             </h2>
           <p className="text-xs text-muted">
             Distribución del período

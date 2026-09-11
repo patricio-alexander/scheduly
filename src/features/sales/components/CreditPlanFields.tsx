@@ -100,7 +100,7 @@ export function CreditPlanFields({
 
       <p className={`${textCls} text-muted`}>
         {mode === "open"
-          ? "Crédito abierto: el cliente debe el total, sin fecha de vencimiento. Se cobra en Cobranzas cuando pague."
+          ? "Crédito abierto: el cliente debe el total, sin fecha de vencimiento."
           : "Definí cuántas cuotas y la fecha en que debe pagar cada una (podés dejar alguna sin fecha)."}
       </p>
 

@@ -49,7 +49,7 @@ import {
   buildCreditInstallmentsPayload,
   type CreditPlanMode,
   type InstallmentDraft,
-} from "@/src/features/orders/components/CreditPlanFields";
+} from "./CreditPlanFields";
 import { PosQuickAccessModal } from "./PosQuickAccessModal";
 
 /** Input numérico compacto (sin botones ± grandes de NumberField). */
@@ -492,7 +492,7 @@ export function PosCashRegister() {
       });
       toast.success(
         saleType === "credito"
-          ? "Pedido a crédito registrado"
+          ? "Venta a crédito registrada"
           : "Venta cobrada",
       );
       clearCart();
@@ -888,8 +888,8 @@ export function PosCashRegister() {
             {saleType === "credito" ? (
               <>
                 <p className="text-[10px] text-muted">
-                  Queda pendiente de cobro; no suma al turno hasta cobrarla en
-                  Cobranzas. Elegí cliente y plan de pago.
+                  Queda pendiente de cobro; no suma al turno hasta que se
+                  registre el pago. Elegí cliente y plan de pago.
                 </p>
                 <CreditPlanFields
                   compact

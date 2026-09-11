@@ -93,7 +93,7 @@ export function buildSaleStatusOverview(
       id: "pending_payment",
       label: "Pendientes",
       count: counts.pendiente,
-      subtitle: "Pedidos por cobrar",
+      subtitle: "Ventas por cobrar",
       tone: "warning",
     },
     {
@@ -178,7 +178,7 @@ export function recentSalesAsAppointments(
     .slice(0, limit)
     .map((sale) => ({
       id: sale.id,
-      title: `Pedido #${sale.id}`,
+      title: `Venta #${sale.id}`,
       customer: [sale.customer?.name, sale.customer?.firstLastName, sale.customer?.secondLastName]
         .filter(Boolean)
         .join(" ")

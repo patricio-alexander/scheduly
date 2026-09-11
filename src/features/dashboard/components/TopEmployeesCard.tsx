@@ -24,13 +24,15 @@ export function TopEmployeesCard({
 }: TopEmployeesCardProps) {
   return (
     <div
-      className="flex min-h-0 min-w-0 flex-col rounded-2xl border border-separator bg-surface p-4 md:p-5"
+      className="dashboard-card flex min-h-0 min-w-0 flex-col p-4 md:p-5"
       data-onboarding="dash-top-employees"
     >
-      <div className="mb-3 flex items-center gap-2">
-        <Person width={18} height={18} className="text-accent" />
+      <div className="mb-4 flex items-center gap-2.5">
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-accent/10 text-accent">
+          <Person width={18} height={18} />
+        </span>
         <div>
-          <h2 className="text-base font-semibold">
+          <h2 className="text-base font-semibold text-foreground">
             {posMode ? "Top vendedores" : "Top empleados"}
           </h2>
           <p className="text-xs text-muted">
@@ -44,7 +46,7 @@ export function TopEmployeesCard({
           {employees.map((emp, index) => (
             <li
               key={emp.id}
-              className="flex items-center gap-3 py-2.5 first:pt-0 last:pb-0"
+              className="dashboard-list-item -mx-1 flex items-center gap-3 rounded-lg px-1 py-2.5 first:pt-0 last:pb-0"
             >
               <span
                 className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg text-xs font-bold ${
@@ -61,8 +63,8 @@ export function TopEmployeesCard({
                   {emp.appointments}{" "}
                   {posMode
                     ? emp.appointments === 1
-                      ? "pedido"
-                      : "pedidos"
+                      ? "venta"
+                      : "ventas"
                     : emp.appointments === 1
                       ? "turno"
                       : "turnos"}

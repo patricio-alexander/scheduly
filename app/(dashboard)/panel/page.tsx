@@ -152,9 +152,9 @@ function DashboardSkeleton() {
 
 const quickActions = [
   {
-    href: appRoutes.sales.orders,
-    label: "Nuevo pedido",
-    hint: "Ventas",
+    href: appRoutes.operation.agenda,
+    label: "Nueva cita",
+    hint: "Agenda",
     icon: Plus,
   },
   {
@@ -184,7 +184,7 @@ function QuickActions({ showSales = true }: { showSales?: boolean }) {
 
   return (
     <div
-      className={`grid grid-cols-2 gap-2 ${showSales ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}
+      className={`grid grid-cols-2 gap-2.5 ${showSales ? "xl:grid-cols-4" : "xl:grid-cols-3"}`}
       data-onboarding="dash-actions"
     >
       {actions.map((action) => {
@@ -193,13 +193,13 @@ function QuickActions({ showSales = true }: { showSales?: boolean }) {
           <Link
             key={action.href}
             href={action.href}
-            className="group flex min-w-0 items-center gap-2.5 rounded-2xl border border-separator bg-surface px-3 py-3 transition-colors hover:border-accent/40 hover:bg-accent/5 md:gap-3 md:px-3.5"
+            className="dashboard-quick-action"
           >
-            <span className="shrink-0 rounded-xl bg-accent/10 p-2 text-accent transition-colors group-hover:bg-accent/15">
+            <span className="dashboard-quick-action__icon">
               <Icon width={16} height={16} />
             </span>
             <span className="min-w-0">
-              <span className="block truncate text-sm font-semibold">
+              <span className="block truncate text-sm font-semibold text-foreground">
                 {action.label}
               </span>
               <span className="block truncate text-[11px] text-muted">
@@ -209,7 +209,7 @@ function QuickActions({ showSales = true }: { showSales?: boolean }) {
             <ArrowRight
               width={14}
               height={14}
-              className="ml-auto hidden shrink-0 text-muted opacity-0 transition-opacity group-hover:opacity-100 md:block"
+              className="dashboard-quick-action__arrow hidden md:block"
             />
           </Link>
         );
@@ -226,7 +226,7 @@ function PeriodFilter({
   onChange: (period: DashboardPeriod) => void;
 }) {
   return (
-    <div className="inline-flex w-full max-w-full overflow-x-auto rounded-xl border border-separator bg-surface p-1 sm:w-auto">
+    <div className="dashboard-period">
       {dashboardPeriodOptions.map((periodOption) => {
         const selected = value === periodOption;
         return (
@@ -234,10 +234,8 @@ function PeriodFilter({
             key={periodOption}
             type="button"
             onClick={() => onChange(periodOption)}
-            className={`flex-1 shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors sm:flex-none sm:px-3.5 ${
-              selected
-                ? "bg-accent text-accent-foreground shadow-sm"
-                : "text-muted hover:text-foreground"
+            className={`dashboard-period__btn sm:flex-none ${
+              selected ? "dashboard-period__btn--active" : ""
             }`}
           >
             {dashboardPeriodLabel[periodOption]}
@@ -408,24 +406,18 @@ export default function PanelPage() {
 
   return (
     <div className="mx-auto flex w-full min-w-0 max-w-7xl flex-col gap-4 overflow-x-hidden pb-2 md:gap-5 lg:gap-6">
-      <section className="relative overflow-hidden rounded-2xl border border-separator bg-surface">
-        <div
-          className="pointer-events-none absolute inset-0 opacity-80"
-          style={{
-            background:
-              "radial-gradient(ellipse 70% 80% at 0% 0%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 55%)",
-          }}
-        />
+      <section className="dashboard-hero">
+        <div className="dashboard-hero__glow" aria-hidden />
         <div className="relative flex flex-col gap-4 p-4 md:flex-row md:items-end md:justify-between md:p-5 lg:p-6">
           <div className="min-w-0">
-            <p className="truncate text-xs font-semibold uppercase tracking-wide text-accent">
+            <p className="truncate text-[11px] font-semibold uppercase tracking-wider text-muted">
               Panel · {todayLabel}
             </p>
-            <h1 className="mt-1 truncate text-2xl font-bold tracking-tight lg:text-3xl">
+            <h1 className="mt-1.5 truncate text-2xl font-bold tracking-tight text-foreground lg:text-[1.75rem]">
               {getGreeting()}
               {firstName ? `, ${firstName}` : ""}
             </h1>
-            <p className="mt-1 max-w-xl text-sm text-muted">
+            <p className="mt-1.5 max-w-xl text-sm leading-relaxed text-muted">
               {isOwner
                 ? "Todos los locales · "
                 : isEmployee
@@ -487,7 +479,7 @@ export default function PanelPage() {
               data-onboarding="dash-kpis"
             >
               <StatCard
-                label="Pedidos"
+                label="Turnos"
                 value={data?.totalAppointments ?? 0}
                 icon={<Calendar width={20} height={20} />}
                 delta={
@@ -552,7 +544,7 @@ export default function PanelPage() {
               onActiveStatusKeyChange={setActiveStatusKey}
               activeStatusEntry={activeStatusEntry}
               activeStatusPct={activeStatusPct}
-              unitLabel={posMode ? "pedidos" : "turnos"}
+              unitLabel={posMode ? "ventas" : "turnos"}
             />
           ) : null}
 
@@ -582,7 +574,7 @@ export default function PanelPage() {
                 activeStatusEntry={activeStatusEntry}
                 activeStatusPct={activeStatusPct}
                 periodDescription={periodDescription}
-                unitLabel={posMode ? "pedidos" : "turnos"}
+                unitLabel={posMode ? "ventas" : "turnos"}
               />
               <RecentAppointmentsCard
                 appointments={data?.recentAppointments ?? []}

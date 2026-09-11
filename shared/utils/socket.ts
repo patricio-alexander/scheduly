@@ -4,7 +4,6 @@ import {
   type ThemeColors,
 } from "@/shared/utils/business-profile";
 
-export const TASKS_ROOM = "tasks";
 export const APPOINTMENTS_ROOM = "appointments";
 
 declare global {
@@ -36,18 +35,6 @@ function emitAll(event: string, payload: unknown) {
 
 export function invalidateDashboard(reason: string) {
   emitAll("dashboard:invalidate", { reason, at: Date.now() });
-}
-
-export function emitTaskCreated(task: unknown) {
-  emitAll("task:created", task);
-}
-
-export function emitTaskUpdated(task: unknown) {
-  emitAll("task:updated", task);
-}
-
-export function emitTaskDeleted(id: number) {
-  emitAll("task:deleted", { id });
 }
 
 export function emitAppointmentCreated(event: unknown) {

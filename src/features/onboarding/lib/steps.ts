@@ -112,27 +112,6 @@ export const moduleTours: ModuleTour[] = [
     ],
   },
   {
-    id: "tasks",
-    label: "Tareas",
-    match: ["/operacion/tareas"],
-    steps: [
-      {
-        id: "tasks-create",
-        title: "Nueva tarea",
-        description:
-          "Crea una tarea con título, prioridad, responsable y fecha límite. También puedes agregar desde cada columna del tablero.",
-        target: "tasks-create",
-      },
-      {
-        id: "tasks-kanban",
-        title: "Tablero Kanban",
-        description:
-          "Tres columnas: Por hacer, En progreso y Hecho. Arrastra una tarjeta a otra columna para cambiar su estado.",
-        target: "tasks-kanban",
-      },
-    ],
-  },
-  {
     id: "sales",
     label: "Ventas",
     match: [

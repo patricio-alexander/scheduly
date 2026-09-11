@@ -54,8 +54,7 @@ const EXPLICIT: Array<{ method: string; pattern: RegExp; action: string }> = [
     action: "Cobrar cita",
   },
   { method: "POST", pattern: /\/api\/product-sales\/?$/, action: "Venta POS" },
-  { method: "POST", pattern: /\/api\/orders\/?$/, action: "Crear pedido cliente" },
-  { method: "POST", pattern: /\/api\/purchases\/?$/, action: "Compra a proveedor" },
+  { method: "POST", pattern: /\/api\/purchases\/?$/, action: "Registrar compra" },
   {
     method: "POST",
     pattern: /\/api\/branches\/transfers\/?$/,

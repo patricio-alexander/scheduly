@@ -53,7 +53,7 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
     entitlementKey: "operation",
     label: "Operación",
     summary:
-      "Agenda, servicios, caja, turno, tareas, locales y catálogo.",
+      "Agenda, servicios, caja, turno, locales y catálogo.",
     sections: [
       {
         name: "Agenda",
@@ -78,11 +78,6 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
         description: "Apertura/cierre de caja, capital inicial y efectivo.",
       },
       {
-        name: "Tareas",
-        path: appRoutes.operation.tasks,
-        description: "Planes de trabajo y checklist del equipo.",
-      },
-      {
         name: "Comprobantes POS",
         path: appRoutes.operation.posReceipts,
         description:
@@ -100,23 +95,12 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
     id: "ventas-compras",
     entitlementKey: "sales",
     label: "Ventas y Compras",
-    summary: "Pedidos, clientes, proveedores, ventas y compras.",
+    summary: "Clientes, ventas y compras.",
     sections: [
-      {
-        name: "Pedidos",
-        path: appRoutes.sales.orders,
-        status: "planned",
-        description: "Órdenes y pedidos de clientes.",
-      },
       {
         name: "Clientes",
         path: appRoutes.sales.customers,
         description: "Cartera de clientes.",
-      },
-      {
-        name: "Proveedores",
-        path: appRoutes.purchases.suppliers,
-        description: "Catálogo de proveedores.",
       },
       {
         name: "Ventas",
@@ -126,7 +110,7 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
       {
         name: "Compras",
         path: appRoutes.purchases.hub,
-        description: "Hub de compras a proveedores.",
+        description: "Hub de compras e ingresos de stock.",
       },
     ],
   },
@@ -134,17 +118,12 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
     id: "finanzas",
     entitlementKey: "finance",
     label: "Finanzas",
-    summary: "Movimientos y cobranzas.",
+    summary: "Movimientos y resumen del negocio.",
     sections: [
       {
         name: "Finanzas",
         path: appRoutes.finance.transactions,
         description: "Centro de movimientos y resumen financiero.",
-      },
-      {
-        name: "Cobranzas",
-        path: appRoutes.finance.collections,
-        description: "Cobranzas a clientes y proveedores.",
       },
     ],
   },
@@ -153,7 +132,7 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
     entitlementKey: "inventory",
     label: "Inventario",
     summary:
-      "Productos, movimientos, categorías, tramos, unidades, lotes y valor (multistock permanente).",
+      "Productos, movimientos, categorías, unidades, lotes y valor (multistock permanente).",
     sections: [
       {
         name: "Productos",
@@ -175,12 +154,6 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
         name: "Categorías",
         path: appRoutes.inventory.categories,
         description: "Clasificación de productos.",
-      },
-      {
-        name: "Tramos",
-        path: appRoutes.inventory.tierGroups,
-        status: "planned",
-        description: "Precios por cantidad.",
       },
       {
         name: "Unidades",
