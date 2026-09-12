@@ -5,6 +5,7 @@ import {
   deductStockForAppointment,
   parsePaymentMethod,
 } from "@/shared/utils/appointment-business";
+import { resolvePaymentMedium } from "@/shared/utils/payment-media";
 import {
   calcAppointmentCommission,
   recordCommissionForPayment,
@@ -32,7 +33,20 @@ export async function POST(
 
   try {
     const body = await request.json();
-    const method = parsePaymentMethod(body.method);
+    const resolvedMedium = await resolvePaymentMedium(prisma, {
+      method: body.method != null ? String(body.method) : null,
+      mediumCode:
+        body.mediumCode != null
+          ? String(body.mediumCode)
+          : body.paymentMediumCode != null
+            ? String(body.paymentMediumCode)
+            : null,
+      paymentMediumId:
+        body.paymentMediumId != null && body.paymentMediumId !== ""
+          ? Number(body.paymentMediumId)
+          : null,
+    });
+    const method = parsePaymentMethod(resolvedMedium.method);
     const notes = String(body.notes ?? "");
     const rewardId =
       body.rewardId != null && body.rewardId !== ""
@@ -132,6 +146,11 @@ export async function POST(
       }
 
       let paymentNotes = notes;
+      if (resolvedMedium.medium) {
+        const tag = `[MEDIO:${resolvedMedium.medium.code || resolvedMedium.medium.id}] ${resolvedMedium.medium.name}`;
+        paymentNotes = paymentNotes ? `${paymentNotes}\n${tag}` : tag;
+      }
+
       let rewardName: string | null = null;
 
       if (rewardId) {
@@ -177,6 +196,7 @@ export async function POST(
           appointmentId,
           amount,
           method,
+          paymentMediumId: resolvedMedium.medium?.id ?? null,
           notes: paymentNotes,
           paidAt,
         },
@@ -207,6 +227,7 @@ export async function POST(
         baseAmount: commission.baseAmount,
         amount: commission.amount,
         ratePct: commission.ratePct,
+        createdAt: paidAt,
       });
 
       // Ingreso de cita en la caja abierta (arqueo / cierre)
@@ -226,6 +247,7 @@ export async function POST(
               amount,
               concept: `Cobro cita #${appointmentId}`,
               notes: paymentNotes || null,
+              createdAt: paidAt,
             },
           });
         }

@@ -102,10 +102,10 @@ export async function fetchOwnerInsights(options: {
     prevCompletedApts,
     expenses,
     prevExpenses,
-    purchases,
-    prevPurchases,
-    commissions,
-    prevCommissions,
+    _purchases,
+    _prevPurchases,
+    _commissions,
+    _prevCommissions,
     branches,
     activeCustomerRows,
     lowStockRows,
@@ -179,40 +179,20 @@ export async function fetchOwnerInsights(options: {
   ]);
 
   const expenseTotal = expenses.reduce((sum, e) => sum + toAmount(e.amount), 0);
-  const purchaseTotal = purchases.reduce(
-    (sum, p) =>
-      sum +
-      p.lines.reduce(
-        (ls, line) => ls + toAmount(line.quantity) * toAmount(line.unitPrice),
-        0,
-      ),
-    0,
-  );
-  const commissionTotal = commissions.reduce(
-    (sum, c) => sum + toAmount(c.amount),
-    0,
-  );
-  const netIncome = revenue - expenseTotal - purchaseTotal - commissionTotal;
+  const purchaseTotal = expenses
+    .filter((e) => /compra/i.test(e.category ?? ""))
+    .reduce((sum, e) => sum + toAmount(e.amount), 0);
+  const commissionTotal = expenses
+    .filter((e) => /empleado|honorario|comisi/i.test(e.category ?? ""))
+    .reduce((sum, e) => sum + toAmount(e.amount), 0);
+  // Gastos del ledger ya incluyen compras/nómina categorizadas: no restar dos veces.
+  const netIncome = revenue - expenseTotal;
 
   const prevExpenseTotal = prevExpenses.reduce(
     (sum, e) => sum + toAmount(e.amount),
     0,
   );
-  const prevPurchaseTotal = prevPurchases.reduce(
-    (sum, p) =>
-      sum +
-      p.lines.reduce(
-        (ls, line) => ls + toAmount(line.quantity) * toAmount(line.unitPrice),
-        0,
-      ),
-    0,
-  );
-  const prevCommissionTotal = prevCommissions.reduce(
-    (sum, c) => sum + toAmount(c.amount),
-    0,
-  );
-  const previousNetIncome =
-    previousRevenue - prevExpenseTotal - prevPurchaseTotal - prevCommissionTotal;
+  const previousNetIncome = previousRevenue - prevExpenseTotal;
 
   const averageTicket = completed > 0 ? Math.round(revenue / completed) : 0;
   const prevAverageTicket =

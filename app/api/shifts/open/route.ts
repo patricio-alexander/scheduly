@@ -6,7 +6,6 @@ import { buildActiveShiftPayload } from "@/shared/utils/shift-service";
 import { getUserPrimaryBranchId } from "@/shared/utils/branches";
 import { getCashRegisterMode } from "@/shared/utils/business-settings";
 import {
-  isOwnerRole,
   isPureEmployeeRole,
 } from "@/shared/utils/roles";
 
@@ -56,26 +55,35 @@ export async function POST(request: Request) {
       );
     }
 
-    let storeId =
+    const rawStore =
       body.storeId != null && body.storeId !== ""
-        ? Number(body.storeId)
-        : null;
+        ? body.storeId
+        : body.branchId != null && body.branchId !== ""
+          ? body.branchId
+          : null;
+    let storeId = rawStore != null ? Number(rawStore) : null;
     if (storeId != null && (!Number.isInteger(storeId) || storeId <= 0)) {
-      return NextResponse.json({ message: "Sucursal inválida" }, { status: 400 });
+      storeId = null;
     }
 
     if (!storeId) {
-      if (!isOwnerRole(auth.user.role)) {
-        storeId = await getUserPrimaryBranchId(prisma, auth.user.id);
-      }
-      if (!storeId) {
-        const branch = await prisma.branch.findFirst({
-          where: { isActive: true },
-          orderBy: [{ position: "asc" }, { id: "asc" }],
-          select: { id: true },
-        });
-        storeId = branch?.id ?? null;
-      }
+      storeId = await getUserPrimaryBranchId(prisma, auth.user.id);
+    }
+    if (!storeId) {
+      const branch = await prisma.branch.findFirst({
+        where: { isActive: true },
+        orderBy: [{ position: "asc" }, { id: "asc" }],
+        select: { id: true },
+      });
+      storeId = branch?.id ?? null;
+    }
+    if (!storeId) {
+      // Último recurso: cualquier local (p. ej. recién creado / reactivado)
+      const anyBranch = await prisma.branch.findFirst({
+        orderBy: [{ position: "asc" }, { id: "asc" }],
+        select: { id: true },
+      });
+      storeId = anyBranch?.id ?? null;
     }
 
     if (!storeId) {

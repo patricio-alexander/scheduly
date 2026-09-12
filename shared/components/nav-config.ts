@@ -14,7 +14,6 @@ import Cube from "@gravity-ui/icons/Cube";
 import Tag from "@gravity-ui/icons/Tag";
 import ListCheck from "@gravity-ui/icons/ListCheck";
 import ChartColumn from "@gravity-ui/icons/ChartColumn";
-import ShoppingCart from "@gravity-ui/icons/ShoppingCart";
 import ArrowDownToLine from "@gravity-ui/icons/ArrowDownToLine";
 import Briefcase from "@gravity-ui/icons/Briefcase";
 import Layers from "@gravity-ui/icons/Layers";
@@ -88,6 +87,12 @@ export const navModules: NavModule[] = [
         tourId: "nav-dashboard",
         /** Programador también puede abrir el resumen */
       },
+      {
+        href: appRoutes.sales.customers,
+        label: "Clientes",
+        icon: Person,
+        tourId: "nav-customers",
+      },
     ],
   },
   {
@@ -150,33 +155,6 @@ export const navModules: NavModule[] = [
         href: appRoutes.loyalty.hub,
         label: "Fidelización",
         icon: Gift,
-        adminOnly: true,
-      },
-    ],
-  },
-  {
-    id: "sales",
-    label: "Ventas y Compras",
-    icon: ShoppingCart,
-    entitlementKey: "sales",
-    items: [
-      {
-        href: appRoutes.sales.customers,
-        label: "Clientes",
-        icon: Person,
-        tourId: "nav-customers",
-      },
-      {
-        href: appRoutes.sales.salesHub,
-        label: "Ventas",
-        icon: ShoppingCart,
-        tourId: "nav-register-sale",
-        adminOnly: true,
-      },
-      {
-        href: appRoutes.purchases.hub,
-        label: "Compras",
-        icon: ArrowDownToLine,
         adminOnly: true,
       },
     ],
@@ -306,10 +284,11 @@ export const navModules: NavModule[] = [
     adminOnly: true,
     items: [
       {
-        href: appRoutes.admin.accounts,
-        label: "Cuentas",
+        href: appRoutes.admin.users,
+        label: "Usuarios",
         icon: Person,
         adminOnly: true,
+        tourId: "nav-users",
       },
       {
         href: appRoutes.admin.roles,
@@ -384,13 +363,6 @@ export const navModules: NavModule[] = [
         tourId: "nav-dev-logs",
       },
       {
-        href: appRoutes.admin.roles,
-        label: "Roles",
-        icon: Shield,
-        programmerOnly: true,
-        tourId: "nav-dev-roles",
-      },
-      {
         href: appRoutes.admin.users,
         label: "Usuarios",
         icon: Person,
@@ -398,11 +370,11 @@ export const navModules: NavModule[] = [
         tourId: "nav-dev-users",
       },
       {
-        href: appRoutes.admin.accounts,
-        label: "Cuentas",
-        icon: Person,
+        href: appRoutes.admin.roles,
+        label: "Roles",
+        icon: Shield,
         programmerOnly: true,
-        tourId: "nav-dev-accounts",
+        tourId: "nav-dev-roles",
       },
       {
         href: appRoutes.system.tutorials,

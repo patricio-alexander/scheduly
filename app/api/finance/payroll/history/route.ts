@@ -6,6 +6,7 @@ import {
 } from "@/shared/utils/dashboard-period";
 import { parseBranchId, resolveDashboardScope } from "@/shared/utils/branches";
 import { toAmount } from "@/shared/utils/money";
+import { personFullName } from "@/shared/utils/person-name";
 import { checkAuth } from "@/shared/utils/check-auth";
 import { isManagementRole } from "@/shared/utils/roles";
 
@@ -21,6 +22,20 @@ function parsePageSize(value: string | null) {
   const size = Number(value ?? DEFAULT_PAGE_SIZE);
   if (!Number.isInteger(size) || size <= 0) return DEFAULT_PAGE_SIZE;
   return Math.min(size, MAX_PAGE_SIZE);
+}
+
+function registrarName(account: {
+  username: string | null;
+  person: {
+    firstName: string | null;
+    firstLastName: string | null;
+    secondName?: string | null;
+    secondLastName?: string | null;
+  } | null;
+}) {
+  const fromPerson = personFullName(account.person);
+  if (fromPerson && fromPerson !== "—") return fromPerson;
+  return account.username?.trim() || "—";
 }
 
 export async function GET(request: Request) {
@@ -53,8 +68,29 @@ export async function GET(request: Request) {
         ...(branchId ? { branchId } : {}),
       },
       include: {
-        user: { select: { id: true, name: true } },
-        registeredBy: { select: { id: true, name: true } },
+        person: {
+          select: {
+            id: true,
+            firstName: true,
+            secondName: true,
+            firstLastName: true,
+            secondLastName: true,
+          },
+        },
+        registeredBy: {
+          select: {
+            id: true,
+            username: true,
+            person: {
+              select: {
+                firstName: true,
+                firstLastName: true,
+                secondName: true,
+                secondLastName: true,
+              },
+            },
+          },
+        },
         branch: { select: { id: true, name: true } },
       },
       orderBy: { paidAt: "desc" },
@@ -63,13 +99,16 @@ export async function GET(request: Request) {
     const mapped = payments.map((payment) => ({
       id: payment.id,
       userId: payment.userId,
-      employeeName: payment.user.name,
+      employeeName: personFullName(payment.person),
       amount: toAmount(payment.amount),
       method: payment.method,
       paidAt: payment.paidAt.toISOString(),
-      notes: payment.notes,
+      notes: payment.notes ?? "",
       branchName: payment.branch?.name ?? null,
-      registeredBy: payment.registeredBy,
+      registeredBy: {
+        id: payment.registeredBy.id,
+        name: registrarName(payment.registeredBy),
+      },
     }));
 
     const filtered = q
@@ -87,9 +126,9 @@ export async function GET(request: Request) {
       : mapped;
 
     const totalCount = filtered.length;
-    const totalAmount = filtered.reduce((sum, payment) => sum + payment.amount, 0);
-    const startIndex = (page - 1) * pageSize;
-    const items = filtered.slice(startIndex, startIndex + pageSize);
+    const totalAmount = filtered.reduce((sum, p) => sum + p.amount, 0);
+    const startIdx = (page - 1) * pageSize;
+    const items = filtered.slice(startIdx, startIdx + pageSize);
 
     return NextResponse.json({
       period,
@@ -103,7 +142,7 @@ export async function GET(request: Request) {
   } catch (error) {
     console.error("GET /api/finance/payroll/history", error);
     return NextResponse.json(
-      { message: "Error al obtener historial de pagos de sueldo" },
+      { message: "Error al obtener historial" },
       { status: 500 },
     );
   }

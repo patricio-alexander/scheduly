@@ -114,9 +114,9 @@ export function canAccessSystemModule(role: string | null | undefined): boolean 
   return isOwnerRole(role);
 }
 
-/** Dueña gestiona; Programador también (bootstrap Dueña + ver roles/cuentas). */
+/** Dueña, Administrador y Programador gestionan usuarios del salón. */
 export function canManageUsers(role: string | null | undefined): boolean {
-  return isOwnerRole(role) || isProgrammerRole(role);
+  return isManagementRole(role) || isProgrammerRole(role);
 }
 
 /** Alta/edición de roles de negocio: solo Dueña. */

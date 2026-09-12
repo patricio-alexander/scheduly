@@ -9,20 +9,11 @@ import {
 import { getUserPrimaryBranchId } from "@/shared/utils/branches";
 import { toAmount } from "@/shared/utils/money";
 import { parseDateKey, toDateKey } from "@/shared/utils/payroll-settings";
-import { DEFAULT_PAYMENT_MEDIA } from "@/shared/utils/payment-media";
+import { ensureDefaultPaymentMedia } from "@/shared/utils/payment-media";
+import { suggestCashCloseByMedium } from "@/shared/utils/cash-close-suggest";
 
 async function ensureDefaultMedia() {
-  const count = await prisma.paymentMedium.count();
-  if (count > 0) return;
-  await prisma.paymentMedium.createMany({
-    data: DEFAULT_PAYMENT_MEDIA.map((m) => ({
-      name: m.name,
-      code: m.code,
-      kind: m.kind,
-      position: m.position,
-      isActive: true,
-    })),
-  });
+  await ensureDefaultPaymentMedia(prisma);
 }
 
 async function resolveBranchId(
@@ -181,6 +172,10 @@ export async function GET(request: Request) {
       date: dateKey,
       media,
       closes: closes.map(serializeClose),
+      suggested:
+        branchId != null
+          ? await suggestCashCloseByMedium({ branchId, date })
+          : null,
     });
   } catch (error) {
     console.error("GET /api/finance/cash-closes", error);

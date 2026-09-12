@@ -86,6 +86,8 @@ export async function recordCommissionForPayment(
     baseAmount: number;
     amount: number;
     ratePct: number;
+    /** Fecha de negocio (simulación / backdating). */
+    createdAt?: Date;
   },
 ) {
   await tx.commissionRecord.upsert({
@@ -96,11 +98,13 @@ export async function recordCommissionForPayment(
       baseAmount: params.baseAmount,
       ratePct: params.ratePct,
       amount: params.amount,
+      ...(params.createdAt ? { createdAt: params.createdAt } : {}),
     },
     update: {
       baseAmount: params.baseAmount,
       ratePct: params.ratePct,
       amount: params.amount,
+      ...(params.createdAt ? { createdAt: params.createdAt } : {}),
     },
   });
 

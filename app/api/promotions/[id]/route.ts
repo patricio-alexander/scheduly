@@ -26,6 +26,7 @@ function parsePromotionBody(body: Record<string, unknown>) {
     isActive: body.isActive !== false,
     serviceIds: Array.isArray(body.serviceIds) ? body.serviceIds : [],
     branchIds: Array.isArray(body.branchIds) ? body.branchIds : [],
+    productIds: Array.isArray(body.productIds) ? body.productIds : [],
     weekdays: parseWeekdays(body.weekdays),
   };
 }

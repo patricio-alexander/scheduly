@@ -9,6 +9,7 @@ import {
   listFinanceIncomes,
   sumLedgerAmounts,
 } from "@/shared/utils/finance-ledger-list";
+import { splitExpenseBuckets } from "@/shared/utils/finance-period-totals";
 
 function monthKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -98,6 +99,7 @@ export async function GET() {
 
     const totalIncome = sumLedgerAmounts(incomeRows);
     const totalExpense = sumLedgerAmounts(expenseRows);
+    const expenseBuckets = splitExpenseBuckets(expenseRows);
     const balance = Number((totalIncome - totalExpense).toFixed(2));
 
     const customerRows = customers.map((c) => ({
@@ -227,6 +229,9 @@ export async function GET() {
     return NextResponse.json({
       totalIncome: Number(totalIncome.toFixed(2)),
       totalExpense: Number(totalExpense.toFixed(2)),
+      purchases: expenseBuckets.purchases,
+      commissions: expenseBuckets.commissions,
+      operatingExpenses: expenseBuckets.operating,
       balance,
       futureIncome,
       projectedBalance,

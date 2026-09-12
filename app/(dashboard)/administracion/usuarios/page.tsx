@@ -1,7 +1,4 @@
-import { redirect } from "next/navigation";
-import { appRoutes } from "@/shared/utils/app-routes";
+"use client";
 
-/** Usuarios → Cuentas (una persona = una cuenta, multi-rol). */
-export default function UsersRedirectPage() {
-  redirect(appRoutes.admin.accounts);
-}
+/** Usuarios del salón (cuentas / personal). Misma UI que Administración → Cuentas. */
+export { default } from "../cuentas/page";

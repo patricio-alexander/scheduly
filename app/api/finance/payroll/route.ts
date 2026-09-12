@@ -10,10 +10,33 @@ import {
   resolveDashboardScope,
 } from "@/shared/utils/branches";
 import { toAmount } from "@/shared/utils/money";
-import { settleCommissionsForEmployeePayment, reconcileCommissionSettlementsForUser } from "@/shared/utils/commissions";
+import { personFullName } from "@/shared/utils/person-name";
+import {
+  settleCommissionsForEmployeePayment,
+  reconcileCommissionSettlementsForUser,
+} from "@/shared/utils/commissions";
 import { checkAuth } from "@/shared/utils/check-auth";
 import { invalidateDashboard } from "@/shared/utils/socket";
-import { isBranchAdminRole, isManagementRole, isOwnerRole } from "@/shared/utils/roles";
+import {
+  isBranchAdminRole,
+  isManagementRole,
+  isOwnerRole,
+  mapExternalRoleName,
+} from "@/shared/utils/roles";
+
+function registrarName(account: {
+  username: string | null;
+  person: {
+    firstName: string | null;
+    firstLastName: string | null;
+    secondName?: string | null;
+    secondLastName?: string | null;
+  } | null;
+}) {
+  const fromPerson = personFullName(account.person);
+  if (fromPerson && fromPerson !== "—") return fromPerson;
+  return account.username?.trim() || "—";
+}
 
 export async function GET(request: Request) {
   const auth = await checkAuth();
@@ -36,39 +59,54 @@ export async function GET(request: Request) {
     );
     const branchId = scope.branchId;
 
-    const employees = await prisma.user.findMany({
+    const accounts = await prisma.account.findMany({
       where: {
-        role: { in: ["employee", "user"] },
+        isActive: true,
+        userId: { not: null },
         ...(branchId ? { branches: { some: { branchId } } } : {}),
       },
       select: {
         id: true,
-        name: true,
+        username: true,
+        userId: true,
+        person: {
+          select: {
+            id: true,
+            firstName: true,
+            secondName: true,
+            firstLastName: true,
+            secondLastName: true,
+          },
+        },
+        roles: { select: { role: { select: { name: true } } } },
         branches: {
           where: branchId ? { branchId } : { isPrimary: true },
           include: { branch: { select: { id: true, name: true } } },
           take: 1,
         },
       },
-      orderBy: { name: "asc" },
+      orderBy: { id: "asc" },
     });
 
-    const paidUserIds = await prisma.employeePayment.findMany({
-      where: branchId ? { branchId } : {},
-      select: { userId: true },
-      distinct: ["userId"],
-    });
-    const userIdsToReconcile = [
-      ...new Set([
-        ...employees.map((e) => e.id),
-        ...paidUserIds.map((p) => p.userId),
-      ]),
-    ];
-    await Promise.all(
-      userIdsToReconcile.map((userId) =>
-        reconcileCommissionSettlementsForUser(prisma, userId),
-      ),
-    );
+    const employees = accounts
+      .filter((a) =>
+        a.roles.some((r) => mapExternalRoleName(r.role.name) === "employee"),
+      )
+      .filter((a) => a.userId != null && a.person != null)
+      .map((a) => ({
+        personId: a.userId as number,
+        name: personFullName(a.person),
+        branch: a.branches[0]?.branch ?? null,
+      }));
+
+    const personIds = employees.map((e) => e.personId);
+    if (personIds.length) {
+      await Promise.all(
+        personIds.map((userId) =>
+          reconcileCommissionSettlementsForUser(prisma, userId),
+        ),
+      );
+    }
 
     const [commissions, payments] = await Promise.all([
       prisma.commissionRecord.findMany({
@@ -76,9 +114,18 @@ export async function GET(request: Request) {
           settledAt: null,
           createdAt: { gte: start, lte: end },
           ...(branchId ? { appointment: { branchId } } : {}),
+          ...(personIds.length ? { userId: { in: personIds } } : { userId: -1 }),
         },
         include: {
-          user: { select: { id: true, name: true } },
+          person: {
+            select: {
+              id: true,
+              firstName: true,
+              secondName: true,
+              firstLastName: true,
+              secondLastName: true,
+            },
+          },
           appointment: {
             select: {
               id: true,
@@ -94,10 +141,32 @@ export async function GET(request: Request) {
         where: {
           paidAt: { gte: start, lte: end },
           ...(branchId ? { branchId } : {}),
+          ...(personIds.length ? { userId: { in: personIds } } : { userId: -1 }),
         },
         include: {
-          registeredBy: { select: { id: true, name: true } },
-          user: { select: { id: true, name: true } },
+          registeredBy: {
+            select: {
+              id: true,
+              username: true,
+              person: {
+                select: {
+                  firstName: true,
+                  firstLastName: true,
+                  secondName: true,
+                  secondLastName: true,
+                },
+              },
+            },
+          },
+          person: {
+            select: {
+              id: true,
+              firstName: true,
+              secondName: true,
+              firstLastName: true,
+              secondLastName: true,
+            },
+          },
         },
         orderBy: { paidAt: "desc" },
       }),
@@ -132,10 +201,10 @@ export async function GET(request: Request) {
     const byUser = new Map<number, PayrollRow>();
 
     for (const employee of employees) {
-      byUser.set(employee.id, {
-        userId: employee.id,
+      byUser.set(employee.personId, {
+        userId: employee.personId,
         name: employee.name,
-        branch: employee.branches[0]?.branch ?? null,
+        branch: employee.branch,
         completedAppointments: 0,
         commissionTotal: 0,
         paidTotal: 0,
@@ -150,8 +219,8 @@ export async function GET(request: Request) {
       let row = byUser.get(record.userId);
       if (!row) {
         row = {
-          userId: record.user.id,
-          name: record.user.name,
+          userId: record.userId,
+          name: personFullName(record.person),
           branch: record.appointment.branch,
           completedAppointments: 0,
           commissionTotal: 0,
@@ -186,8 +255,11 @@ export async function GET(request: Request) {
         amount,
         method: payment.method,
         paidAt: payment.paidAt.toISOString(),
-        notes: payment.notes,
-        registeredBy: payment.registeredBy,
+        notes: payment.notes ?? "",
+        registeredBy: {
+          id: payment.registeredBy.id,
+          name: registrarName(payment.registeredBy),
+        },
       });
     }
 
@@ -200,7 +272,10 @@ export async function GET(request: Request) {
           isFullyPaid: pendingAmount <= 0 && row.paidTotal > 0,
         };
       })
-      .sort((a, b) => b.pendingAmount - a.pendingAmount || a.name.localeCompare(b.name));
+      .sort(
+        (a, b) =>
+          b.pendingAmount - a.pendingAmount || a.name.localeCompare(b.name),
+      );
 
     const totalCommissions = payrollEmployees.reduce(
       (sum, e) => sum + e.commissionTotal,
@@ -268,12 +343,38 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Monto inválido" }, { status: 400 });
     }
 
-    const employee = await prisma.user.findUnique({
-      where: { id: userId },
-      select: { id: true, role: true, branches: { select: { branchId: true } } },
+    const account = await prisma.account.findFirst({
+      where: {
+        userId,
+        isActive: true,
+      },
+      select: {
+        id: true,
+        userId: true,
+        roles: { select: { role: { select: { name: true } } } },
+        branches: { select: { branchId: true } },
+        person: {
+          select: {
+            id: true,
+            firstName: true,
+            secondName: true,
+            firstLastName: true,
+            secondLastName: true,
+          },
+        },
+      },
     });
-    if (!employee || !["employee", "user"].includes(employee.role)) {
-      return NextResponse.json({ message: "Empleado no encontrado" }, { status: 400 });
+
+    const isEmployee =
+      account &&
+      account.roles.some(
+        (r) => mapExternalRoleName(r.role.name) === "employee",
+      );
+    if (!account || !isEmployee || !account.person) {
+      return NextResponse.json(
+        { message: "Empleado no encontrado" },
+        { status: 400 },
+      );
     }
 
     const branchIdRaw = body.branchId;
@@ -285,7 +386,7 @@ export async function POST(request: Request) {
     const branchId = await resolvePaymentBranchId(auth.user, requestedBranchId);
 
     if (branchId != null) {
-      const belongs = employee.branches.some((b) => b.branchId === branchId);
+      const belongs = account.branches.some((b) => b.branchId === branchId);
       if (!belongs) {
         return NextResponse.json(
           { message: "El empleado no pertenece a esta sucursal" },
@@ -310,12 +411,33 @@ export async function POST(request: Request) {
           branchId,
           registeredById: auth.user.id,
           amount,
-          method: paymentMethod as "cash" | "card" | "transfer",
-          notes,
+          method: paymentMethod,
+          notes: notes || null,
         },
         include: {
-          registeredBy: { select: { id: true, name: true } },
-          user: { select: { id: true, name: true } },
+          registeredBy: {
+            select: {
+              id: true,
+              username: true,
+              person: {
+                select: {
+                  firstName: true,
+                  firstLastName: true,
+                  secondName: true,
+                  secondLastName: true,
+                },
+              },
+            },
+          },
+          person: {
+            select: {
+              id: true,
+              firstName: true,
+              secondName: true,
+              firstLastName: true,
+              secondLastName: true,
+            },
+          },
           branch: { select: { id: true, name: true } },
         },
       });
@@ -340,9 +462,15 @@ export async function POST(request: Request) {
         amount: toAmount(payment.amount),
         method: payment.method,
         paidAt: payment.paidAt.toISOString(),
-        notes: payment.notes,
-        registeredBy: payment.registeredBy,
-        employee: payment.user,
+        notes: payment.notes ?? "",
+        registeredBy: {
+          id: payment.registeredBy.id,
+          name: registrarName(payment.registeredBy),
+        },
+        employee: {
+          id: payment.person.id,
+          name: personFullName(payment.person),
+        },
         branch: payment.branch,
       },
       { status: 201 },

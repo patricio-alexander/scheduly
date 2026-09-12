@@ -27,15 +27,13 @@ import {
 } from "@/shared/utils/dashboard-widgets";
 import {
   buildAppointmentStatusOverview,
-  buildFinanceHero,
   buildStockAlertBuckets,
 } from "@/shared/utils/dashboard-finance-hero";
+import { buildFinanceHeroFromLedger } from "@/shared/utils/finance-period-totals";
 import {
   buildSalePaymentBreakdown,
   buildSaleStatusOverview,
   buildTopSellersFromSales,
-  isPayrollCategory,
-  isPurchaseCategory,
   recentSalesAsAppointments,
   sumPaidSales,
   sumPendingSales,
@@ -154,6 +152,13 @@ export async function GET(request: Request) {
     const userId = url.searchParams.get("userId");
     const period = parseDashboardPeriod(url.searchParams.get("period"));
     const requestedBranchId = parseBranchId(url.searchParams.get("branchId"));
+    const dateParam = url.searchParams.get("date");
+    const reference = dateParam
+      ? (() => {
+          const d = new Date(`${dateParam}T12:00:00`);
+          return Number.isNaN(d.getTime()) ? new Date() : d;
+        })()
+      : new Date();
     const scope = await resolveDashboardScope(
       prisma,
       auth.user,
@@ -161,8 +166,8 @@ export async function GET(request: Request) {
     );
     const branchId = scope.branchId;
     const branchWhere = scope.appointmentWhere;
-    const { start, end } = getDashboardPeriodRange(period);
-    const previous = getDashboardPreviousPeriodRange(period);
+    const { start, end } = getDashboardPeriodRange(period, reference);
+    const previous = getDashboardPreviousPeriodRange(period, reference);
     const dateFilter = { gte: start, lte: end };
     const prevFilter = { gte: previous.start, lte: previous.end };
     const isGlobalCatalog = isOwnerRole(auth.user.role) && branchId == null;
@@ -187,12 +192,12 @@ export async function GET(request: Request) {
       prevTotalAppointments,
       prevCompleted,
       prevCompletedApts,
-      periodExpenses,
-      prevPeriodExpenses,
-      periodPurchases,
-      prevPeriodPurchases,
-      periodCommissions,
-      prevPeriodCommissions,
+      _periodExpenses,
+      _prevPeriodExpenses,
+      _periodPurchases,
+      _prevPeriodPurchases,
+      _periodCommissions,
+      _prevPeriodCommissions,
       stockRows,
     ] = await Promise.all([
       userId
@@ -422,22 +427,6 @@ export async function GET(request: Request) {
     const pendingRevenueApts = pendingPaymentApts.map(withStaffAsUser);
     const prevRevenueApts = prevCompletedApts.map(withStaffAsUser);
 
-    const purchaseTotalFromOrders = (
-      orders: Array<{
-        lines: Array<{ quantity: number; unitPrice: number }>;
-      }>,
-    ) =>
-      orders.reduce(
-        (sum, order) =>
-          sum +
-          order.lines.reduce(
-            (lineSum, line) =>
-              lineSum + toAmount(line.quantity) * toAmount(line.unitPrice),
-            0,
-          ),
-        0,
-      );
-
     const saleInclude = {
       customer: {
         select: {
@@ -563,8 +552,8 @@ export async function GET(request: Request) {
         ? Math.round((displayPrevCompleted / displayPrevTotal) * 100)
         : 0;
 
-    const revenueBuckets = getDashboardChartBuckets(period);
-    const activityBuckets = getDashboardActivityChartBuckets(period);
+    const revenueBuckets = getDashboardChartBuckets(period, reference);
+    const activityBuckets = getDashboardActivityChartBuckets(period, reference);
 
     const appointmentsByDay = activityBuckets.map((bucket) => ({
       date: bucket.label,
@@ -624,69 +613,27 @@ export async function GET(request: Request) {
         : buildPaymentBreakdown(completedRevenueApts, revenue)
       : [];
 
-    const expenseTotal = periodExpenses.reduce(
-      (sum, e) => sum + toAmount(e.amount),
-      0,
-    );
-    const purchasesFromExpenses = periodExpenses
-      .filter((e) => isPurchaseCategory(e.category))
-      .reduce((sum, e) => sum + toAmount(e.amount), 0);
-    const purchaseTotal =
-      purchasesFromExpenses > 0
-        ? purchasesFromExpenses
-        : purchaseTotalFromOrders(periodPurchases);
-    const commissionsFromExpenses = periodExpenses
-      .filter((e) => isPayrollCategory(e.category))
-      .reduce((sum, e) => sum + toAmount(e.amount), 0);
-    const commissionTotal =
-      commissionsFromExpenses +
-      periodCommissions.reduce((sum, c) => sum + toAmount(c.amount), 0);
-    const operatingExpenseTotal = isDeliveryPoint
-      ? 0
-      : Math.max(
-          0,
-          expenseTotal - purchasesFromExpenses - commissionsFromExpenses,
-        );
-    const purchaseTotalForHero = isDeliveryPoint ? 0 : purchaseTotal;
-    const commissionTotalForHero = isDeliveryPoint ? 0 : commissionTotal;
-    const prevExpenseTotal = prevPeriodExpenses.reduce(
-      (sum, e) => sum + toAmount(e.amount),
-      0,
-    );
-    const prevPurchasesFromExpenses = prevPeriodExpenses
-      .filter((e) => isPurchaseCategory(e.category))
-      .reduce((sum, e) => sum + toAmount(e.amount), 0);
-    const prevPurchaseTotal =
-      prevPurchasesFromExpenses > 0
-        ? prevPurchasesFromExpenses
-        : purchaseTotalFromOrders(prevPeriodPurchases);
-    const prevCommissionsFromExpenses = prevPeriodExpenses
-      .filter((e) => isPayrollCategory(e.category))
-      .reduce((sum, e) => sum + toAmount(e.amount), 0);
-    const prevCommissionTotal =
-      prevCommissionsFromExpenses +
-      prevPeriodCommissions.reduce((sum, c) => sum + toAmount(c.amount), 0);
-    const previousNet =
-      previousRevenue -
-      Math.max(
-        0,
-        prevExpenseTotal - prevPurchasesFromExpenses - prevCommissionsFromExpenses,
-      ) -
-      prevPurchaseTotal -
-      prevCommissionTotal;
-
     const financeHero = showOpsWidgets
-      ? buildFinanceHero({
-          revenue,
-          expenses: operatingExpenseTotal,
-          purchases: purchaseTotalForHero,
-          commissions: commissionTotalForHero,
+      ? await buildFinanceHeroFromLedger({
+          start,
+          end,
+          prevStart: previous.start,
+          prevEnd: previous.end,
           pendingReceivable: pendingPaymentAmount,
-          previousRevenue,
-          previousNet,
           periodLabel: dashboardPeriodLabel[period],
         })
       : null;
+
+    // Punto de entrega: no mostrar egresos de salón en el hero
+    if (financeHero && isDeliveryPoint) {
+      financeHero.totalExpense = 0;
+      financeHero.purchases = 0;
+      financeHero.commissions = 0;
+      financeHero.balance = financeHero.totalIncome;
+      financeHero.projectedBalance =
+        financeHero.totalIncome + financeHero.pendingReceivable;
+      financeHero.balanceWithPending = financeHero.projectedBalance;
+    }
 
     const stockAlerts = showOpsWidgets
       ? buildStockAlertBuckets(stockRows)

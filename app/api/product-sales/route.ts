@@ -14,6 +14,7 @@ import {
   paymentMethodOptions,
   type PaymentMethodValue,
 } from "@/shared/utils/payment-methods";
+import { resolvePaymentMedium } from "@/shared/utils/payment-media";
 import {
   getUserPrimaryBranchId,
   parseBranchId,
@@ -206,7 +207,20 @@ export async function POST(request: Request) {
         { status: 400 },
       );
     }
-    const method = parseMethod(body.method);
+    const methodResolved = await resolvePaymentMedium(prisma, {
+      method: body.method != null ? String(body.method) : "cash",
+      mediumCode:
+        body.mediumCode != null
+          ? String(body.mediumCode)
+          : body.paymentMediumCode != null
+            ? String(body.paymentMediumCode)
+            : null,
+      paymentMediumId:
+        body.paymentMediumId != null && body.paymentMediumId !== ""
+          ? Number(body.paymentMediumId)
+          : null,
+    });
+    const method = parseMethod(methodResolved.method);
     const notesRaw = String(body.notes ?? "").trim();
     const saleType =
       String(body.saleType ?? "contado") === "credito" ? "credito" : "contado";
@@ -214,6 +228,12 @@ export async function POST(request: Request) {
     const isCredit = saleType === "credito";
     const notesParts = ["[CAJA_POS]", isCredit ? "[CREDITO]" : "[CONTADO]"];
     if (documentType) notesParts.push(`[DOC:${documentType}]`);
+    if (methodResolved.medium) {
+      notesParts.push(
+        `[MEDIO:${methodResolved.medium.code || methodResolved.medium.id}]`,
+        methodResolved.medium.name,
+      );
+    }
     if (notesRaw) notesParts.push(notesRaw);
     const notes = notesParts.join(" ");
 
@@ -345,6 +365,9 @@ export async function POST(request: Request) {
           sellerAccountId: auth.user.id,
           status: isCredit ? "pendiente" : "pagado",
           paymentMethod: isCredit ? "credito" : method,
+          paymentMediumId: isCredit
+            ? null
+            : methodResolved.medium?.id ?? null,
           documentType,
           notes: notes || null,
           paidAt: isCredit ? null : paidAt,
@@ -358,8 +381,8 @@ export async function POST(request: Request) {
               price: line.unitPrice,
               soldQty: line.quantity,
               deliveredStoreId: branchId,
-              deliveredAt: new Date(),
-              paidAt: isCredit ? null : new Date(),
+              deliveredAt: paidAt,
+              paidAt: isCredit ? null : paidAt,
             })),
           },
           ...(isCredit

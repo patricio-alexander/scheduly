@@ -3,22 +3,12 @@ import { prisma } from "@/shared/utils/prisma";
 import { checkAuth } from "@/shared/utils/check-auth";
 import { isManagementRole, isOwnerRole } from "@/shared/utils/roles";
 import {
-  DEFAULT_PAYMENT_MEDIA,
+  ensureDefaultPaymentMedia,
   normalizeMediumKind,
 } from "@/shared/utils/payment-media";
 
 async function ensureDefaultMedia() {
-  const count = await prisma.paymentMedium.count();
-  if (count > 0) return;
-  await prisma.paymentMedium.createMany({
-    data: DEFAULT_PAYMENT_MEDIA.map((m) => ({
-      name: m.name,
-      code: m.code,
-      kind: m.kind,
-      position: m.position,
-      isActive: true,
-    })),
-  });
+  await ensureDefaultPaymentMedia(prisma);
 }
 
 /** GET medios de pago (incluye inactivos para dueña/admin). */

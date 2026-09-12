@@ -17,6 +17,9 @@ import { formatMoney } from "@/shared/utils/money";
 export type FinanceSummaryData = {
   totalIncome?: number;
   totalExpense?: number;
+  purchases?: number;
+  commissions?: number;
+  operatingExpenses?: number;
   balance?: number;
   futureIncome?: number;
   projectedBalance?: number;
@@ -170,6 +173,8 @@ export function FinanceSummaryCards({
   const balance = Number(summary?.balance ?? 0);
   const totalIncome = Number(summary?.totalIncome ?? 0);
   const totalExpense = Number(summary?.totalExpense ?? 0);
+  const purchases = Number(summary?.purchases ?? 0);
+  const commissions = Number(summary?.commissions ?? 0);
   const collectionsPending = Number(summary?.futureIncome ?? 0);
   const loansReceivable = Number(summary?.loansReceivable ?? 0);
   const debtsPayable = Number(summary?.debtsPayable ?? 0);
@@ -296,21 +301,25 @@ export function FinanceSummaryCards({
         <SummaryCard
           title="Total dinero"
           value={formatMoney(balance)}
-          subtitle="Ingresos − gastos registrados"
+          subtitle="Ingresos − gastos (mismo ledger que Panel)"
           icon={<Wallet width={18} height={18} />}
           tone={balance >= 0 ? "accent" : "danger"}
         />
         <SummaryCard
           title="Ingresos"
           value={formatMoney(totalIncome)}
-          subtitle="Suma histórica de ingresos"
+          subtitle="Cobros de citas, POS e ingresos"
           icon={<ArrowUp width={18} height={18} />}
           tone="success"
         />
         <SummaryCard
           title="Gastos"
           value={formatMoney(totalExpense)}
-          subtitle="Suma histórica de gastos"
+          subtitle={
+            purchases + commissions > 0
+              ? `Operativos + compras ${formatMoney(purchases)} + nómina ${formatMoney(commissions)}`
+              : "Egresos del ledger (igual que Panel · Todo)"
+          }
           icon={<ArrowDown width={18} height={18} />}
           tone="danger"
         />

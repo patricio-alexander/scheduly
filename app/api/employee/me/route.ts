@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { checkAuth } from "@/shared/utils/check-auth";
 import { toAmount } from "@/shared/utils/money";
+import { personFullName } from "@/shared/utils/person-name";
 import { reconcileCommissionSettlementsForUser } from "@/shared/utils/commissions";
 
 export async function GET() {
@@ -9,7 +10,25 @@ export async function GET() {
   if (!auth.ok) return auth.response;
 
   try {
-    await reconcileCommissionSettlementsForUser(prisma, auth.user.id);
+    const personId = auth.user.personId;
+    if (!personId) {
+      return NextResponse.json({
+        user: {
+          id: auth.user.id,
+          name: auth.user.name,
+          role: auth.user.role,
+        },
+        todayAppointments: [],
+        weekAppointments: 0,
+        commissionTotal: 0,
+        paidTotal: 0,
+        commissions: [],
+        salaryPayments: [],
+        stock: [],
+      });
+    }
+
+    await reconcileCommissionSettlementsForUser(prisma, personId);
 
     const now = new Date();
     const startOfDay = new Date(now);
@@ -27,11 +46,18 @@ export async function GET() {
     ] = await Promise.all([
       prisma.appointment.findMany({
         where: {
-          userId: auth.user.id,
+          userId: personId,
           appointmentDate: { gte: startOfDay, lte: endOfWeek },
         },
         include: {
-          customer: { select: { name: true, lastnames: true } },
+          customer: {
+            select: {
+              name: true,
+              firstName: true,
+              firstLastName: true,
+              secondLastName: true,
+            },
+          },
           branch: { select: { name: true } },
           services: { include: { service: { select: { name: true } } } },
         },
@@ -39,16 +65,16 @@ export async function GET() {
       }),
       prisma.appointment.count({
         where: {
-          userId: auth.user.id,
+          userId: personId,
           appointmentDate: { gte: startOfDay, lte: endOfWeek },
         },
       }),
       prisma.commissionRecord.aggregate({
-        where: { userId: auth.user.id, settledAt: null },
+        where: { userId: personId, settledAt: null },
         _sum: { amount: true },
       }),
       prisma.commissionRecord.findMany({
-        where: { userId: auth.user.id, settledAt: null },
+        where: { userId: personId, settledAt: null },
         orderBy: { createdAt: "desc" },
         take: 10,
         include: {
@@ -58,11 +84,23 @@ export async function GET() {
         },
       }),
       prisma.employeePayment.findMany({
-        where: { userId: auth.user.id },
+        where: { userId: personId },
         orderBy: { paidAt: "desc" },
         take: 20,
         include: {
-          registeredBy: { select: { name: true } },
+          registeredBy: {
+            select: {
+              username: true,
+              person: {
+                select: {
+                  firstName: true,
+                  firstLastName: true,
+                  secondName: true,
+                  secondLastName: true,
+                },
+              },
+            },
+          },
           branch: { select: { name: true } },
         },
       }),
@@ -70,7 +108,7 @@ export async function GET() {
         where: {
           stock: { gt: 0 },
           branch: {
-            users: { some: { userId: auth.user.id } },
+            accountBranches: { some: { accountId: auth.user.id } },
           },
         },
         include: {
@@ -88,13 +126,17 @@ export async function GET() {
     );
 
     return NextResponse.json({
-      user: { id: auth.user.id, name: auth.user.name, role: auth.user.role },
+      user: {
+        id: auth.user.id,
+        name: auth.user.name,
+        role: auth.user.role,
+      },
       todayAppointments: todayAppointments.map((apt) => ({
         id: apt.id,
         title: apt.title,
         status: apt.status,
         date: apt.appointmentDate.toISOString(),
-        customer: `${apt.customer.name} ${apt.customer.lastnames}`.trim(),
+        customer: personFullName(apt.customer),
         branch: apt.branch?.name ?? null,
         services: apt.services.map((s) => s.service.name).join(", "),
       })),
@@ -114,9 +156,12 @@ export async function GET() {
         amount: toAmount(payment.amount),
         method: payment.method,
         paidAt: payment.paidAt.toISOString(),
-        notes: payment.notes,
+        notes: payment.notes ?? "",
         branch: payment.branch?.name ?? null,
-        registeredBy: payment.registeredBy.name,
+        registeredBy:
+          personFullName(payment.registeredBy.person) !== "—"
+            ? personFullName(payment.registeredBy.person)
+            : payment.registeredBy.username ?? "—",
       })),
       stock: branchStocks.map((row) => ({
         productId: row.product.id,
@@ -127,6 +172,9 @@ export async function GET() {
     });
   } catch (error) {
     console.error("GET /api/employee/me", error);
-    return NextResponse.json({ message: "Error al cargar datos del empleado" }, { status: 500 });
+    return NextResponse.json(
+      { message: "Error al cargar datos del empleado" },
+      { status: 500 },
+    );
   }
 }

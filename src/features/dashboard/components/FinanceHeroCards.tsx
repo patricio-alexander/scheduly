@@ -239,7 +239,7 @@ export function FinanceHeroCards({ summary, loading }: FinanceHeroCardsProps) {
         <HeroCard
           title="Gastos"
           value={formatCurrency(summary.totalExpense)}
-          subtitle="Gastos + compras + comisiones"
+          subtitle="Egresos del ledger (gastos + compras + nómina)"
           icon={<ArrowDown width={18} height={18} />}
           tone="danger"
         />

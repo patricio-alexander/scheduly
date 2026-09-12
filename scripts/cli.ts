@@ -6,7 +6,8 @@
  * Controles: ↑↓ mover · Enter elegir · Esc / q salir
  */
 import "dotenv/config";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
+import path from "node:path";
 import {
   askConfirm,
   askText,
@@ -44,6 +45,9 @@ const APP_LABEL = "Scheduly";
 const EXIT_ID = "__exit__";
 const BACK_ID = "__back__";
 
+const SIMULADOR_ROOT = path.resolve(process.cwd(), "..", "simulador");
+const SIM_CLI = path.join(SIMULADOR_ROOT, "tools", "cli-sim.js");
+
 type CatalogGroup = {
   name: string;
   color: string;
@@ -51,6 +55,36 @@ type CatalogGroup = {
 };
 
 const CATALOG: CatalogGroup[] = [
+  {
+    name: "Simulación",
+    color: "cyan",
+    items: [
+      {
+        id: "sim-web-day",
+        title: "Simulación web · 1 día (consola)",
+        desc: "Misma lógica que :8787 · un día · escribe Scheduly + silacion-apps.",
+        danger: "med",
+        write: true,
+        action: "sim-web-day",
+      },
+      {
+        id: "sim-web-week",
+        title: "Simulación web · hasta domingo",
+        desc: "Igual que un ▶ largo en la página · flows + fechas junio 2026.",
+        danger: "med",
+        write: true,
+        action: "sim-web-week",
+      },
+      {
+        id: "sim-web-horizon",
+        title: "Simulación web · 4 semanas",
+        desc: "Horizonte completo del calendario simulado (puede tardar).",
+        danger: "med",
+        write: true,
+        action: "sim-web-horizon",
+      },
+    ],
+  },
   {
     name: "Bots",
     color: "green",
@@ -348,6 +382,41 @@ async function runOpsReset() {
   await waitEnter();
 }
 
+async function runWebSimConsole(mode: "day" | "week" | "horizon") {
+  const ok = await askConfirm(
+    `${c.brightGreen}¿Correr simulación ${mode} (misma lógica que la web)?${c.reset}\n${c.dim}Requiere Scheduly en :3005. Escribe BD Scheduly + silacion-apps.${c.reset}`,
+  );
+  if (!ok) {
+    console.log(`${c.dim}Cancelado.${c.reset}`);
+    await waitEnter();
+    return;
+  }
+
+  const flag =
+    mode === "day" ? "--day" : mode === "week" ? "--week" : "--horizon";
+  console.log(
+    `\n${c.dim}→ node tools/cli-sim.js ${flag}  (${SIMULADOR_ROOT})${c.reset}\n`,
+  );
+
+  await new Promise<void>((resolve) => {
+    const child = spawn("node", [SIM_CLI, flag], {
+      cwd: SIMULADOR_ROOT,
+      stdio: "inherit",
+      env: {
+        ...process.env,
+        SCHEDULY_BASE_URL:
+          process.env.SCHEDULY_BASE_URL || "http://127.0.0.1:3005/scheduly",
+      },
+    });
+    child.on("exit", () => resolve());
+    child.on("error", (err) => {
+      console.log(`${c.red}${err.message}${c.reset}`);
+      resolve();
+    });
+  });
+  await waitEnter();
+}
+
 async function confirmAndRun(item: ScriptItem) {
   process.stdout.write(c.clear + c.show);
   console.log(
@@ -378,6 +447,19 @@ async function confirmAndRun(item: ScriptItem) {
     );
   }
   console.log("");
+
+  if (item.action === "sim-web-day") {
+    await runWebSimConsole("day");
+    return;
+  }
+  if (item.action === "sim-web-week") {
+    await runWebSimConsole("week");
+    return;
+  }
+  if (item.action === "sim-web-horizon") {
+    await runWebSimConsole("horizon");
+    return;
+  }
 
   if (item.action === "bot-owner-mind") {
     const mins = await askText(

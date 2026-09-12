@@ -3,6 +3,7 @@ import { prisma } from "@/shared/utils/prisma";
 import { hashPassword } from "@/shared/utils/password";
 import { checkAuth } from "@/shared/utils/check-auth";
 import {
+  getMainBranchId,
   getUserBranchSummary,
   resolveUserBranchId,
   setUserPrimaryBranch,
@@ -172,11 +173,15 @@ export async function POST(request: Request) {
     }
 
     const primaryRole = roles[0] ?? "Empleado";
-    const resolvedBranchId = await resolveUserBranchId(
+    let resolvedBranchId = await resolveUserBranchId(
       prisma,
       primaryRole,
       branchId,
     );
+    // Empleado/Admin sin local explícito → matriz activa (evita cuenta huérfana).
+    if (!resolvedBranchId && !isOwnerRole(primaryRole)) {
+      resolvedBranchId = await getMainBranchId(prisma);
+    }
     const username = String(body.username ?? "").trim();
     const name = String(body.name ?? "").trim();
     const email = String(body.email ?? "").trim();

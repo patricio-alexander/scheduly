@@ -143,6 +143,8 @@ model Person {
   taskItemsAssigned TaskItem[] @relation("TaskAssignee")
   taskItemsChecked  TaskItem[] @relation("TaskChecker")
   appointments  Appointment[] @relation("AppointmentStaff")
+  commissionRecords CommissionRecord[]
+  employeePayments  EmployeePayment[]
 }
 
 /** Cuenta de acceso (EdDeli Account). Puede tener varios roles. */
@@ -169,6 +171,7 @@ model Account {
   cashClosesCreated     CashClose[]      @relation("CashCloseCreator")
   payrollWeeksCreated   PayrollWeek[]    @relation("PayrollWeekCreator")
   payrollWeekLines      PayrollWeekLine[] @relation("PayrollWeekLineEmployee")
+  employeePaymentsRegistered EmployeePayment[] @relation("EmployeePaymentRegistrar")
 }
 
 /** Vincula una cuenta a uno o más locales. isPrimary = local que administra/trabaja. */
@@ -452,6 +455,7 @@ model Branch {
   electronicInvoices ElectronicInvoice[]
   cashCloses     CashClose[]
   payrollWeekLines PayrollWeekLine[]
+  employeePayments EmployeePayment[]
 
   @@index([isActive, position])
   @@index([managerAccountId])
@@ -622,6 +626,8 @@ model Sale {
   cashRegisterId   Int?
   sellerAccountId  Int?
   paymentMethod    String?    @db.VarChar(40)
+  /** Medio / banco del cuadre cuando el cobro es transferencia/tarjeta/efectivo. */
+  paymentMediumId  Int?
   paidAt           DateTime?
   documentType     String?    @db.VarChar(30)
   date             DateTime   @default(now())
@@ -629,17 +635,19 @@ model Sale {
   createdAt        DateTime   @default(now())
   updatedAt        DateTime   @updatedAt
 
-  customer     Customer      @relation(fields: [customerId], references: [id])
-  shift        CashShift?    @relation(fields: [shiftId], references: [id])
-  cashRegister CashRegister? @relation(fields: [cashRegisterId], references: [id])
-  seller       Account?      @relation("SaleSeller", fields: [sellerAccountId], references: [id])
-  lines        SaleLine[]
-  installments SalePaymentInstallment[]
+  customer      Customer       @relation(fields: [customerId], references: [id])
+  shift         CashShift?     @relation(fields: [shiftId], references: [id])
+  cashRegister  CashRegister?  @relation(fields: [cashRegisterId], references: [id])
+  seller        Account?       @relation("SaleSeller", fields: [sellerAccountId], references: [id])
+  paymentMedium PaymentMedium? @relation(fields: [paymentMediumId], references: [id], onDelete: SetNull)
+  lines         SaleLine[]
+  installments  SalePaymentInstallment[]
   electronicInvoices ElectronicInvoice[]
 
   @@index([customerId, date])
   @@index([status, date])
   @@index([shiftId])
+  @@index([paymentMediumId])
 }
 
 model SaleLine {
@@ -1381,14 +1389,19 @@ model AppointmentProduct {
 }
 
 model AppointmentPayment {
-  id            Int      @id @default(autoincrement())
-  appointmentId Int      @unique
-  amount        Float
-  method        String
-  paidAt        DateTime @default(now())
-  notes         String   @default("")
+  id               Int      @id @default(autoincrement())
+  appointmentId    Int      @unique
+  amount           Float
+  method           String
+  /** Medio / banco del cuadre (De Una, Loja, Pichincha…). */
+  paymentMediumId  Int?
+  paidAt           DateTime @default(now())
+  notes            String   @default("")
 
-  appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  appointment   Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  paymentMedium PaymentMedium? @relation(fields: [paymentMediumId], references: [id], onDelete: SetNull)
+
+  @@index([paymentMediumId])
 }
 
 model ServiceBranch {
@@ -1415,6 +1428,8 @@ model ServicePromotion {
   isActive      Boolean   @default(true)
   serviceIds    Json
   branchIds     Json
+  /** Productos del catálogo ligados a la promo (fidelización / combo). */
+  productIds    Json?
   /** Días de semana activos (0=dom … 6=sáb). Null/[] = todos los días del rango. */
   weekdays      Json?
   createdAt     DateTime  @default(now())
@@ -1487,6 +1502,7 @@ model FeedPost {
 
 model CommissionRecord {
   id            Int       @id @default(autoincrement())
+  /** Person.id del empleado (staff de la cita). */
   userId        Int
   appointmentId Int       @unique
   baseAmount    Float
@@ -1496,8 +1512,30 @@ model CommissionRecord {
   createdAt     DateTime  @default(now())
 
   appointment Appointment @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
+  person      Person      @relation(fields: [userId], references: [id])
 
   @@index([userId, settledAt])
+}
+
+/** Pago de comisiones / anticipo al empleado (Person.id). */
+model EmployeePayment {
+  id             Int      @id @default(autoincrement())
+  /** Person.id del empleado. */
+  userId         Int
+  branchId       Int?
+  registeredById Int
+  amount         Float
+  method         String   @default("cash") @db.VarChar(20)
+  notes          String?  @db.Text
+  paidAt         DateTime @default(now())
+  createdAt      DateTime @default(now())
+
+  person       Person  @relation(fields: [userId], references: [id])
+  branch       Branch? @relation(fields: [branchId], references: [id])
+  registeredBy Account @relation("EmployeePaymentRegistrar", fields: [registeredById], references: [id])
+
+  @@index([userId, paidAt])
+  @@index([branchId, paidAt])
 }
 
 /** Medios / bancos del cuadre (sin eliminación dura: isActive=false). */
@@ -1511,7 +1549,9 @@ model PaymentMedium {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  cashCloseLines CashCloseLine[]
+  cashCloseLines      CashCloseLine[]
+  appointmentPayments AppointmentPayment[]
+  sales               Sale[]
 
   @@index([isActive, position])
 }

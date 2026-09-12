@@ -3,6 +3,7 @@ import { prisma } from "@/shared/utils/prisma";
 import { hashPassword } from "@/shared/utils/password";
 import { checkAuth } from "@/shared/utils/check-auth";
 import {
+  getMainBranchId,
   getUserBranchSummary,
   resolveUserBranchId,
   setUserPrimaryBranch,
@@ -74,11 +75,14 @@ export async function PUT(
     }
 
     const primaryRole = roles[0] ?? String(body.role ?? "Empleado");
-    const resolvedBranchId = await resolveUserBranchId(
+    let resolvedBranchId = await resolveUserBranchId(
       prisma,
       primaryRole,
       branchId,
     );
+    if (!resolvedBranchId && !isOwnerRole(primaryRole)) {
+      resolvedBranchId = await getMainBranchId(prisma);
+    }
     const password =
       typeof body.password === "string" ? body.password.trim() : "";
     const setActive =
@@ -173,13 +177,9 @@ export async function PUT(
         });
       }
 
-      // Solo admin de sucursal mantiene el vínculo forzado a su local.
-      // La Dueña asigna locales desde Sucursales → Gestionar equipo.
-      if (
-        isBranchAdminRole(auth.user.role) &&
-        !isOwnerRole(auth.user.role) &&
-        resolvedBranchId
-      ) {
+      // Admin de sucursal: siempre su local. Dueña/Programador: honrar branchId
+      // del body (soporte / simulación / alta desde Cuentas).
+      if (resolvedBranchId && !isOwnerRole(primaryRole)) {
         await setUserPrimaryBranch(tx, accountId, resolvedBranchId);
       }
 

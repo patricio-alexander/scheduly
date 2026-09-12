@@ -22,7 +22,7 @@ export default function PayrollPage() {
   const { branches } = useBranches();
   const owner = user ? isOwnerRole(user.role) : false;
   const lockedBranch = user?.branch ?? null;
-  const [period, setPeriod] = useState<DashboardPeriod>("month");
+  const [period, setPeriod] = useState<DashboardPeriod>("all");
   const [branchId, setBranchId] = useState<number | "all">("all");
 
   const effectiveBranchId =

@@ -52,7 +52,7 @@ export function getDashboardPeriodRange(period: DashboardPeriod, reference = new
     return { start, end, period };
   }
 
-  const start = startOfDay(new Date(2024, 0, 1));
+  const start = startOfDay(new Date(2000, 0, 1));
   return { start, end, period };
 }
 
