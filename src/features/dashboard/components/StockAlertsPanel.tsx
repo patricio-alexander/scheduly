@@ -68,24 +68,35 @@ export function StockAlertsPanel({ alerts }: StockAlertsPanelProps) {
         </Link>
       </div>
 
-      <div className="mb-3 flex flex-wrap gap-1.5">
+      <div
+        className="mb-3 flex flex-wrap gap-1.5"
+        role="group"
+        aria-label="Nivel de alerta"
+      >
         {VIEWS.map((v) => {
           const active = activeView === v.id;
+          const empty = counts[v.id] === 0;
           return (
             <button
               key={v.id}
               type="button"
+              aria-pressed={active}
+              disabled={empty && !active}
               onClick={() => setView(v.id)}
               className={`inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[11px] font-semibold transition-colors ${
                 active
                   ? "border-accent bg-accent/10 text-accent"
-                  : "border-separator text-muted hover:bg-surface-secondary"
+                  : empty
+                    ? "cursor-not-allowed border-separator/60 text-muted/50"
+                    : "border-separator text-muted hover:bg-surface-secondary"
               }`}
             >
               {v.label}
               <span
                 className={`rounded-full px-1.5 py-0.5 tabular-nums ${
-                  active ? "bg-accent text-accent-foreground" : "bg-surface-secondary"
+                  active
+                    ? "bg-accent text-accent-foreground"
+                    : "bg-surface-secondary"
                 }`}
               >
                 {counts[v.id]}

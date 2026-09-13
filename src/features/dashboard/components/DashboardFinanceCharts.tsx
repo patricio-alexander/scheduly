@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { YearFinanceOverviewChart } from "./YearFinanceOverviewChart";
-import { MonthCalendarChart } from "./MonthCalendarChart";
+import { FinancialCalendar } from "./FinancialCalendar";
 import { CashFlowCandlestickPanel } from "./CashFlowCandlestickPanel";
 import { CashFlowMirrorPanel } from "./CashFlowMirrorPanel";
 import { ProductSeriesPanel } from "./ProductSeriesPanel";
@@ -50,7 +50,9 @@ export function DashboardFinanceCharts({
     date: Date;
     requestId: string;
   } | null>(null);
-  const [mirrorFocus, setMirrorFocus] = useState<CashFlowMirrorFocus | null>(null);
+  const [mirrorFocus, setMirrorFocus] = useState<CashFlowMirrorFocus | null>(
+    null,
+  );
 
   const handleMonthSelect = (date: Date) => {
     setNavigateToMonth({
@@ -59,7 +61,10 @@ export function DashboardFinanceCharts({
     });
   };
 
-  const handleCandleSelect = (candle: CashFlowCandle, granularity: CashGranularity) => {
+  const handleCandleSelect = (
+    candle: CashFlowCandle,
+    granularity: CashGranularity,
+  ) => {
     setMirrorFocus(resolveMirrorFromCandle(granularity, candle));
   };
 
@@ -98,7 +103,9 @@ export function DashboardFinanceCharts({
             statusChartData={statusChartData}
             totalStatus={totalStatus}
             activeStatusKey={activeStatusKey}
-            onActiveStatusKeyChange={onActiveStatusKeyChange ?? (() => undefined)}
+            onActiveStatusKeyChange={
+              onActiveStatusKeyChange ?? (() => undefined)
+            }
             activeStatusEntry={activeStatusEntry}
             activeStatusPct={activeStatusPct}
             periodDescription={periodDescription}
@@ -126,10 +133,13 @@ export function DashboardFinanceCharts({
         </div>
       </section>
 
-      <MonthCalendarChart
+      {/* Calendario mensual 
+        <FinancialCalendar
         branchId={normalizedBranchId}
         navigateToMonth={navigateToMonth}
       />
+      
+      */}
 
       <ProductSeriesPanel branchId={normalizedBranchId} />
       <CustomersSalesTable branchId={normalizedBranchId} />

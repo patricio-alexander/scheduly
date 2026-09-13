@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import ArrowUp from "@gravity-ui/icons/ArrowUp";
 import ArrowDown from "@gravity-ui/icons/ArrowDown";
-import ChartColumn from "@gravity-ui/icons/ChartColumn";
 import Receipt from "@gravity-ui/icons/Receipt";
 import CreditCard from "@gravity-ui/icons/CreditCard";
 import ShoppingCart from "@gravity-ui/icons/ShoppingCart";
@@ -14,6 +13,8 @@ import Clock from "@gravity-ui/icons/Clock";
 import CircleDollar from "@gravity-ui/icons/CircleDollar";
 import type { FinanceHeroSummary } from "@/shared/utils/dashboard-finance-hero";
 import { Skeleton } from "@/shared/components/ui";
+
+const SLIDE_MS = 6000;
 
 function formatCurrency(n: number) {
   return new Intl.NumberFormat("es-CL", {
@@ -47,103 +48,114 @@ const toneBg: Record<Tone, string> = {
   muted: "bg-surface-secondary text-muted",
 };
 
-type HeroCardProps = {
+type MetricCardProps = {
   title: string;
   value: string;
   subtitle: string;
   icon: ReactNode;
   tone?: Tone;
+  primary?: boolean;
+  className?: string;
   footer?: ReactNode;
+  onMouseEnter?: () => void;
+  onMouseLeave?: () => void;
 };
 
-function HeroCard({
+function MetricCard({
   title,
   value,
   subtitle,
   icon,
   tone = "accent",
+  primary = false,
+  className = "",
   footer,
-}: HeroCardProps) {
+  onMouseEnter,
+  onMouseLeave,
+}: MetricCardProps) {
   return (
-    <div className="dashboard-card flex min-h-[7.5rem] flex-col p-3.5 md:p-4">
-      <div className="flex items-start justify-between gap-2">
-        <div className="min-w-0 flex-1">
-          <p className="truncate text-xs font-semibold text-muted">{title}</p>
-          <p
-            className={`mt-1 text-xl font-extrabold tracking-tight tabular-nums md:text-2xl ${toneClass[tone]}`}
-          >
-            {value}
-          </p>
-          <p className="mt-1 line-clamp-2 text-[11px] leading-snug text-muted">
-            {subtitle}
-          </p>
-          {footer}
-        </div>
-        <div
-          className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${toneBg[tone]}`}
-        >
-          {icon}
-        </div>
+    <div
+      className={`dashboard-metric ${
+        primary ? "dashboard-metric--primary" : ""
+      } ${className}`}
+      onMouseEnter={onMouseEnter}
+      onMouseLeave={onMouseLeave}
+    >
+      <div className="dashboard-metric__row">
+        <p className="dashboard-metric__label truncate">{title}</p>
+        <span className={`dashboard-metric__icon ${toneBg[tone]}`}>{icon}</span>
       </div>
+      <p
+        className={`dashboard-metric__value ${
+          primary ? "dashboard-metric__value--xl" : ""
+        } ${toneClass[tone]}`}
+      >
+        {value}
+      </p>
+      <p className="dashboard-metric__hint">{subtitle}</p>
+      {footer}
     </div>
   );
 }
 
-function RotatingHeroCard({
+type Slide = Omit<MetricCardProps, "footer" | "primary" | "className"> & {
+  id: string;
+};
+
+function RotatingMetricCard({
   slides,
+  label,
 }: {
-  slides: Array<Omit<HeroCardProps, "footer"> & { id: string }>;
+  slides: Slide[];
+  label: string;
 }) {
   const [index, setIndex] = useState(0);
-  const [visible, setVisible] = useState(true);
-  const [paused, setPaused] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const [hovered, setHovered] = useState(false);
 
   useEffect(() => {
-    if (paused || slides.length < 2) return;
+    if (pinned || hovered || slides.length < 2) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const id = window.setInterval(() => {
-      setVisible(false);
-      window.setTimeout(() => {
-        setIndex((i) => (i + 1) % slides.length);
-        setVisible(true);
-      }, 160);
-    }, 3000);
+      setIndex((current) => (current + 1) % slides.length);
+    }, SLIDE_MS);
     return () => window.clearInterval(id);
-  }, [paused, slides.length]);
+  }, [pinned, hovered, slides.length]);
 
   const current = slides[index] ?? slides[0];
   if (!current) return null;
 
-  const { id: slideId, title, value, subtitle, icon, tone } = current;
+  const { id, ...card } = current;
 
   return (
-    <div
-      className={`transition-opacity duration-150 ${visible ? "opacity-100" : "opacity-0"}`}
-      onMouseEnter={() => setPaused(true)}
-      onMouseLeave={() => setPaused(false)}
-    >
-      <HeroCard
-        key={slideId}
-        title={title}
-        value={value}
-        subtitle={subtitle}
-        icon={icon}
-        tone={tone}
-        footer={
-          <div className="mt-2 flex gap-1">
-            {slides.map((s, i) => (
-              <span
-                key={s.id}
-                className={`h-1.5 rounded-full transition-all ${
-                  i === index
-                    ? "w-3.5 bg-foreground/70"
-                    : "w-1.5 bg-foreground/25"
-                }`}
-              />
-            ))}
-          </div>
-        }
-      />
-    </div>
+    <MetricCard
+      {...card}
+      key={id}
+      className="dashboard-metric__slide"
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      footer={
+        <div className="dashboard-metric__dots" role="group" aria-label={label}>
+          {slides.map((slide, slideIndex) => (
+            <button
+              key={slide.id}
+              type="button"
+              aria-label={slide.title}
+              aria-pressed={slideIndex === index}
+              className={`dashboard-metric__dot ${
+                slideIndex === index ? "dashboard-metric__dot--active" : ""
+              }`}
+              onClick={() => {
+                setIndex(slideIndex);
+                setPinned(true);
+              }}
+            >
+              <span />
+            </button>
+          ))}
+        </div>
+      }
+    />
   );
 }
 
@@ -153,19 +165,19 @@ type FinanceHeroCardsProps = {
 };
 
 export function FinanceHeroCards({ summary, loading }: FinanceHeroCardsProps) {
-  const marginSlides = useMemo(
+  const marginSlides = useMemo<Slide[]>(
     () => [
       {
         id: "margin",
-        title: "Margen del período",
+        title: "Margen",
         value: formatPct(summary.marginPct),
         subtitle: `Ganancia % · ${summary.periodLabel}`,
-        icon: <Percent width={18} height={18} />,
-        tone: (summary.marginPct >= 0 ? "success" : "danger") as Tone,
+        icon: <Percent width={16} height={16} />,
+        tone: summary.marginPct >= 0 ? "success" : "danger",
       },
       {
         id: "vs",
-        title: "Vs período anterior",
+        title: "Vs anterior",
         value:
           summary.vsPreviousPct == null
             ? "—"
@@ -173,37 +185,36 @@ export function FinanceHeroCards({ summary, loading }: FinanceHeroCardsProps) {
         subtitle:
           summary.vsPreviousPct == null
             ? "Sin base de comparación"
-            : `Balance neto vs período previo`,
-        icon: <CrownDiamond width={18} height={18} />,
-        tone: (
+            : "Balance neto vs período previo",
+        icon: <CrownDiamond width={16} height={16} />,
+        tone:
           summary.vsPreviousPct == null
             ? "muted"
             : summary.vsPreviousPct >= 0
               ? "success"
-              : "danger"
-        ) as Tone,
+              : "danger",
       },
     ],
     [summary],
   );
 
-  const pendingSlides = useMemo(
+  const pendingSlides = useMemo<Slide[]>(
     () => [
       {
         id: "with-pending",
-        title: "Con por cobrar",
+        title: "Margen + cobros",
         value: formatPct(summary.marginWithPendingPct),
-        subtitle: `Caja + por cobrar · ${formatCurrency(summary.pendingReceivable)} · ${summary.periodLabel}`,
-        icon: <Receipt width={18} height={18} />,
-        tone: (summary.marginWithPendingPct >= 0 ? "success" : "danger") as Tone,
+        subtitle: `Caja + por cobrar · ${summary.periodLabel}`,
+        icon: <Receipt width={16} height={16} />,
+        tone: summary.marginWithPendingPct >= 0 ? "success" : "danger",
       },
       {
         id: "expected",
         title: "Balance + cobros",
         value: formatCurrency(summary.balanceWithPending),
         subtitle: `Incluye ${formatCurrency(summary.pendingReceivable)} por cobrar`,
-        icon: <CircleDollar width={18} height={18} />,
-        tone: "info" as Tone,
+        icon: <CircleDollar width={16} height={16} />,
+        tone: "info",
       },
     ],
     [summary],
@@ -211,133 +222,89 @@ export function FinanceHeroCards({ summary, loading }: FinanceHeroCardsProps) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-5">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <Skeleton key={i} className="h-[7.5rem] rounded-2xl" />
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-5">
+        <Skeleton className="col-span-2 h-24 rounded-xl" />
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-24 rounded-xl" />
         ))}
       </div>
     );
   }
 
+  const overload = summary.purchases + summary.commissions;
+
   return (
-    <div className="flex flex-col gap-3 md:gap-4" data-onboarding="dash-finance-hero">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-5">
-        <HeroCard
-          title="Total dinero"
-          value={formatCurrency(summary.balance)}
-          subtitle="Ingresos − gastos del período"
-          icon={<CircleDollar width={18} height={18} />}
-          tone="accent"
-        />
-        <HeroCard
-          title="Ingresos"
-          value={formatCurrency(summary.totalIncome)}
-          subtitle="Ventas e ingresos cobrados"
-          icon={<ArrowUp width={18} height={18} />}
-          tone="success"
-        />
-        <HeroCard
-          title="Gastos"
-          value={formatCurrency(summary.totalExpense)}
-          subtitle="Egresos del ledger (gastos + compras + nómina)"
-          icon={<ArrowDown width={18} height={18} />}
-          tone="danger"
-        />
-        <RotatingHeroCard slides={marginSlides} />
-        <RotatingHeroCard slides={pendingSlides} />
-
-        <HeroCard
-          title="Por cobrar"
-          value={formatCurrency(summary.pendingReceivable)}
-          subtitle="Pendiente de cobro"
-          icon={<Clock width={18} height={18} />}
-          tone="warning"
-        />
-        <HeroCard
-          title="Compras"
-          value={formatCurrency(summary.purchases)}
-          subtitle="Compras del período"
-          icon={<ShoppingCart width={18} height={18} />}
-          tone="danger"
-        />
-        <HeroCard
-          title="Comisiones"
-          value={formatCurrency(summary.commissions)}
-          subtitle="Comisiones del período"
-          icon={<Persons width={18} height={18} />}
-          tone="info"
-        />
-        <HeroCard
-          title="Carga operativa"
-          value={formatCurrency(summary.purchases + summary.commissions)}
-          subtitle="Compras + comisiones"
-          icon={<CreditCard width={18} height={18} />}
-          tone={
-            summary.purchases + summary.commissions > summary.totalIncome
-              ? "danger"
-              : "warning"
-          }
-        />
-        <HeroCard
-          title="Dinero esperado"
-          value={formatCurrency(summary.projectedBalance)}
-          subtitle="Balance + por cobrar"
-          icon={<ChartColumn width={18} height={18} />}
-          tone="info"
-        />
-      </div>
-
-      <div className="dashboard-formula-bar">
-        <FormulaChip
-          label="Balance"
-          value={formatCurrency(summary.balance)}
-          tone="accent"
-        />
-        <Op>+</Op>
-        <FormulaChip
-          label="Por cobrar"
-          value={formatCurrency(summary.pendingReceivable)}
-          tone="warning"
-        />
-        <Op>=</Op>
-        <FormulaChip
-          label="Esperado"
-          value={formatCurrency(summary.projectedBalance)}
-          tone="info"
-          solid
-        />
-      </div>
-    </div>
-  );
-}
-
-function Op({ children }: { children: ReactNode }) {
-  return (
-    <span className="text-sm font-semibold text-muted shrink-0">{children}</span>
-  );
-}
-
-function FormulaChip({
-  label,
-  value,
-  tone,
-  solid,
-}: {
-  label: string;
-  value: string;
-  tone: Tone;
-  solid?: boolean;
-}) {
-  return (
-    <span
-      className={`inline-flex max-w-full items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-bold tabular-nums ${
-        solid
-          ? `${toneBg[tone]} border border-transparent`
-          : `border ${toneClass[tone]} border-current/30 bg-transparent`
-      }`}
+    <div
+      className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-5"
+      data-onboarding="dash-finance-hero"
     >
-      <span className="opacity-80">{label}:</span>
-      <span>{value}</span>
-    </span>
+      <MetricCard
+        primary
+        className="col-span-2"
+        title="Total dinero"
+        value={formatCurrency(summary.balance)}
+        subtitle={`Ingresos − gastos · ${summary.periodLabel}`}
+        icon={<CircleDollar width={18} height={18} />}
+        tone="accent"
+        footer={
+          <p className="dashboard-metric__formula">
+            <span aria-hidden>+</span>
+            <span>por cobrar {formatCurrency(summary.pendingReceivable)}</span>
+            <span aria-hidden>=</span>
+            <span className={`font-semibold ${toneClass.info}`}>
+              esperado {formatCurrency(summary.projectedBalance)}
+            </span>
+          </p>
+        }
+      />
+      <MetricCard
+        title="Ingresos"
+        value={formatCurrency(summary.totalIncome)}
+        subtitle="Ventas e ingresos cobrados"
+        icon={<ArrowUp width={16} height={16} />}
+        tone="success"
+      />
+      <MetricCard
+        title="Gastos"
+        value={formatCurrency(summary.totalExpense)}
+        subtitle="Gastos + compras + nómina"
+        icon={<ArrowDown width={16} height={16} />}
+        tone="danger"
+      />
+      <RotatingMetricCard slides={marginSlides} label="Alternar margen" />
+
+      <RotatingMetricCard
+        slides={pendingSlides}
+        label="Alternar cobros pendientes"
+      />
+      <MetricCard
+        title="Por cobrar"
+        value={formatCurrency(summary.pendingReceivable)}
+        subtitle="Pendiente de cobro"
+        icon={<Clock width={16} height={16} />}
+        tone="warning"
+      />
+      <MetricCard
+        title="Compras"
+        value={formatCurrency(summary.purchases)}
+        subtitle="Compras del período"
+        icon={<ShoppingCart width={16} height={16} />}
+        tone="danger"
+      />
+      <MetricCard
+        title="Comisiones"
+        value={formatCurrency(summary.commissions)}
+        subtitle="Comisiones del período"
+        icon={<Persons width={16} height={16} />}
+        tone="info"
+      />
+      <MetricCard
+        title="Carga operativa"
+        value={formatCurrency(overload)}
+        subtitle="Compras + comisiones"
+        icon={<CreditCard width={16} height={16} />}
+        tone={overload > summary.totalIncome ? "danger" : "warning"}
+      />
+    </div>
   );
 }

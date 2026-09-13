@@ -16,7 +16,6 @@ export const EDDELI_TO_SCHEDULY_TABLE: Record<string, string> = {
   InventoryProduct: "Product",
   InventoryRecipe: "Recipe",
   InventoryMovement: "StockMovement",
-  InventoryBatch: "Batch",
   Store: "Branch",
   CashRegister: "CashRegister",
   StoreExhibidor: "BranchShelf",
@@ -64,6 +63,7 @@ export const EDDELI_TO_SCHEDULY_TABLE: Record<string, string> = {
 
 /** Tablas EdDeli que se ignoran al importar (TV / publicidad / editor). */
 export const EDDELI_SKIPPED_TABLES = [
+  "InventoryBatch",
   "PublicidadCampaign",
   "PublicidadPlaylistItem",
   "PublicidadDevice",

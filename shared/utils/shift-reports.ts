@@ -5,6 +5,10 @@ import {
   resolveProductCommissionPct,
 } from "@/shared/utils/commissions";
 import { movementCategoryLabel } from "@/shared/utils/turno-cash";
+import {
+  defaultMediumCodeForMethod,
+  ensureDefaultPaymentMedia,
+} from "@/shared/utils/payment-media";
 
 const WEEKDAY_SHORT = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
 const WEEKDAY_LONG = [
@@ -106,6 +110,62 @@ function bucketMethod(method: string | null | undefined) {
   if (m === "card" || m === "tarjeta") return "card" as const;
   if (m === "credito") return "other" as const;
   return "cash" as const;
+}
+
+export type PaymentMediumTotal = {
+  id: number;
+  name: string;
+  code: string | null;
+  kind: string;
+  amount: number;
+  count: number;
+};
+
+async function buildPaymentMediumTotals(
+  entries: Array<{
+    paymentMediumId?: number | null;
+    method?: string | null;
+    amount: number;
+  }>,
+): Promise<PaymentMediumTotal[]> {
+  await ensureDefaultPaymentMedia(prisma);
+  const media = await prisma.paymentMedium.findMany({
+    orderBy: [{ position: "asc" }, { name: "asc" }],
+  });
+  const byCode = new Map(media.map((m) => [String(m.code || ""), m]));
+  const totals = new Map<number, { amount: number; count: number }>();
+
+  for (const entry of entries) {
+    const amount = to2(entry.amount);
+    if (amount <= 0) continue;
+    let id = entry.paymentMediumId ?? null;
+    if (!id) {
+      id =
+        byCode.get(defaultMediumCodeForMethod(entry.method || "cash"))?.id ??
+        null;
+    }
+    if (!id) continue;
+    const current = totals.get(id) ?? { amount: 0, count: 0 };
+    current.amount = to2(current.amount + amount);
+    current.count += 1;
+    totals.set(id, current);
+  }
+
+  return media
+    .filter((medium) => {
+      const kind = String(medium.kind || "").toLowerCase();
+      const allowed =
+        kind === "cash" || kind === "card" || kind === "transfer";
+      return allowed && (medium.isActive || totals.has(medium.id));
+    })
+    .map((medium) => ({
+      id: medium.id,
+      name: medium.name,
+      code: medium.code,
+      kind: medium.kind,
+      amount: totals.get(medium.id)?.amount ?? 0,
+      count: totals.get(medium.id)?.count ?? 0,
+    }));
 }
 
 function emptyDaySummary(date: string) {
@@ -242,7 +302,14 @@ const paidAppointmentInclude = {
   customer: {
     select: { name: true, firstLastName: true, secondLastName: true },
   },
-  payment: { select: { amount: true, method: true, paidAt: true } },
+  payment: {
+    select: {
+      amount: true,
+      method: true,
+      paidAt: true,
+      paymentMediumId: true,
+    },
+  },
   services: {
     select: {
       service: { select: { name: true, price: true, commissionPct: true } },
@@ -492,12 +559,31 @@ export async function buildWeeklyShiftReport(dateStr: string) {
     };
   });
 
+  const paymentMedia = await buildPaymentMediumTotals([
+    ...sales.map((sale) => ({
+      paymentMediumId: sale.paymentMediumId,
+      method: sale.paymentMethod,
+      amount: saleTotal(sale.lines),
+    })),
+    ...appointments.flatMap((apt) =>
+      apt.payment
+        ? [
+            {
+              paymentMediumId: apt.payment.paymentMediumId,
+              method: apt.payment.method,
+              amount: toAmount(apt.payment.amount),
+            },
+          ]
+        : [],
+    ),
+  ]);
+
   return {
     weekStart: week.weekStart,
     weekEnd: week.weekEnd,
     anchorDate: week.anchorDate,
     days,
-    summary,
+    summary: { ...summary, paymentMedia },
     employees,
     employeeSummary,
   };
@@ -720,6 +806,30 @@ export async function buildDailyShiftReport(dateStr: string) {
   const employees = sortEmployeeRows([...employeeMap.values()]);
   const employeeSummary = summarizeEmployees(employees);
 
+  const paymentMedia = await buildPaymentMediumTotals([
+    ...sales.map((sale) => ({
+      paymentMediumId: sale.paymentMediumId,
+      method: sale.paymentMethod,
+      amount: saleTotal(
+        sale.lines.map((line) => ({
+          quantity: line.quantity,
+          price: line.price,
+        })),
+      ),
+    })),
+    ...appointments.flatMap((apt) =>
+      apt.payment
+        ? [
+            {
+              paymentMediumId: apt.payment.paymentMediumId,
+              method: apt.payment.method,
+              amount: toAmount(apt.payment.amount),
+            },
+          ]
+        : [],
+    ),
+  ]);
+
   return {
     date,
     summary: {
@@ -736,6 +846,7 @@ export async function buildDailyShiftReport(dateStr: string) {
       cashEnteredTotal: to2(salesCash + cashInMovementsTotal),
       outflowsCount: outflows.length,
       inflowsCount: inflows.length,
+      paymentMedia,
     },
     employeeSummary,
     employees,

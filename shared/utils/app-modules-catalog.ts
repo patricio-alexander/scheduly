@@ -89,6 +89,12 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
         status: "planned",
         description: "Revisión de turnos cerrados y diferencias.",
       },
+      {
+        name: "Vales",
+        path: appRoutes.operation.vouchers,
+        description:
+          "Adelantos de sueldo a empleados, para descontar en la liquidación.",
+      },
     ],
   },
   {
@@ -132,7 +138,7 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
     entitlementKey: "inventory",
     label: "Inventario",
     summary:
-      "Productos, movimientos, categorías, unidades, lotes y valor (multistock permanente).",
+      "Productos, movimientos, categorías, unidades y valor (multistock permanente).",
     sections: [
       {
         name: "Productos",
@@ -159,12 +165,6 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
         name: "Unidades",
         path: appRoutes.inventory.units,
         description: "Unidades de medida (ml, L, und, etc.).",
-      },
-      {
-        name: "Lotes y vencimientos",
-        path: appRoutes.inventory.batches,
-        status: "planned",
-        description: "Lotes con fechas de vencimiento.",
       },
       {
         name: "Inventario valorizado",

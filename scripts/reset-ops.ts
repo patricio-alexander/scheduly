@@ -52,7 +52,6 @@ const WIPE_MODELS = [
   "TaskItem",
   "TaskPlan",
   "StockMovement",
-  "Batch",
   "RecurringExpenseOccurrence",
   "PointTransaction",
   "CustomerLoyalty",

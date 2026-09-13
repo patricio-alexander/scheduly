@@ -136,15 +136,19 @@ function DeltaBadge({
 function DashboardSkeleton() {
   return (
     <div className="flex flex-col gap-4 md:gap-5 lg:gap-6">
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-5">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <Skeleton key={i} className="h-[7.5rem] rounded-2xl" />
+      <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-3 md:grid-cols-5">
+        <Skeleton className="col-span-2 h-24 rounded-xl" />
+        {Array.from({ length: 8 }).map((_, i) => (
+          <Skeleton key={i} className="h-24 rounded-xl" />
         ))}
       </div>
-      <Skeleton className="h-12 rounded-2xl" />
       <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-        <Skeleton className="h-72 rounded-2xl xl:col-span-8" />
-        <Skeleton className="h-72 rounded-2xl xl:col-span-4" />
+        <Skeleton className="h-72 rounded-xl xl:col-span-8" />
+        <Skeleton className="h-72 rounded-xl xl:col-span-4" />
+      </div>
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <Skeleton className="h-64 rounded-xl" />
+        <Skeleton className="h-64 rounded-xl" />
       </div>
     </div>
   );
@@ -226,13 +230,14 @@ function PeriodFilter({
   onChange: (period: DashboardPeriod) => void;
 }) {
   return (
-    <div className="dashboard-period">
+    <div className="dashboard-period" role="group" aria-label="Período">
       {dashboardPeriodOptions.map((periodOption) => {
         const selected = value === periodOption;
         return (
           <button
             key={periodOption}
             type="button"
+            aria-pressed={selected}
             onClick={() => onChange(periodOption)}
             className={`dashboard-period__btn sm:flex-none ${
               selected ? "dashboard-period__btn--active" : ""
@@ -518,19 +523,24 @@ export default function PanelPage() {
           )}
 
           {showRevenue ? (
-            <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
-              <div className="min-w-0 xl:col-span-8">
-                {data?.stockAlerts ? (
+            data?.stockAlerts ? (
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-12">
+                <div className="min-w-0 xl:col-span-8">
                   <StockAlertsPanel alerts={data.stockAlerts} />
-                ) : null}
+                </div>
+                <div className="min-w-0 xl:col-span-4">
+                  <AppointmentStatusSummaryPanel
+                    items={data?.appointmentStatusOverview ?? []}
+                    posMode={posMode}
+                  />
+                </div>
               </div>
-              <div className="min-w-0 xl:col-span-4">
-                <AppointmentStatusSummaryPanel
-                  items={data?.appointmentStatusOverview ?? []}
-                  posMode={posMode}
-                />
-              </div>
-            </div>
+            ) : (
+              <AppointmentStatusSummaryPanel
+                items={data?.appointmentStatusOverview ?? []}
+                posMode={posMode}
+              />
+            )
           ) : null}
 
           {showRevenue ? (

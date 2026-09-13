@@ -34,7 +34,7 @@ type NavigateToMonth = {
   requestId: string | number;
 };
 
-type MonthCalendarChartProps = {
+export type FinancialCalendarProps = {
   initialDate?: Date;
   navigateToMonth?: NavigateToMonth | null;
   branchId?: number | null;
@@ -169,11 +169,11 @@ function ValueStrip({
   );
 }
 
-export function MonthCalendarChart({
+export function FinancialCalendar({
   initialDate,
   navigateToMonth,
   branchId = null,
-}: MonthCalendarChartProps) {
+}: FinancialCalendarProps) {
   const [visibleDate, setVisibleDate] = useState(toMonthStart(initialDate ?? new Date()));
   const [data, setData] = useState<MonthResponse | null>(null);
   const [loading, setLoading] = useState(false);
@@ -431,7 +431,7 @@ export function MonthCalendarChart({
                             key={cell.key}
                             type="button"
                             onClick={() => openDay(day)}
-                            className={`min-h-[7.5rem] rounded-xl border p-2 text-left transition-colors ${
+                            className={`fin-cal-day min-h-[7.5rem] rounded-xl border p-2 text-left ${
                               hasMovement
                                 ? "border-separator bg-surface hover:border-accent/40 hover:bg-surface-secondary/25"
                                 : "border-separator/70 bg-surface-secondary/10 hover:bg-surface-secondary/20"

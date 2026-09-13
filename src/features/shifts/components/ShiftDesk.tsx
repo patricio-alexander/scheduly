@@ -7,6 +7,8 @@ import {
   Input,
   Label,
   ListBox,
+  TextArea,
+  TextField,
   toast,
 } from "@heroui/react";
 import Play from "@gravity-ui/icons/Play";
@@ -84,6 +86,7 @@ function CashArqueoBlock({
               <Label className="mb-1 text-[10px]">{d.label}</Label>
               <Input
                 inputMode="numeric"
+                variant="secondary"
                 value={counts[d.key]}
                 onChange={(e) => onChange(d.key, e.target.value)}
                 placeholder="0"
@@ -101,6 +104,7 @@ function CashArqueoBlock({
               <Label className="mb-1 text-[10px]">{d.label}</Label>
               <Input
                 inputMode="numeric"
+                variant="secondary"
                 value={counts[d.key]}
                 onChange={(e) => onChange(d.key, e.target.value)}
                 placeholder="0"
@@ -132,11 +136,7 @@ function StatCell({
       </p>
       <p
         className={`truncate text-sm font-bold tabular-nums ${
-          highlight
-            ? "text-accent"
-            : danger
-              ? "text-warning"
-              : ""
+          highlight ? "text-accent" : danger ? "text-warning" : ""
         }`}
       >
         {value}
@@ -203,7 +203,9 @@ export function ShiftDesk() {
       const data = (await res.json()) as ActiveShift | null;
       setShift(data);
     } catch (err) {
-      toast.danger(err instanceof Error ? err.message : "Error al cargar turno");
+      toast.danger(
+        err instanceof Error ? err.message : "Error al cargar turno",
+      );
       setShift(null);
     } finally {
       setLoading(false);
@@ -419,7 +421,11 @@ export function ShiftDesk() {
                     {branches
                       .filter((b) => b.isActive)
                       .map((b) => (
-                        <ListBox.Item key={b.id} id={String(b.id)} textValue={b.name}>
+                        <ListBox.Item
+                          key={b.id}
+                          id={String(b.id)}
+                          textValue={b.name}
+                        >
                           {b.name}
                           <ListBox.ItemIndicator />
                         </ListBox.Item>
@@ -430,7 +436,11 @@ export function ShiftDesk() {
             </div>
           ) : branches[0] ? (
             <p className="mb-3 text-xs text-muted">
-              Se abrirá en <strong>{branches.find((b) => String(b.id) === storeId)?.name ?? branches[0].name}</strong>
+              Se abrirá en{" "}
+              <strong>
+                {branches.find((b) => String(b.id) === storeId)?.name ??
+                  branches[0].name}
+              </strong>
             </p>
           ) : (
             <p className="mb-3 text-xs text-warning">
@@ -457,18 +467,21 @@ export function ShiftDesk() {
             </div>
           )}
 
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end">
+          <div className="mt-3 flex flex-col gap-2">
+            <div className="min-w-0 flex-1">
+              <TextField>
+                <Label className="mb-1">Notas (opc.)</Label>
+                <TextArea
+                  variant="secondary"
+                  value={openNotes}
+                  onChange={(e) => setOpenNotes(e.target.value)}
+                  placeholder="Notas de apertura"
+                />
+              </TextField>
+            </div>
             <p className="min-w-[8rem] text-sm font-extrabold text-accent tabular-nums">
               Total: {formatMoney(openTotal)}
             </p>
-            <div className="min-w-0 flex-1">
-              <Label className="mb-1">Notas (opc.)</Label>
-              <Input
-                value={openNotes}
-                onChange={(e) => setOpenNotes(e.target.value)}
-                placeholder="Notas de apertura"
-              />
-            </div>
             <Button
               variant="primary"
               isDisabled={saving || openTotal <= 0}
@@ -722,9 +735,7 @@ export function ShiftDesk() {
                   <p className="text-xs text-muted">Dif.</p>
                   <p
                     className={`text-sm font-bold tabular-nums ${
-                      closeDiff === 0
-                        ? "text-success"
-                        : "text-warning"
+                      closeDiff === 0 ? "text-success" : "text-warning"
                     }`}
                   >
                     {formatMoney(closeDiff)}

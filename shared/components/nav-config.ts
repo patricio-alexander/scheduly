@@ -16,7 +16,6 @@ import ListCheck from "@gravity-ui/icons/ListCheck";
 import ChartColumn from "@gravity-ui/icons/ChartColumn";
 import ArrowDownToLine from "@gravity-ui/icons/ArrowDownToLine";
 import Briefcase from "@gravity-ui/icons/Briefcase";
-import Layers from "@gravity-ui/icons/Layers";
 import Megaphone from "@gravity-ui/icons/Megaphone";
 import CircleDollar from "@gravity-ui/icons/CircleDollar";
 import ArrowRightFromSquare from "@gravity-ui/icons/ArrowRightFromSquare";
@@ -134,6 +133,13 @@ export const navModules: NavModule[] = [
         tourId: "nav-shift",
       },
       {
+        href: appRoutes.operation.vouchers,
+        label: "Vales",
+        icon: HandCoins,
+        tourId: "nav-vouchers",
+        adminOnly: true,
+      },
+      {
         href: appRoutes.employee.myPayroll,
         label: "Mi liquidación",
         icon: CircleDollar,
@@ -239,12 +245,6 @@ export const navModules: NavModule[] = [
         href: appRoutes.inventory.units,
         label: "Unidades",
         icon: Cube,
-      },
-      {
-        href: appRoutes.inventory.batches,
-        label: "Lotes y vencimientos",
-        icon: Layers,
-        adminOnly: true,
       },
       {
         href: appRoutes.inventory.value,

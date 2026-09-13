@@ -6,11 +6,8 @@ import ArrowUp from "@gravity-ui/icons/ArrowUp";
 import ArrowDown from "@gravity-ui/icons/ArrowDown";
 import Clock from "@gravity-ui/icons/Clock";
 import CircleDollar from "@gravity-ui/icons/CircleDollar";
-import Persons from "@gravity-ui/icons/Persons";
-import CreditCard from "@gravity-ui/icons/CreditCard";
 import Percent from "@gravity-ui/icons/Percent";
 import Medal from "@gravity-ui/icons/Medal";
-import ScalesUnbalanced from "@gravity-ui/icons/ScalesUnbalanced";
 import Receipt from "@gravity-ui/icons/Receipt";
 import { formatMoney } from "@/shared/utils/money";
 
@@ -176,13 +173,8 @@ export function FinanceSummaryCards({
   const purchases = Number(summary?.purchases ?? 0);
   const commissions = Number(summary?.commissions ?? 0);
   const collectionsPending = Number(summary?.futureIncome ?? 0);
-  const loansReceivable = Number(summary?.loansReceivable ?? 0);
-  const debtsPayable = Number(summary?.debtsPayable ?? 0);
   const projectedBalance = Number(
-    (
-      summary?.projectedBalance ??
-      balance + collectionsPending + loansReceivable - debtsPayable
-    ).toFixed(2),
+    (summary?.projectedBalance ?? balance + collectionsPending).toFixed(2),
   );
 
   const monthLabel = summary?.monthLabel || "Mes actual";
@@ -203,14 +195,6 @@ export function FinanceSummaryCards({
       ? Number(((monthBalanceWithPending / bestMonthBalance) * 100).toFixed(1))
       : bestMonthBalance === 0 && monthBalanceWithPending === 0
         ? 100
-        : 0;
-
-  const receivableBase = collectionsPending + loansReceivable;
-  const debtVsReceivablePct =
-    receivableBase > 0
-      ? Number(((debtsPayable / receivableBase) * 100).toFixed(1))
-      : debtsPayable > 0
-        ? null
         : 0;
 
   const marginSlides = useMemo(
@@ -254,7 +238,7 @@ export function FinanceSummaryCards({
       {
         title: "Con por cobrar",
         value: fmtPct(monthMarginWithPendingPct),
-        subtitle: `Caja + pedidos · ${formatMoney(collectionsPending)} · ${monthLabel}`,
+        subtitle: `Caja + turnos por cobrar · ${formatMoney(collectionsPending)} · ${monthLabel}`,
         icon: <Receipt width={18} height={18} />,
         tone: (monthMarginWithPendingPct >= 0 ? "success" : "danger") as Tone,
       },
@@ -326,51 +310,16 @@ export function FinanceSummaryCards({
         <RotatingCard slides={marginSlides} />
         <RotatingCard slides={pendingSlides} />
         <SummaryCard
-          title="Por cobrar"
+          title="Turnos por cobrar"
           value={formatMoney(collectionsPending)}
-          subtitle="Pendiente de cobro"
+          subtitle="Turnos con cobro pendiente"
           icon={<Clock width={18} height={18} />}
           tone="warning"
         />
         <SummaryCard
-          title="Préstamos por cobrar"
-          value={formatMoney(loansReceivable)}
-          subtitle="Módulo préstamos y deudas"
-          icon={<Persons width={18} height={18} />}
-          tone="info"
-        />
-        <SummaryCard
-          title="Deudas por pagar"
-          value={formatMoney(debtsPayable)}
-          subtitle="Obligaciones abiertas"
-          icon={<CreditCard width={18} height={18} />}
-          tone="muted"
-        />
-        <SummaryCard
-          title="Deudas vs por cobrar"
-          value={
-            debtVsReceivablePct == null ? "∞" : fmtPct(debtVsReceivablePct)
-          }
-          subtitle={
-            debtVsReceivablePct == null
-              ? "Hay deudas y nada por cobrar"
-              : debtVsReceivablePct > 100
-                ? "Debes más de lo que te deben"
-                : `Deudas ÷ (pedidos + préstamos) · base ${formatMoney(receivableBase)}`
-          }
-          icon={<ScalesUnbalanced width={18} height={18} />}
-          tone={
-            debtVsReceivablePct == null || debtVsReceivablePct > 100
-              ? "danger"
-              : debtVsReceivablePct >= 70
-                ? "warning"
-                : "success"
-          }
-        />
-        <SummaryCard
           title="Dinero esperado"
           value={formatMoney(projectedBalance)}
-          subtitle="Balance + por cobrar − deudas"
+          subtitle="Balance + turnos por cobrar"
           icon={<CircleDollar width={18} height={18} />}
           tone="info"
         />
@@ -378,23 +327,19 @@ export function FinanceSummaryCards({
 
       <div className="flex flex-wrap items-center justify-center gap-1.5 rounded-xl border border-separator bg-surface px-3 py-2.5 text-xs font-semibold">
         <span className="rounded-full border border-accent/40 bg-accent/10 px-2.5 py-1 text-accent">
-          Balance: {formatMoney(balance)}
+          Balance {formatMoney(balance)}
         </span>
-        <span className="text-muted">+</span>
+        <span className="text-muted" aria-hidden>
+          +
+        </span>
         <span className="rounded-full border border-warning/40 bg-warning/10 px-2.5 py-1 text-[var(--warning)]">
-          Por cobrar pedidos: {formatMoney(collectionsPending)}
+          Turnos por cobrar {formatMoney(collectionsPending)}
         </span>
-        <span className="text-muted">+</span>
-        <span className="rounded-full border border-accent/30 bg-accent/10 px-2.5 py-1 text-accent">
-          Préstamos: {formatMoney(loansReceivable)}
+        <span className="text-muted" aria-hidden>
+          =
         </span>
-        <span className="text-muted">−</span>
-        <span className="rounded-full border border-separator bg-surface-secondary px-2.5 py-1 text-muted">
-          Deudas: {formatMoney(debtsPayable)}
-        </span>
-        <span className="text-muted">=</span>
         <span className="rounded-full bg-accent px-2.5 py-1 font-extrabold text-accent-foreground">
-          Esperado: {formatMoney(projectedBalance)}
+          Esperado {formatMoney(projectedBalance)}
         </span>
       </div>
     </div>

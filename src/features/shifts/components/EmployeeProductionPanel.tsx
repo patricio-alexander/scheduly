@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useState } from "react";
+import ChevronDown from "@gravity-ui/icons/ChevronDown";
 import { formatMoney } from "@/shared/utils/money";
 
 export type EmployeeTicket = {
@@ -61,23 +62,37 @@ export function EmployeeProductionPanel({
 
   if (employees.length === 0) {
     return (
-      <p className="py-4 text-center text-xs text-muted">
-        Sin comisiones en este periodo
+      <p className="py-5 text-center text-xs text-muted">
+        Nadie generó comisiones en este periodo
       </p>
     );
   }
 
+  const maxTotal = employees.reduce((max, row) => Math.max(max, row.total), 0);
+
   return (
-    <div className="overflow-x-auto">
-      <table className="w-full min-w-[520px] text-left text-xs">
-        <thead className="border-b border-separator text-[10px] uppercase tracking-wide text-muted">
+    <div className="cash-scroll">
+      <table className="cash-table min-w-[480px]">
+        <thead>
           <tr>
-            <th className="w-8 py-1.5 pr-2 font-medium">#</th>
-            <th className="py-1.5 font-medium">Empleado</th>
-            <th className="py-1.5 text-right font-medium text-accent">Se</th>
-            <th className="py-1.5 text-right font-medium text-sky-500">Pr</th>
-            <th className="py-1.5 text-right font-medium">Comisiones</th>
-            <th className="py-1.5 pl-2 text-right font-medium">Tk</th>
+            <th className="hidden w-7 pr-2 sm:table-cell">#</th>
+            <th>Empleado</th>
+            <th
+              className="text-right text-accent"
+              title="Comisión por servicios"
+            >
+              Servicios
+            </th>
+            <th
+              className="text-right text-sky-500"
+              title="Comisión por productos"
+            >
+              Productos
+            </th>
+            <th className="text-right">Comisiones</th>
+            <th className="pl-2 text-right" title="Tickets cobrados">
+              Tickets
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -85,33 +100,61 @@ export function EmployeeProductionPanel({
             const open = showTickets && expandedId === row.personId;
             const tickets = row.tickets ?? [];
             const clickable = showTickets && tickets.length > 0;
+            const share = maxTotal > 0 ? (row.total / maxTotal) * 100 : 0;
+            const toggle = () => {
+              if (!clickable) return;
+              setExpandedId(open ? null : row.personId);
+            };
             return (
               <Fragment key={row.personId}>
                 <tr
-                  className={`border-b border-separator/60 ${
-                    clickable ? "cursor-pointer hover:bg-surface-secondary/50" : ""
-                  } ${open ? "bg-accent/5" : ""}`}
-                  onClick={() => {
-                    if (!clickable) return;
-                    setExpandedId(open ? null : row.personId);
-                  }}
+                  className={`cash-row ${clickable ? "cash-row--clickable" : ""} ${
+                    open ? "cash-row--open" : ""
+                  }`}
+                  onClick={toggle}
                 >
-                  <td className="py-1.5 pr-2 tabular-nums text-muted">
+                  <td className="hidden pr-2 tabular-nums text-muted sm:table-cell">
                     {index + 1}
                   </td>
-                  <td className="max-w-[10rem] truncate py-1.5 font-medium">
-                    {row.name}
+                  <td className="max-w-[11rem]">
+                    <div className="flex min-w-0 items-center gap-1">
+                      {clickable ? (
+                        <button
+                          type="button"
+                          className={`cash-chevron ${open ? "cash-chevron--open" : ""}`}
+                          aria-expanded={open}
+                          aria-label={`${open ? "Ocultar" : "Ver"} tickets de ${row.name}`}
+                          onClick={(event) => {
+                            event.stopPropagation();
+                            toggle();
+                          }}
+                        >
+                          <ChevronDown width={12} height={12} />
+                        </button>
+                      ) : (
+                        <span className="w-4 shrink-0" aria-hidden />
+                      )}
+                      <span className="truncate font-medium">{row.name}</span>
+                    </div>
+                    {share > 0 ? (
+                      <span className="cash-share" aria-hidden>
+                        <span
+                          className="cash-share__fill"
+                          style={{ width: `${share}%` }}
+                        />
+                      </span>
+                    ) : null}
                   </td>
-                  <td className="py-1.5 text-right tabular-nums text-accent">
+                  <td className="text-right tabular-nums text-accent">
                     {formatMoney(row.servicesTotal)}
                   </td>
-                  <td className="py-1.5 text-right tabular-nums text-sky-500">
+                  <td className="text-right tabular-nums text-sky-500">
                     {formatMoney(row.productsTotal)}
                   </td>
-                  <td className="py-1.5 text-right font-semibold tabular-nums">
+                  <td className="text-right font-semibold tabular-nums">
                     {formatMoney(row.total)}
                   </td>
-                  <td className="py-1.5 pl-2 text-right tabular-nums text-muted">
+                  <td className="pl-2 text-right tabular-nums text-muted">
                     {row.ticketsCount}
                   </td>
                 </tr>
@@ -119,14 +162,18 @@ export function EmployeeProductionPanel({
                   ? tickets.map((ticket, ticketIndex) => (
                       <tr
                         key={`${ticket.source}-${ticket.id}`}
-                        className="border-b border-separator/40 bg-surface-secondary/30 text-[11px]"
+                        className="cash-subrow"
                       >
-                        <td className="py-1 pr-2 text-muted">{ticketIndex + 1}</td>
-                        <td className="py-1">
-                          <span className="font-medium">{ticket.customerName}</span>
+                        <td className="hidden pr-2 text-muted sm:table-cell">
+                          {ticketIndex + 1}
+                        </td>
+                        <td className="pl-5">
+                          <span className="font-medium">
+                            {ticket.customerName}
+                          </span>
                           <span className="ml-1.5 text-muted">
                             {ticketTime(ticket.paidAt)} ·{" "}
-                            {ticket.source === "turno" ? "turno" : "tienda"}
+                            {ticket.source === "turno" ? "turno" : "venta"}
                           </span>
                           {ticket.itemsSummary ? (
                             <span className="mt-0.5 block truncate text-[10px] text-muted">
@@ -134,13 +181,13 @@ export function EmployeeProductionPanel({
                             </span>
                           ) : null}
                         </td>
-                        <td className="py-1 text-right tabular-nums text-accent">
+                        <td className="text-right tabular-nums text-accent">
                           {formatMoney(ticket.services)}
                         </td>
-                        <td className="py-1 text-right tabular-nums text-sky-500">
+                        <td className="text-right tabular-nums text-sky-500">
                           {formatMoney(ticket.products)}
                         </td>
-                        <td className="py-1 text-right tabular-nums">
+                        <td className="text-right tabular-nums">
                           {formatMoney(ticket.total)}
                         </td>
                         <td />
@@ -150,26 +197,33 @@ export function EmployeeProductionPanel({
               </Fragment>
             );
           })}
-          {summary ? (
-            <tr className="border-t border-separator font-semibold">
-              <td className="py-1.5" colSpan={2}>
-                Comisiones
+        </tbody>
+        {summary ? (
+          <tfoot>
+            <tr>
+              <td className="hidden sm:table-cell" />
+              <td>
+                Total comisiones
+                <span className="ml-1 font-normal text-muted">
+                  {summary.employeesCount}{" "}
+                  {summary.employeesCount === 1 ? "persona" : "personas"}
+                </span>
               </td>
-              <td className="py-1.5 text-right tabular-nums text-accent">
+              <td className="text-right tabular-nums text-accent">
                 {formatMoney(summary.servicesTotal)}
               </td>
-              <td className="py-1.5 text-right tabular-nums text-sky-500">
+              <td className="text-right tabular-nums text-sky-500">
                 {formatMoney(summary.productsTotal)}
               </td>
-              <td className="py-1.5 text-right tabular-nums">
+              <td className="text-right tabular-nums">
                 {formatMoney(summary.total)}
               </td>
-              <td className="py-1.5 pl-2 text-right tabular-nums text-muted">
+              <td className="pl-2 text-right tabular-nums text-muted">
                 {summary.ticketsCount}
               </td>
             </tr>
-          ) : null}
-        </tbody>
+          </tfoot>
+        ) : null}
       </table>
     </div>
   );

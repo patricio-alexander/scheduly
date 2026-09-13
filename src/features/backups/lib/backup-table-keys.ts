@@ -17,7 +17,6 @@ export const BACKUP_TABLE_KEYS = [
   "Product",
   "Recipe",
   "StockMovement",
-  "Batch",
   "Branch",
   "CashRegister",
   "BranchShelf",

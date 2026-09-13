@@ -1,7 +1,13 @@
 "use client";
 
-import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Button, toast } from "@heroui/react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { Button } from "@heroui/react";
 import ArrowChevronLeft from "@gravity-ui/icons/ArrowChevronLeft";
 import ArrowChevronRight from "@gravity-ui/icons/ArrowChevronRight";
 import { apiUrl } from "@/shared/utils/api";
@@ -16,6 +22,8 @@ import type {
 
 type PeriodView = "week" | "day";
 
+type DailyTab = "empleados" | "gastos";
+
 type WeekDay = {
   date: string;
   weekday: string;
@@ -28,30 +36,38 @@ type WeekDay = {
   ordersCount: number;
 };
 
+type PaymentMediumTotal = {
+  id: number;
+  name: string;
+  kind?: string;
+  amount: number;
+  count: number;
+};
+
+type CashSummary = {
+  openingCashTotal: number;
+  closingCashTotal: number;
+  salesTotal: number;
+  salesCash?: number;
+  salesTransfer?: number;
+  salesCard?: number;
+  cashOutTotal: number;
+  ordersCount: number;
+  paymentMedia?: PaymentMediumTotal[];
+};
+
 type WeeklyReport = {
   weekStart: string;
   weekEnd: string;
   days: WeekDay[];
-  summary: {
-    openingCashTotal: number;
-    closingCashTotal: number;
-    salesTotal: number;
-    cashOutTotal: number;
-    ordersCount: number;
-  };
+  summary: CashSummary;
   employees?: EmployeeProduction[];
   employeeSummary?: EmployeeProductionTotals;
 };
 
 type DailyReport = {
   date: string;
-  summary: {
-    openingCashTotal: number;
-    closingCashTotal: number;
-    salesTotal: number;
-    cashOutTotal: number;
-    ordersCount: number;
-  };
+  summary: CashSummary;
   employeeSummary?: EmployeeProductionTotals;
   employees?: EmployeeProduction[];
   shifts: Array<{
@@ -136,6 +152,17 @@ function dayNumber(dateStr: string) {
   return new Date(`${dateStr}T12:00:00`).getDate();
 }
 
+function shortTime(iso: string) {
+  try {
+    return new Date(iso).toLocaleTimeString("es-EC", {
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  } catch {
+    return "—";
+  }
+}
+
 export function CashSupervision() {
   const { user } = useAuth();
   const canView = user ? isManagementRole(user.role) : false;
@@ -147,15 +174,15 @@ export function CashSupervision() {
   const [daily, setDaily] = useState<DailyReport | null>(null);
   const [loadingWeek, setLoadingWeek] = useState(true);
   const [loadingDay, setLoadingDay] = useState(true);
-  const [tab, setTab] = useState<"empleados" | "gastos" | "ventas">(
-    "empleados",
-  );
-  const [expandedSale, setExpandedSale] = useState<number | null>(null);
+  const [weekError, setWeekError] = useState<string | null>(null);
+  const [dayError, setDayError] = useState<string | null>(null);
+  const [tab, setTab] = useState<DailyTab>("empleados");
   const selectedDateRef = useRef(selectedDate);
   selectedDateRef.current = selectedDate;
 
   const loadWeekly = useCallback(async (anchor: string, keepDate?: string) => {
     setLoadingWeek(true);
+    setWeekError(null);
     try {
       const res = await fetch(
         apiUrl(`/api/shifts/reports/weekly?date=${encodeURIComponent(anchor)}`),
@@ -163,15 +190,16 @@ export function CashSupervision() {
       if (!res.ok) throw new Error("No se pudo cargar la semana");
       const data = (await res.json()) as WeeklyReport;
       setWeekly(data);
-      const keep =
-        keepDate && data.days.some((day) => day.date === keepDate);
+      const keep = keepDate && data.days.some((day) => day.date === keepDate);
       if (!keep) {
         const today = todayKey();
         const todayInWeek = data.days.some((day) => day.date === today);
         setSelectedDate(todayInWeek ? today : data.days[0]?.date ?? anchor);
       }
     } catch (err) {
-      toast.danger(err instanceof Error ? err.message : "Error semanal");
+      setWeekError(
+        err instanceof Error ? err.message : "No se pudo cargar la semana",
+      );
       setWeekly(null);
     } finally {
       setLoadingWeek(false);
@@ -180,7 +208,7 @@ export function CashSupervision() {
 
   const loadDaily = useCallback(async (date: string) => {
     setLoadingDay(true);
-    setExpandedSale(null);
+    setDayError(null);
     try {
       const res = await fetch(
         apiUrl(`/api/shifts/reports/daily?date=${encodeURIComponent(date)}`),
@@ -188,7 +216,9 @@ export function CashSupervision() {
       if (!res.ok) throw new Error("No se pudo cargar el día");
       setDaily((await res.json()) as DailyReport);
     } catch (err) {
-      toast.danger(err instanceof Error ? err.message : "Error diario");
+      setDayError(
+        err instanceof Error ? err.message : "No se pudo cargar el día",
+      );
       setDaily(null);
     } finally {
       setLoadingDay(false);
@@ -248,7 +278,7 @@ export function CashSupervision() {
 
   if (!canView) {
     return (
-      <div className="rounded-2xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm">
+      <div className="rounded-xl border border-warning/30 bg-warning/10 px-4 py-3 text-sm">
         Solo dueño/administración pueden ver la supervisión de caja.
       </div>
     );
@@ -257,12 +287,19 @@ export function CashSupervision() {
   return (
     <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-2.5">
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="mr-auto text-lg font-bold tracking-tight">
-          Supervisión de caja
-        </h1>
-        <div className="dashboard-period">
+        <div className="mr-auto min-w-0">
+          <h1 className="truncate text-lg font-bold tracking-tight">
+            Supervisión de caja
+          </h1>
+          <p className="text-[11px] text-muted">
+            Ventas, gastos y comisiones del local
+          </p>
+        </div>
+
+        <div className="dashboard-period" role="group" aria-label="Periodo">
           <button
             type="button"
+            aria-pressed={view === "week"}
             className={`dashboard-period__btn !px-3 !py-1 ${
               view === "week" ? "dashboard-period__btn--active" : ""
             }`}
@@ -272,6 +309,7 @@ export function CashSupervision() {
           </button>
           <button
             type="button"
+            aria-pressed={view === "day"}
             className={`dashboard-period__btn !px-3 !py-1 ${
               view === "day" ? "dashboard-period__btn--active" : ""
             }`}
@@ -280,6 +318,7 @@ export function CashSupervision() {
             Día
           </button>
         </div>
+
         <div className="flex items-center gap-1">
           <Button
             isIconOnly
@@ -290,7 +329,10 @@ export function CashSupervision() {
           >
             <ArrowChevronLeft width={14} height={14} />
           </Button>
-          <p className="min-w-[7.5rem] text-center text-xs font-semibold capitalize">
+          <p
+            aria-live="polite"
+            className="min-w-[8.5rem] text-center text-xs font-semibold capitalize"
+          >
             {view === "week" ? weekLabel : formatDayTitle(selectedDate)}
           </p>
           <Button
@@ -317,53 +359,177 @@ export function CashSupervision() {
         <WeeklyView
           weekly={weekly}
           loading={loadingWeek}
+          error={weekError}
           selectedDate={selectedDate}
           onOpenDay={openDay}
+          onRetry={() => void loadWeekly(weekAnchor, selectedDateRef.current)}
         />
       ) : (
         <DailyView
           weekly={weekly}
           daily={daily}
           loading={loadingDay}
+          error={dayError}
           selectedDate={selectedDate}
           tab={tab}
           onTab={setTab}
           onOpenDay={openDay}
-          expandedSale={expandedSale}
-          onExpandSale={setExpandedSale}
+          onRetry={() => void loadDaily(selectedDate)}
         />
       )}
     </div>
   );
 }
 
-function MetricsBar({
-  commissions,
-  services,
-  products,
-  expenses,
+function Metric({
+  label,
+  value,
+  hint,
+  tone,
+  primary = false,
 }: {
-  commissions: number;
-  services: number;
-  products: number;
-  expenses: number;
+  label: string;
+  value: number;
+  hint?: string;
+  tone?: "accent" | "success" | "danger" | "warning";
+  primary?: boolean;
 }) {
+  const toneClass =
+    tone === "accent"
+      ? "text-accent"
+      : tone === "success"
+        ? "text-success"
+        : tone === "danger"
+          ? "text-danger"
+          : tone === "warning"
+            ? "text-warning"
+            : "";
   return (
-    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-0.5 text-xs">
-      <span>
-        <span className="text-muted">Comisiones </span>
-        <span className="font-bold tabular-nums">{formatMoney(commissions)}</span>
+    <div className={`cash-metric ${primary ? "cash-metric--primary" : ""}`}>
+      <span className="cash-metric__label">{label}</span>
+      <span
+        className={`cash-metric__value ${
+          primary ? "cash-metric__value--xl" : ""
+        } ${toneClass}`}
+      >
+        {formatMoney(value)}
       </span>
-      <span className="text-accent">
-        Se <span className="font-semibold tabular-nums">{formatMoney(services)}</span>
-      </span>
-      <span className="text-sky-500">
-        Pr <span className="font-semibold tabular-nums">{formatMoney(products)}</span>
-      </span>
-      <span className="text-danger">
-        Gastos{" "}
-        <span className="font-semibold tabular-nums">{formatMoney(expenses)}</span>
-      </span>
+      {hint ? <span className="cash-metric__hint">{hint}</span> : null}
+    </div>
+  );
+}
+
+function fallbackMedia(summary: CashSummary): PaymentMediumTotal[] {
+  return [
+    {
+      id: -1,
+      name: "Efectivo",
+      kind: "cash",
+      amount: Number(summary.salesCash ?? 0),
+      count: 0,
+    },
+    {
+      id: -2,
+      name: "Tarjeta",
+      kind: "card",
+      amount: Number(summary.salesCard ?? 0),
+      count: 0,
+    },
+    {
+      id: -3,
+      name: "Transferencia",
+      kind: "transfer",
+      amount: Number(summary.salesTransfer ?? 0),
+      count: 0,
+    },
+  ];
+}
+
+function isMoneyMedium(kind?: string) {
+  const value = String(kind || "").toLowerCase();
+  return value === "cash" || value === "card" || value === "transfer";
+}
+
+function MetricsBar({
+  summary,
+  commissions,
+  tickets,
+}: {
+  summary: CashSummary;
+  commissions: number;
+  tickets?: number;
+}) {
+  const sales = summary.salesTotal;
+  const expenses = summary.cashOutTotal;
+  const net = sales - expenses;
+  const orders = tickets ?? summary.ordersCount;
+  const media = (
+    summary.paymentMedia && summary.paymentMedia.length > 0
+      ? summary.paymentMedia
+      : fallbackMedia(summary)
+  ).filter((medium) => isMoneyMedium(medium.kind));
+  const mediaTotal = media.reduce((sum, item) => sum + item.amount, 0);
+  return (
+    <div className="flex flex-col gap-1.5">
+      <div className="cash-metrics">
+        <Metric
+          primary
+          label="Ventas"
+          value={sales}
+          hint={
+            orders
+              ? `${orders} venta${orders === 1 ? "" : "s"}`
+              : undefined
+          }
+          tone="accent"
+        />
+        <Metric
+          label="Gastos"
+          value={expenses}
+          hint={expenses > 0 ? "Salidas de caja" : "Sin egresos"}
+          tone="danger"
+        />
+        <Metric
+          label="Neto"
+          value={net}
+          hint="Ventas − gastos"
+          tone={net >= 0 ? "success" : "danger"}
+        />
+        <Metric
+          label="Comisiones"
+          value={commissions}
+          hint={
+            tickets
+              ? `${tickets} ticket${tickets === 1 ? "" : "s"}`
+              : undefined
+          }
+          tone="warning"
+        />
+      </div>
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+        Medios de pago
+      </p>
+      <div className="cash-methods">
+        {media.map((medium) => {
+          const share =
+            mediaTotal > 0 ? Math.round((medium.amount / mediaTotal) * 100) : 0;
+          return (
+            <Metric
+              key={medium.id}
+              label={medium.name}
+              value={medium.amount}
+              hint={
+                medium.count > 0
+                  ? `${medium.count} cobro${medium.count === 1 ? "" : "s"} · ${share}%`
+                  : mediaTotal > 0
+                    ? `${share}%`
+                    : "Sin cobros"
+              }
+              tone={medium.amount > 0 ? "accent" : undefined}
+            />
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -384,16 +550,21 @@ function DayStrip({
       {days.map((day) => {
         const selected = day.date === selectedDate;
         const isToday = day.date === todayKey();
+        const future = day.date > todayKey();
         return (
           <button
             key={day.date}
             type="button"
-            className={`cash-day-chip ${selected ? "cash-day-chip--active" : ""}`}
+            aria-current={selected ? "date" : undefined}
+            title={`${day.weekday} ${day.dateLabel} · ventas ${formatMoney(day.salesTotal)}`}
+            className={`cash-day-chip ${selected ? "cash-day-chip--active" : ""} ${
+              future && !selected ? "cash-day-chip--empty" : ""
+            }`}
             onClick={() => onOpenDay(day.date)}
           >
+            {isToday ? <span className="cash-day-chip__today" aria-hidden /> : null}
             <p className="text-[9px] font-semibold uppercase leading-none text-muted">
               {day.weekdayShort}
-              {isToday ? "*" : ""}
             </p>
             <p className="mt-0.5 text-sm font-bold leading-none tabular-nums">
               {dayNumber(day.date)}
@@ -410,49 +581,154 @@ function DayStrip({
   );
 }
 
+function PanelSkeleton({
+  rows = 5,
+  showStrip = false,
+}: {
+  rows?: number;
+  showStrip?: boolean;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-col gap-1.5">
+        <div className="cash-metrics">
+          {Array.from({ length: 4 }).map((_, index) => (
+            <div key={index} className="cash-skeleton h-9" />
+          ))}
+        </div>
+        <div className="cash-methods">
+          {Array.from({ length: 6 }).map((_, index) => (
+            <div key={index} className="cash-skeleton h-9" />
+          ))}
+        </div>
+      </div>
+      {showStrip ? (
+        <div className="cash-day-strip">
+          {Array.from({ length: 7 }).map((_, index) => (
+            <div key={index} className="cash-skeleton h-10" />
+          ))}
+        </div>
+      ) : null}
+      <div className="flex flex-col gap-1.5 pt-1">
+
+        {Array.from({ length: rows }).map((_, index) => (
+          <div key={index} className="cash-skeleton h-5" />
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function ErrorState({
+  message,
+  onRetry,
+}: {
+  message: string;
+  onRetry: () => void;
+}) {
+  return (
+    <div className="flex flex-col items-center gap-2 py-6 text-center">
+      <p className="text-xs text-danger">{message}</p>
+      <Button size="sm" variant="secondary" onPress={onRetry}>
+        Reintentar
+      </Button>
+    </div>
+  );
+}
+
+function TabButton({
+  active,
+  count,
+  label,
+  tab,
+  onPress,
+}: {
+  active: boolean;
+  count: number;
+  label: string;
+  tab: DailyTab;
+  onPress: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="tab"
+      id={`cash-tab-${tab}`}
+      aria-selected={active}
+      aria-controls="cash-tabpanel"
+      className={`dashboard-period__btn !px-2.5 !py-1 ${
+        active ? "dashboard-period__btn--active" : ""
+      }`}
+      onClick={onPress}
+    >
+      {label}
+      <span className="ml-1 text-[10px] text-muted">{count}</span>
+    </button>
+  );
+}
+
 function WeeklyView({
   weekly,
   loading,
+  error,
   selectedDate,
   onOpenDay,
+  onRetry,
 }: {
   weekly: WeeklyReport | null;
   loading: boolean;
+  error: string | null;
   selectedDate: string;
   onOpenDay: (date: string) => void;
+  onRetry: () => void;
 }) {
-  if (loading) {
-    return <p className="py-6 text-center text-xs text-muted">Cargando…</p>;
-  }
-  if (!weekly) {
-    return <p className="py-6 text-center text-xs text-muted">Sin datos</p>;
-  }
-
-  const commissions = weekly.employeeSummary;
-
   return (
-    <section className="rounded-xl border border-separator bg-surface p-3">
-      <MetricsBar
-        commissions={commissions?.total ?? 0}
-        services={commissions?.servicesTotal ?? 0}
-        products={commissions?.productsTotal ?? 0}
-        expenses={weekly.summary.cashOutTotal}
-      />
-      <div className="mt-2">
-        <DayStrip
-          days={weekly.days}
-          selectedDate={selectedDate}
-          onOpenDay={onOpenDay}
-          showAmounts
-        />
-      </div>
-      <div className="mt-2 border-t border-separator pt-2">
-        <EmployeeProductionPanel
-          key={weekly.weekStart}
-          employees={weekly.employees ?? []}
-          summary={weekly.employeeSummary ?? null}
-        />
-      </div>
+    <section className="cash-card">
+      {loading ? (
+        <PanelSkeleton rows={6} showStrip />
+      ) : error ? (
+        <ErrorState message={error} onRetry={onRetry} />
+      ) : !weekly ? (
+        <p className="py-6 text-center text-xs text-muted">Sin datos</p>
+      ) : (
+        <>
+          <MetricsBar
+            summary={weekly.summary}
+            commissions={weekly.employeeSummary?.total ?? 0}
+            tickets={weekly.employeeSummary?.ticketsCount}
+          />
+          <p className="cash-formula mt-1.5">
+            <span>Ventas {formatMoney(weekly.summary.salesTotal)}</span>
+            <span aria-hidden>−</span>
+            <span>gastos {formatMoney(weekly.summary.cashOutTotal)}</span>
+            <span aria-hidden>=</span>
+            <span className="font-semibold text-success">
+              neto{" "}
+              {formatMoney(
+                weekly.summary.salesTotal - weekly.summary.cashOutTotal,
+              )}
+            </span>
+          </p>
+          <div className="mt-2">
+            <DayStrip
+              days={weekly.days}
+              selectedDate={selectedDate}
+              onOpenDay={onOpenDay}
+              showAmounts
+            />
+            <p className="mt-1 text-[10px] text-muted">
+              Ventas por día · tocá un día para ver el detalle
+            </p>
+          </div>
+          <div className="mt-2 border-t border-separator pt-2">
+            <EmployeeProductionPanel
+              key={weekly.weekStart}
+              employees={weekly.employees ?? []}
+              summary={weekly.employeeSummary ?? null}
+            />
+          </div>
+        </>
+      )}
     </section>
   );
 }
@@ -461,25 +737,25 @@ function DailyView({
   weekly,
   daily,
   loading,
+  error,
   selectedDate,
   tab,
   onTab,
   onOpenDay,
-  expandedSale,
-  onExpandSale,
+  onRetry,
 }: {
   weekly: WeeklyReport | null;
   daily: DailyReport | null;
   loading: boolean;
+  error: string | null;
   selectedDate: string;
-  tab: "empleados" | "gastos" | "ventas";
-  onTab: (tab: "empleados" | "gastos" | "ventas") => void;
+  tab: DailyTab;
+  onTab: (tab: DailyTab) => void;
   onOpenDay: (date: string) => void;
-  expandedSale: number | null;
-  onExpandSale: (id: number | null) => void;
+  onRetry: () => void;
 }) {
   return (
-    <section className="rounded-xl border border-separator bg-surface p-3">
+    <section className="cash-card">
       {weekly?.days?.length ? (
         <DayStrip
           days={weekly.days}
@@ -489,58 +765,62 @@ function DailyView({
       ) : null}
 
       {loading ? (
-        <p className="py-6 text-center text-xs text-muted">Cargando…</p>
+        <div className="mt-2">
+          <PanelSkeleton rows={5} />
+        </div>
+      ) : error ? (
+        <ErrorState message={error} onRetry={onRetry} />
       ) : !daily ? (
         <p className="py-6 text-center text-xs text-muted">Sin datos del día</p>
       ) : (
         <>
           <div className="mt-2">
             <MetricsBar
+              summary={daily.summary}
               commissions={daily.employeeSummary?.total ?? 0}
-              services={daily.employeeSummary?.servicesTotal ?? 0}
-              products={daily.employeeSummary?.productsTotal ?? 0}
-              expenses={daily.summary.cashOutTotal}
+              tickets={daily.employeeSummary?.ticketsCount}
             />
           </div>
-          <p className="mt-1 text-[11px] text-muted">
-            Caja {formatMoney(daily.summary.openingCashTotal)} + ventas{" "}
-            {formatMoney(daily.summary.salesTotal)} ≈{" "}
+
+          <p className="cash-formula mt-1.5">
+            <span>
+              Caja inicial {formatMoney(daily.summary.openingCashTotal)}
+            </span>
+            <span aria-hidden>+</span>
+            <span>ventas {formatMoney(daily.summary.salesTotal)}</span>
+            <span aria-hidden>=</span>
             <span className="font-semibold text-warning">
-              {formatMoney(daily.summary.closingCashTotal)}
+              cierre {formatMoney(daily.summary.closingCashTotal)}
             </span>
           </p>
 
-          <div className="dashboard-period mt-2 w-full">
-            <button
-              type="button"
-              className={`dashboard-period__btn !px-2.5 !py-1 ${
-                tab === "empleados" ? "dashboard-period__btn--active" : ""
-              }`}
-              onClick={() => onTab("empleados")}
-            >
-              Empleados ({daily.employees?.length ?? 0})
-            </button>
-            <button
-              type="button"
-              className={`dashboard-period__btn !px-2.5 !py-1 ${
-                tab === "gastos" ? "dashboard-period__btn--active" : ""
-              }`}
-              onClick={() => onTab("gastos")}
-            >
-              Gastos ({daily.outflows.length})
-            </button>
-            <button
-              type="button"
-              className={`dashboard-period__btn !px-2.5 !py-1 ${
-                tab === "ventas" ? "dashboard-period__btn--active" : ""
-              }`}
-              onClick={() => onTab("ventas")}
-            >
-              Tienda ({daily.sales.length})
-            </button>
+          <div
+            className="dashboard-period mt-2 w-full"
+            role="tablist"
+            aria-label="Detalle del día"
+          >
+            <TabButton
+              label="Empleados"
+              tab="empleados"
+              count={daily.employees?.length ?? 0}
+              active={tab === "empleados"}
+              onPress={() => onTab("empleados")}
+            />
+            <TabButton
+              label="Gastos"
+              tab="gastos"
+              count={daily.outflows.length}
+              active={tab === "gastos"}
+              onPress={() => onTab("gastos")}
+            />
           </div>
 
-          <div className="mt-2">
+          <div
+            className="mt-2"
+            role="tabpanel"
+            id="cash-tabpanel"
+            aria-labelledby={`cash-tab-${tab}`}
+          >
             {tab === "empleados" ? (
               <EmployeeProductionPanel
                 key={daily.date}
@@ -548,91 +828,8 @@ function DailyView({
                 summary={daily.employeeSummary ?? null}
                 showTickets
               />
-            ) : tab === "gastos" ? (
-              daily.outflows.length === 0 ? (
-                <p className="py-4 text-center text-xs text-muted">Sin gastos</p>
-              ) : (
-                <table className="w-full text-xs">
-                  <tbody>
-                    {daily.outflows.map((movement) => (
-                      <tr
-                        key={movement.id}
-                        className="border-b border-separator/50 last:border-0"
-                      >
-                        <td className="whitespace-nowrap py-1.5 text-muted">
-                          {new Date(movement.createdAt).toLocaleTimeString(
-                            "es-EC",
-                            { hour: "2-digit", minute: "2-digit" },
-                          )}
-                        </td>
-                        <td className="py-1.5">
-                          {movement.categoryLabel}
-                          {movement.concept ? ` · ${movement.concept}` : ""}
-                          <span className="ml-1 text-muted">
-                            {movement.operatorName}
-                          </span>
-                        </td>
-                        <td className="py-1.5 text-right font-semibold tabular-nums text-danger">
-                          −{formatMoney(movement.amount)}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )
-            ) : daily.sales.length === 0 ? (
-              <p className="py-4 text-center text-xs text-muted">
-                Sin ventas de tienda
-              </p>
             ) : (
-              <table className="w-full text-xs">
-                <tbody>
-                  {daily.sales.map((sale) => {
-                    const open = expandedSale === sale.id;
-                    return (
-                      <Fragment key={sale.id}>
-                        <tr
-                          className="cursor-pointer border-b border-separator/50 hover:bg-surface-secondary/40"
-                          onClick={() => onExpandSale(open ? null : sale.id)}
-                        >
-                          <td className="whitespace-nowrap py-1.5 text-muted">
-                            {new Date(sale.paidAt).toLocaleTimeString("es-EC", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                            })}
-                          </td>
-                          <td className="max-w-[12rem] truncate py-1.5">
-                            {sale.customerName || "Cliente"}
-                            <span className="ml-1 text-muted">
-                              {sale.operatorName}
-                            </span>
-                          </td>
-                          <td className="py-1.5 text-right font-semibold tabular-nums text-success">
-                            {formatMoney(sale.total)}
-                          </td>
-                        </tr>
-                        {open
-                          ? sale.items.map((item) => (
-                              <tr
-                                key={item.id}
-                                className="border-b border-separator/40 bg-surface-secondary/30"
-                              >
-                                <td />
-                                <td className="py-1 text-muted">
-                                  {item.name}
-                                  {item.quantity > 1 ? ` ×${item.quantity}` : ""}
-                                </td>
-                                <td className="py-1 text-right tabular-nums">
-                                  {formatMoney(item.lineTotal)}
-                                </td>
-                              </tr>
-                            ))
-                          : null}
-                      </Fragment>
-                    );
-                  })}
-                </tbody>
-              </table>
+              <OutflowsTable outflows={daily.outflows} />
             )}
           </div>
 
@@ -654,3 +851,55 @@ function DailyView({
     </section>
   );
 }
+
+function OutflowsTable({
+  outflows,
+}: {
+  outflows: NonNullable<DailyReport["outflows"]>;
+}) {
+  if (outflows.length === 0) {
+    return <p className="py-5 text-center text-xs text-muted">Sin gastos</p>;
+  }
+
+  const total = outflows.reduce((sum, movement) => sum + movement.amount, 0);
+
+  return (
+    <div className="cash-scroll">
+      <table className="cash-table">
+        <thead>
+          <tr>
+            <th className="w-12">Hora</th>
+            <th>Concepto</th>
+            <th className="text-right">Monto</th>
+          </tr>
+        </thead>
+        <tbody>
+          {outflows.map((movement) => (
+            <tr key={movement.id} className="cash-row">
+              <td className="whitespace-nowrap tabular-nums text-muted">
+                {shortTime(movement.createdAt)}
+              </td>
+              <td>
+                {movement.categoryLabel}
+                {movement.concept ? ` · ${movement.concept}` : ""}
+                <span className="ml-1 text-muted">{movement.operatorName}</span>
+              </td>
+              <td className="text-right font-semibold tabular-nums text-danger">
+                −{formatMoney(movement.amount)}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+        <tfoot>
+          <tr>
+            <td colSpan={2}>Total gastos</td>
+            <td className="text-right tabular-nums text-danger">
+              −{formatMoney(total)}
+            </td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+  );
+}
+

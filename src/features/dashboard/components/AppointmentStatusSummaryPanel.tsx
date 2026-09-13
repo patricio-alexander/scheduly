@@ -75,38 +75,54 @@ export function AppointmentStatusSummaryPanel({
         </Link>
       </div>
 
-      <div className="grid flex-1 grid-cols-2 gap-2 content-start">
-        {items.map((item) => {
-          const styles = toneStyles[item.tone];
-          const Icon =
-            icons[item.id as keyof typeof icons] ?? Calendar;
-          return (
-            <div
-              key={item.id}
-              className={`rounded-xl border p-2.5 ${styles.border}`}
-            >
-              <div className="flex items-start justify-between gap-1">
-                <div className="min-w-0">
-                  <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-                    {item.label}
-                  </p>
-                  <p className={`text-xl font-extrabold tabular-nums ${styles.value}`}>
-                    {item.count}
-                  </p>
-                  <p className="mt-0.5 truncate text-[10px] text-muted">
-                    {item.subtitle}
-                  </p>
+      {items.length === 0 ? (
+        <div className="flex flex-1 flex-col items-center justify-center py-8 text-center">
+          <Calendar
+            width={28}
+            height={28}
+            className="mb-2 text-muted opacity-40"
+          />
+          <p className="text-sm text-muted">
+            {posMode
+              ? "Sin ventas registradas en el período"
+              : "Sin turnos registrados en el período"}
+          </p>
+        </div>
+      ) : (
+        <div className="grid flex-1 grid-cols-2 gap-2 content-start">
+          {items.map((item) => {
+            const styles = toneStyles[item.tone];
+            const Icon = icons[item.id as keyof typeof icons] ?? Calendar;
+            return (
+              <div
+                key={item.id}
+                className={`rounded-xl border p-2.5 ${styles.border}`}
+              >
+                <div className="flex items-start justify-between gap-1">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
+                      {item.label}
+                    </p>
+                    <p
+                      className={`text-xl font-extrabold tabular-nums ${styles.value}`}
+                    >
+                      {item.count}
+                    </p>
+                    <p className="mt-0.5 truncate text-[10px] text-muted">
+                      {item.subtitle}
+                    </p>
+                  </div>
+                  <span
+                    className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${styles.icon}`}
+                  >
+                    <Icon width={14} height={14} />
+                  </span>
                 </div>
-                <span
-                  className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-lg ${styles.icon}`}
-                >
-                  <Icon width={14} height={14} />
-                </span>
               </div>
-            </div>
-          );
-        })}
-      </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

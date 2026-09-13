@@ -12,6 +12,8 @@ export const appRoutes = {
     services: "/operacion/servicios",
     cash: "/operacion/caja",
     shifts: "/operacion/turno",
+    /** Vales = adelantos de sueldo que se descuentan en la liquidación. */
+    vouchers: "/operacion/vales",
     shiftSupervision: "/operacion/supervision-caja",
     multiCash: "/operacion/turno/multi-caja",
     /** Hub Comprobantes POS (facturas SRI, reimpresión caja, etc.) */
@@ -43,7 +45,6 @@ export const appRoutes = {
     categories: "/inventario/categorias",
     units: "/inventario/unidades",
     warehouses: "/inventario/bodegas",
-    batches: "/inventario/lotes",
     value: "/inventario/valor",
     /** Multistock; no es ítem del menú principal */
     multistock: "/inventario/multistock",

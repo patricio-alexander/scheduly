@@ -2,7 +2,6 @@
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
-import { Button } from "@heroui/react";
 import ArrowChevronDown from "@gravity-ui/icons/ArrowChevronDown";
 import { useAuth } from "@/src/features/auth";
 import { useSubscription } from "@/src/features/subscription";
@@ -23,7 +22,6 @@ import { appRoutes } from "@/shared/utils/app-routes";
 import {
   navModules,
   type NavItem,
-  type NavModule,
 } from "@/shared/components/nav-config";
 import { filterVisibleModules, navItemLabelForRole } from "@/shared/utils/nav-visibility";
 
@@ -77,17 +75,17 @@ function isRouteActive(pathname: string, href: string, search = "") {
   return true;
 }
 
-function statusBadgeTone(kind: AccessViewKind) {
+function statusTone(kind: AccessViewKind) {
   switch (kind) {
     case "maintenance":
-      return { dot: "bg-danger", pill: "bg-danger/15 text-danger" };
+      return "maintenance";
     case "planned":
-      return { dot: "bg-warning", pill: "bg-warning/20 text-warning" };
+      return "planned";
     case "development":
     case "developer":
-      return { dot: "bg-accent", pill: "bg-accent/15 text-accent" };
+      return "dev";
     default:
-      return { dot: "bg-muted", pill: "bg-surface-secondary text-muted" };
+      return "muted";
   }
 }
 
@@ -100,19 +98,17 @@ function StatusBadge({
   kind: AccessViewKind;
   compact?: boolean;
 }) {
-  const tone = statusBadgeTone(kind);
+  const tone = statusTone(kind);
   if (compact) {
     return (
       <span
-        className={`pointer-events-none absolute right-1.5 top-1.5 h-2 w-2 rounded-full ring-2 ring-surface ${tone.dot}`}
+        className={`app-sidebar__status-dot app-sidebar__status-dot--${tone}`}
         title={label}
       />
     );
   }
   return (
-    <span
-      className={`ml-auto max-w-[88px] shrink-0 truncate rounded-md px-1.5 py-0.5 text-[9px] font-semibold leading-none ${tone.pill}`}
-    >
+    <span className={`app-sidebar__status app-sidebar__status--${tone}`}>
       {label}
     </span>
   );
@@ -126,7 +122,6 @@ function NavButton({
   badge,
   statusLabel,
   statusKind,
-  nested,
   tourId,
   children,
 }: {
@@ -137,36 +132,37 @@ function NavButton({
   badge?: number;
   statusLabel?: string | null;
   statusKind?: AccessViewKind | null;
-  nested?: boolean;
   tourId?: string;
   children: ReactNode;
 }) {
   const title = statusLabel && label ? `${label} · ${statusLabel}` : label;
   return (
     <div
-      className="relative w-full"
+      className="app-sidebar__item-wrap"
       title={collapsed ? title : undefined}
       data-onboarding={tourId}
     >
-      <Button
-        variant={isActive ? "secondary" : "ghost"}
-        className={`relative w-full ${collapsed ? "justify-center px-0" : "justify-start"} ${nested && !collapsed ? "pl-8" : ""} ${isActive ? "font-medium" : ""}`}
-        onPress={onPress}
+      <button
+        type="button"
+        className={[
+          "app-sidebar__item",
+          isActive ? "app-sidebar__item--active" : "",
+          collapsed ? "app-sidebar__item--collapsed" : "",
+        ]
+          .filter(Boolean)
+          .join(" ")}
+        onClick={onPress}
         aria-label={title}
+        aria-current={isActive ? "page" : undefined}
       >
-        {isActive && !collapsed && (
-          <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-accent" />
-        )}
         {children}
-        {!collapsed && statusLabel && statusKind ? (
+        {statusLabel && statusKind ? (
           <StatusBadge label={statusLabel} kind={statusKind} />
         ) : null}
-        {!collapsed && !statusLabel && badge != null && badge > 0 && (
-          <span className="ml-auto flex h-5 min-w-5 items-center justify-center rounded-full bg-accent px-1.5 text-[10px] font-bold text-accent-foreground">
-            {badge > 9 ? "9+" : badge}
-          </span>
+        {!statusLabel && badge != null && badge > 0 && (
+          <span className="app-sidebar__badge">{badge > 9 ? "9+" : badge}</span>
         )}
-      </Button>
+      </button>
       {collapsed && statusLabel && statusKind ? (
         <StatusBadge label={statusLabel} kind={statusKind} compact />
       ) : null}
@@ -320,11 +316,9 @@ export function Sidebar({ collapsed }: SidebarProps) {
   return (
     <aside
       data-onboarding="nav-sidebar"
-      className={`flex h-full shrink-0 flex-col overflow-hidden border-r border-separator bg-surface transition-[width] duration-200 ease-in-out ${
-        collapsed ? "w-[4.5rem]" : "w-64"
-      }`}
+      className={`app-sidebar${collapsed ? " app-sidebar--collapsed" : ""}`}
     >
-      <nav className="flex min-h-0 flex-1 flex-col gap-3 overflow-y-auto p-3">
+      <nav className="app-sidebar__nav">
         {visibleModules.map((mod) => {
           const ModuleIcon = mod.icon;
           const isFlat = Boolean(mod.flat) || (isProgrammer && mod.programmerOnly);
@@ -349,162 +343,117 @@ export function Sidebar({ collapsed }: SidebarProps) {
             ? accessTitle(moduleStatusKind)
             : null;
 
+          const renderItem = (item: NavItem, nestedLabel?: string) => {
+            const Icon = item.icon;
+            const isActive = isRouteActive(pathname, item.href, search);
+            const { section } = getSectionForPath(pathWithoutQuery(item.href));
+            const sectionAccess = section
+              ? resolveAccessView(section.status, { isDeveloper })
+              : isFlat
+                ? "ok"
+                : moduleAccess !== "ok"
+                  ? moduleAccess
+                  : "ok";
+            const sectionStatusKind: AccessViewKind | null = isAppInMaintenance
+              ? "maintenance"
+              : sectionAccess !== "ok"
+                ? sectionAccess
+                : null;
+            const sectionStatusLabel = sectionStatusKind
+              ? accessTitle(sectionStatusKind)
+              : null;
+            const displayLabel = navItemLabel(item);
+
+            return (
+              <NavButton
+                key={item.href}
+                isActive={isActive}
+                collapsed={collapsed}
+                label={
+                  collapsed && nestedLabel
+                    ? `${nestedLabel}: ${displayLabel}`
+                    : displayLabel
+                }
+                statusLabel={sectionStatusLabel}
+                statusKind={sectionStatusKind}
+                tourId={item.tourId}
+                onPress={() => router.push(item.href)}
+              >
+                <Icon width={16} height={16} className="app-sidebar__item-icon" />
+                <span className="app-sidebar__item-label">{displayLabel}</span>
+              </NavButton>
+            );
+          };
+
           if (isFlat) {
             return (
-              <div key={mod.id} className="flex flex-col gap-1">
-                {visibleItems.map((item) => {
-                  const Icon = item.icon;
-                  const isActive = isRouteActive(pathname, item.href, search);
-                  const { section } = getSectionForPath(
-                    pathWithoutQuery(item.href),
-                  );
-                  const sectionAccess = section
-                    ? resolveAccessView(section.status, { isDeveloper })
-                    : "ok";
-                  const sectionStatusKind: AccessViewKind | null =
-                    isAppInMaintenance
-                      ? "maintenance"
-                      : sectionAccess !== "ok"
-                        ? sectionAccess
-                        : null;
-                  const sectionStatusLabel = sectionStatusKind
-                    ? accessTitle(sectionStatusKind)
-                    : null;
-                  const displayLabel = navItemLabel(item);
-
-                  return (
-                    <NavButton
-                      key={item.href}
-                      isActive={isActive}
-                      collapsed={collapsed}
-                      label={displayLabel}
-                      statusLabel={sectionStatusLabel}
-                      statusKind={sectionStatusKind}
-                      nested={false}
-                      tourId={item.tourId}
-                      onPress={() => router.push(item.href)}
-                    >
-                      <Icon
-                        width={18}
-                        height={18}
-                        className={collapsed ? "" : "shrink-0"}
-                      />
-                      {!collapsed && (
-                        <span className="flex-1 truncate text-left">
-                          {displayLabel}
-                        </span>
-                      )}
-                    </NavButton>
-                  );
-                })}
+              <div key={mod.id} className="app-sidebar__group">
+                <div className="app-sidebar__items">
+                  {visibleItems.map((item) => renderItem(item))}
+                </div>
               </div>
             );
           }
 
           return (
-            <div key={mod.id} className="flex flex-col gap-1">
+            <div key={mod.id} className="app-sidebar__group">
               {collapsed ? (
                 <div
                   data-onboarding={`nav-mod-${mod.id}`}
-                  className={`mb-1 flex items-center justify-center ${hasActiveChild ? "text-accent" : "text-muted"}`}
+                  className={`app-sidebar__section-mark${
+                    hasActiveChild ? " app-sidebar__section-mark--active" : ""
+                  }`}
                   title={
                     moduleStatusLabel
                       ? `${mod.label} · ${moduleStatusLabel}`
                       : mod.label
                   }
                 >
-                  <ModuleIcon width={16} height={16} />
+                  <ModuleIcon width={14} height={14} />
                 </div>
               ) : (
                 <button
                   type="button"
                   data-onboarding={`nav-mod-${mod.id}`}
                   onClick={() => toggleModule(mod.id)}
-                  className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-left text-[11px] font-semibold uppercase tracking-wide transition-colors ${
-                    hasActiveChild
-                      ? "text-accent"
-                      : "text-muted hover:text-foreground"
+                  className={`app-sidebar__section${
+                    hasActiveChild ? " app-sidebar__section--active" : ""
                   }`}
                 >
-                  <ModuleIcon width={14} height={14} className="shrink-0" />
-                  <span className="flex-1 truncate">{mod.label}</span>
+                  <ModuleIcon
+                    width={13}
+                    height={13}
+                    className="app-sidebar__section-icon"
+                  />
+                  <span className="app-sidebar__section-label">{mod.label}</span>
                   {moduleStatusLabel && moduleStatusKind && (
-                    <StatusBadge label={moduleStatusLabel} kind={moduleStatusKind} />
+                    <StatusBadge
+                      label={moduleStatusLabel}
+                      kind={moduleStatusKind}
+                    />
                   )}
                   <ArrowChevronDown
-                    width={14}
-                    height={14}
-                    className={`shrink-0 transition-transform duration-200 ease-out ${
-                      isOpen ? "rotate-0" : "-rotate-90"
+                    width={12}
+                    height={12}
+                    className={`app-sidebar__chevron ${
+                      isOpen
+                        ? "app-sidebar__chevron--open"
+                        : "app-sidebar__chevron--closed"
                     }`}
                   />
                 </button>
               )}
 
               <div
-                className={`grid transition-[grid-template-rows,opacity] duration-200 ease-out ${
-                  isOpen
-                    ? "grid-rows-[1fr] opacity-100"
-                    : "pointer-events-none grid-rows-[0fr] opacity-0"
-                }`}
+                className={`app-sidebar__panel${isOpen ? " is-open" : ""}`}
               >
-                <div className="min-h-0 overflow-hidden">
+                <div className="app-sidebar__panel-inner">
                   <div
-                    className={`flex flex-col gap-1 transition-transform duration-200 ease-out ${
-                      isOpen ? "translate-y-0" : "-translate-y-1"
+                    className={`app-sidebar__items${
+                      !collapsed ? " app-sidebar__items--nested" : ""
                     }`}
                   >
-                    {visibleItems.map((item) => {
-                      const Icon = item.icon;
-                      const isActive = isRouteActive(pathname, item.href, search);
-                      const { section } = getSectionForPath(
-                        pathWithoutQuery(item.href),
-                      );
-                      const sectionAccess = section
-                        ? resolveAccessView(section.status, { isDeveloper })
-                        : moduleAccess !== "ok"
-                          ? moduleAccess
-                          : "ok";
-                      const sectionStatusKind: AccessViewKind | null =
-                        isAppInMaintenance
-                          ? "maintenance"
-                          : sectionAccess !== "ok"
-                            ? sectionAccess
-                            : null;
-                      const sectionStatusLabel = sectionStatusKind
-                        ? accessTitle(sectionStatusKind)
-                        : null;
-                      const displayLabel = navItemLabel(item);
-
-                      return (
-                        <NavButton
-                          key={item.href}
-                          isActive={isActive}
-                          collapsed={collapsed}
-                          label={
-                            collapsed
-                              ? `${mod.label}: ${displayLabel}`
-                              : displayLabel
-                          }
-                          statusLabel={sectionStatusLabel}
-                          statusKind={sectionStatusKind}
-                          nested={!collapsed}
-                          tourId={item.tourId}
-                          onPress={() => router.push(item.href)}
-                        >
-                          <Icon
-                            width={18}
-                            height={18}
-                            className={collapsed ? "" : "shrink-0"}
-                          />
-                          {!collapsed && (
-                            <span className="flex-1 truncate text-left">
-                              {displayLabel}
-                            </span>
-                          )}
-                        </NavButton>
-                      );
-                    })}
+                    {visibleItems.map((item) => renderItem(item, mod.label))}
                   </div>
                 </div>
               </div>

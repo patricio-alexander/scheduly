@@ -305,7 +305,7 @@ export const MODULE_DRIVER_TOURS: ModuleDriverTour[] = [
     match: ["/inventario"],
     steps: pageIntro(
       "Inventario",
-      "Productos, categorías, movimientos, lotes y stock por local.",
+      "Productos, categorías, movimientos y stock por local.",
     ),
   },
 

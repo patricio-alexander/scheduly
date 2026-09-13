@@ -57,8 +57,6 @@ export function backupTableDelegate(
       return db.recipe;
     case "StockMovement":
       return db.stockMovement;
-    case "Batch":
-      return db.batch;
     case "Branch":
       return db.branch;
     case "CashRegister":

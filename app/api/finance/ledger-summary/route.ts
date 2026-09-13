@@ -10,6 +10,7 @@ import {
   sumLedgerAmounts,
 } from "@/shared/utils/finance-ledger-list";
 import { splitExpenseBuckets } from "@/shared/utils/finance-period-totals";
+import { appointmentRevenue } from "@/shared/utils/dashboard-widgets";
 
 function monthKey(d: Date) {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -43,6 +44,7 @@ export async function GET() {
       payments,
       customers,
       obligations,
+      pendingPaymentApts,
     ] = await Promise.all([
       listFinanceIncomes(5000),
       listFinanceExpenses(5000),
@@ -95,6 +97,16 @@ export async function GET() {
           payments: { select: { amount: true, status: true } },
         },
       }),
+      prisma.appointment.findMany({
+        where: { status: "pending_payment" },
+        select: {
+          payment: { select: { amount: true } },
+          services: { select: { service: { select: { price: true } } } },
+          products: {
+            select: { quantity: true, product: { select: { price: true } } },
+          },
+        },
+      }),
     ]);
 
     const totalIncome = sumLedgerAmounts(incomeRows);
@@ -135,7 +147,12 @@ export async function GET() {
       })),
     });
 
-    const futureIncome = pending.futureIncome;
+    // Lo que se proyecta es turnos pendientes de cobro, no pedidos POS.
+    const futureIncome = Number(
+      pendingPaymentApts
+        .reduce((sum, apt) => sum + appointmentRevenue(apt), 0)
+        .toFixed(2),
+    );
 
     let loansReceivable = 0;
     let debtsPayable = 0;
@@ -153,9 +170,7 @@ export async function GET() {
       }
     }
 
-    const projectedBalance = Number(
-      (balance + futureIncome + loansReceivable - debtsPayable).toFixed(2),
-    );
+    const projectedBalance = Number((balance + futureIncome).toFixed(2));
 
     const now = new Date();
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);

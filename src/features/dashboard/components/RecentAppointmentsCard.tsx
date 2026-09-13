@@ -37,9 +37,13 @@ export function RecentAppointmentsCard({
   posMode = false,
 }: RecentAppointmentsCardProps) {
   const listHref = posMode ? appRoutes.sales.salesHub : appRoutes.operation.agenda;
+  // Sin override, el alto crece con el viewport; con override manda quien llama
+  // (dos `max-h` arbitrarios en la misma clase se pisan de forma impredecible).
+  const heightClass =
+    className || "max-h-[24rem] md:max-h-[28rem] lg:max-h-[32rem]";
   return (
     <div
-      className={`dashboard-card flex max-h-[24rem] flex-col overflow-hidden md:max-h-[28rem] lg:max-h-[32rem] ${className}`}
+      className={`dashboard-card flex flex-col overflow-hidden ${heightClass}`}
       data-onboarding="dash-recent"
     >
       <div className="dashboard-card-header">

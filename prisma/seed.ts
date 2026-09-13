@@ -1184,6 +1184,7 @@ function buildSubscriptionPayload(now: Date): Prisma.InputJsonValue {
               "Supervisión caja",
               "planned",
             ),
+            section(12, "/operacion/vales", "Vales"),
           ],
         },
         {
@@ -1220,8 +1221,7 @@ function buildSubscriptionPayload(now: Date): Prisma.InputJsonValue {
             section(3, "/inventario/movimientos", "Movimientos", "planned"),
             section(4, "/inventario/categorias", "Categorías"),
             section(5, "/inventario/unidades", "Unidades"),
-            section(6, "/inventario/lotes", "Lotes y vencimientos", "planned"),
-            section(7, "/inventario/valor", "Inventario valorizado"),
+            section(6, "/inventario/valor", "Inventario valorizado"),
           ],
         },
         {

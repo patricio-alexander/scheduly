@@ -1,6 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState,
+  type ReactNode,
+} from "react";
 import {
   Button,
   ComboBox,
@@ -21,6 +27,7 @@ import SquarePlus from "@gravity-ui/icons/SquarePlus";
 import Pencil from "@gravity-ui/icons/Pencil";
 import TrashBin from "@gravity-ui/icons/TrashBin";
 import Boxes3 from "@gravity-ui/icons/Boxes3";
+import ShoppingCart from "@gravity-ui/icons/ShoppingCart";
 import { useAuth } from "@/src/features/auth";
 import {
   CustomerForm,
@@ -36,6 +43,7 @@ import {
 } from "@/src/features/products";
 import * as productService from "@/src/features/products/services/product-service";
 import { useCategories } from "@/src/features/categories";
+import { useUnits } from "@/src/features/units";
 import { useBranches } from "@/src/features/branches";
 import { useOperationFlags } from "@/src/features/settings/hooks/useOperationFlags";
 import { apiUrl } from "@/shared/utils/api";
@@ -83,6 +91,55 @@ function CompactNumberInput({
     />
   );
 }
+/** Cantidad con −/+: para bajar a cero está el botón de quitar la línea. */
+function QuantityStepper({
+  value,
+  onChange,
+  label,
+  over,
+}: {
+  value: number;
+  onChange: (value: number) => void;
+  label: string;
+  over?: boolean;
+}) {
+  const step = (delta: number) =>
+    onChange(Math.max(1, Math.round((value + delta) * 100) / 100));
+
+  return (
+    <span className={`pos-qty ${over ? "pos-qty--over" : ""}`}>
+      <button
+        type="button"
+        className="pos-qty__btn"
+        aria-label={`Quitar una unidad de ${label}`}
+        onClick={() => step(-1)}
+      >
+        −
+      </button>
+      <input
+        type="number"
+        className="pos-qty__input"
+        aria-label={`Cantidad de ${label}`}
+        value={Number.isFinite(value) ? String(value) : ""}
+        min={0}
+        step={1}
+        onChange={(e) => {
+          const n = Number(e.target.value);
+          onChange(Number.isFinite(n) ? n : 0);
+        }}
+      />
+      <button
+        type="button"
+        className="pos-qty__btn"
+        aria-label={`Agregar una unidad de ${label}`}
+        onClick={() => step(1)}
+      >
+        +
+      </button>
+    </span>
+  );
+}
+
 type CartRow = {
   key: string;
   productId: number;
@@ -157,11 +214,18 @@ function PosCheckbox({
 
 export function PosCashRegister() {
   const { user } = useAuth();
-  const { products, loading: productsLoading, refetch: refetchProducts } =
-    useProducts();
-  const { customers, loading: customersLoading, refetch: refetchCustomers } =
-    useCustomers();
+  const {
+    products,
+    loading: productsLoading,
+    refetch: refetchProducts,
+  } = useProducts();
+  const {
+    customers,
+    loading: customersLoading,
+    refetch: refetchCustomers,
+  } = useCustomers();
   const { categories } = useCategories();
+  const { units } = useUnits();
   const { branches } = useBranches();
   const flags = useOperationFlags();
   const quickModal = useOverlayState();
@@ -382,7 +446,9 @@ export function PosCashRegister() {
       setUseCustomerData(true);
       await refetchCustomers();
     } catch (err) {
-      toast.danger(err instanceof Error ? err.message : "No se pudo crear el cliente");
+      toast.danger(
+        err instanceof Error ? err.message : "No se pudo crear el cliente",
+      );
     } finally {
       setSavingCustomer(false);
     }
@@ -392,7 +458,10 @@ export function PosCashRegister() {
     setSavingProduct(true);
     try {
       if (editingProduct) {
-        const updated = await productService.updateProduct(editingProduct.id, data);
+        const updated = await productService.updateProduct(
+          editingProduct.id,
+          data,
+        );
         toast.success("Producto actualizado");
         setCart((prev) =>
           prev.map((row) =>
@@ -426,7 +495,10 @@ export function PosCashRegister() {
   };
 
   const openOtherCaja = () => {
-    window.open(`${window.location.origin}${appRoutes.operation.cash}`, "_blank");
+    window.open(
+      `${window.location.origin}${appRoutes.operation.cash}`,
+      "_blank",
+    );
   };
 
   const onCheckout = async () => {
@@ -443,14 +515,19 @@ export function PosCashRegister() {
       return;
     }
     if (
-      (useCustomerData || documentType === "factura" || saleType === "credito") &&
+      (useCustomerData ||
+        documentType === "factura" ||
+        saleType === "credito") &&
       !customerId
     ) {
       toast.danger("Selecciona un cliente");
       return;
     }
     if (saleType === "credito" && creditMode === "installments") {
-      if (installments.length === 0 || installments.some((r) => !(r.amount > 0))) {
+      if (
+        installments.length === 0 ||
+        installments.some((r) => !(r.amount > 0))
+      ) {
         toast.danger("Revisá las cuotas del crédito");
         return;
       }
@@ -468,7 +545,9 @@ export function PosCashRegister() {
       await createDirectProductSale({
         branchId,
         customerId:
-          useCustomerData || documentType === "factura" || saleType === "credito"
+          useCustomerData ||
+          documentType === "factura" ||
+          saleType === "credito"
             ? Number(customerId)
             : null,
         method: saleType === "credito" ? "cash" : method,
@@ -491,9 +570,7 @@ export function PosCashRegister() {
         })),
       });
       toast.success(
-        saleType === "credito"
-          ? "Venta a crédito registrada"
-          : "Venta cobrada",
+        saleType === "credito" ? "Venta a crédito registrada" : "Venta cobrada",
       );
       clearCart();
       setAmountReceived("");
@@ -531,22 +608,23 @@ export function PosCashRegister() {
           {cashLoading ? null : openShift ? (
             <span
               title={`Turno abierto · ${openShift.branch?.name ?? ""} · capital ${formatMoney(openShift.openingCashTotal)} · ${openShift.cashier}`}
-              className="text-success"
+              className="pos-chip pos-chip--ok"
             >
-              <CircleCheck width={16} height={16} />
+              <CircleCheck width={12} height={12} />
+              Turno abierto
             </span>
           ) : (
-            <span title="No hay turno abierto" className="text-danger">
-              <CircleXmark width={16} height={16} />
+            <span
+              title="No hay turno abierto"
+              className="pos-chip pos-chip--danger"
+            >
+              <CircleXmark width={12} height={12} />
+              Sin turno
             </span>
           )}
           <a
             href={appRoutes.posDocs.sriSettings}
-            className={`inline-flex items-center rounded-full border px-2 py-px text-[10px] font-semibold ${
-              sriReady
-                ? "border-success/50 bg-success/10 text-success"
-                : "border-warning/50 bg-warning/10 text-warning"
-            }`}
+            className={`pos-chip ${sriReady ? "pos-chip--ok" : "pos-chip--warn"}`}
           >
             {sriReady ? "SRI listo" : "SRI no listo"}
           </a>
@@ -577,90 +655,13 @@ export function PosCashRegister() {
 
       {/* 8 / 4 fijos — sin estrechar el panel de cobro */}
       <div className="grid grid-cols-1 items-start gap-2 lg:grid-cols-12">
-        <section className="min-w-0 overflow-hidden rounded-xl border border-separator bg-surface p-2 lg:col-span-8">
-          <p className="mb-1 text-[12px] font-bold">
-            Total Venta: {formatMoney(totals.total)}
-          </p>
-
-          <div className="mb-1.5 flex flex-col gap-1.5 md:flex-row md:items-end">
-            <div
-              className="flex min-w-0 flex-1 items-end gap-1"
-              data-tour="caja-product-search"
-            >
-              <div className="min-w-0 flex-1">
-              <ComboBox
-                key={productPickerKey}
-                aria-label="Producto"
-                selectedKey={null}
-                inputValue={productInput}
-                onInputChange={setProductInput}
-                onSelectionChange={(key) => handleProductPick(key)}
-                isDisabled={productsLoading}
-                variant="secondary"
-              >
-                <Label>Producto</Label>
-                <ComboBox.InputGroup>
-                  <Input placeholder="Buscar, clic o Enter para agregar al carrito" />
-                  <ComboBox.Trigger />
-                </ComboBox.InputGroup>
-                <ComboBox.Popover>
-                  <ListBox>
-                    {selectableProducts.slice(0, 120).map((p) => (
-                      <ListBox.Item
-                        key={p.id}
-                        id={String(p.id)}
-                        textValue={`${p.name} ${productCode(p)} ${p.sku ?? ""} ${p.barcode ?? ""}`}
-                      >
-                        <span className="flex w-full items-center justify-between gap-2">
-                          <span className="truncate">{p.name}</span>
-                          <span className="shrink-0 text-[11px] text-muted tabular-nums">
-                            {formatMoney(p.price)}
-                            {stockVisible ? ` · stk ${p.stock}` : ""}
-                          </span>
-                        </span>
-                        <ListBox.ItemIndicator />
-                      </ListBox.Item>
-                    ))}
-                  </ListBox>
-                </ComboBox.Popover>
-              </ComboBox>
-              </div>
-              {allowCreateProduct ? (
-                <Button
-                  isIconOnly
-                  size="sm"
-                  variant="secondary"
-                  className="mb-0.5 shrink-0"
-                  aria-label="Crear producto"
-                  data-tour="caja-create-product"
-                  onPress={openCreateProduct}
-                >
-                  <SquarePlus width={16} height={16} />
-                </Button>
-              ) : null}
-            </div>
-            <Button
-              size="sm"
-              variant="secondary"
-              data-tour="caja-quick-access"
-              onPress={() => quickModal.open()}
-            >
-              <LayoutCellsLarge width={14} height={14} />
-              Accesos rápidos
-            </Button>
-          </div>
-
-          <div className="mb-1.5 flex flex-col gap-1.5 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-3 text-[12px] text-muted">
-              <span>Registros en venta: {cart.length}</span>
-              {allowShowStockToggle ? (
-                <span data-tour="caja-show-stock">
-                  <PosCheckbox checked={showStock} onChange={setShowStock}>
-                    Mostrar stock
-                  </PosCheckbox>
-                </span>
-              ) : null}
-            </div>
+        <section className="pos-panel lg:col-span-8">
+          <div className="pos-panel__head">
+            <p className="pos-panel__title">
+              <ShoppingCart width={14} height={14} />
+              Carrito
+              <span className="pos-panel__count">{cart.length}</span>
+            </p>
             <div
               className="flex shrink-0 flex-wrap gap-1.5"
               data-tour="caja-sell-actions"
@@ -672,7 +673,7 @@ export function PosCashRegister() {
                 onPress={() => void onCheckout()}
               >
                 <CircleDollar width={13} height={13} />
-                Realizar venta
+                Cobrar
               </Button>
               <Button
                 size="sm"
@@ -685,137 +686,263 @@ export function PosCashRegister() {
             </div>
           </div>
 
-          <div
-            className="overflow-x-auto rounded-lg border border-separator"
-            data-tour="caja-cart"
-          >
-            <table className="w-full min-w-[640px] text-left text-[12px]">
-              <thead className="border-b border-separator bg-surface-secondary/60 text-[11px] text-muted">
-                <tr>
-                  <th className="px-2.5 py-1.5 font-medium">Código</th>
-                  <th className="px-2.5 py-1.5 font-medium">Producto</th>
-                  {stockVisible ? (
-                    <th className="px-2.5 py-1.5 text-center font-medium">Stock</th>
-                  ) : null}
-                  <th className="px-2.5 py-1.5 text-center font-medium">Cantidad</th>
-                  <th className="px-2.5 py-1.5 text-right font-medium">Precio</th>
-                  <th className="px-2.5 py-1.5 text-right font-medium">IVA</th>
-                  <th className="px-2.5 py-1.5 text-right font-medium">Total</th>
-                  <th className="px-2.5 py-1.5 text-center font-medium">Opciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {cart.length === 0 ? (
+          <div className="pos-panel__body">
+            <div className="mb-1.5 flex flex-col gap-1.5 md:flex-row md:items-end">
+              <div
+                className="flex min-w-0 flex-1 items-end gap-1"
+                data-tour="caja-product-search"
+              >
+                <div className="min-w-0 flex-1">
+                  <ComboBox
+                    key={productPickerKey}
+                    aria-label="Producto"
+                    selectedKey={null}
+                    inputValue={productInput}
+                    onInputChange={setProductInput}
+                    onSelectionChange={(key) => handleProductPick(key)}
+                    isDisabled={productsLoading}
+                    variant="secondary"
+                  >
+                    <Label>Producto</Label>
+                    <ComboBox.InputGroup>
+                      <Input placeholder="Buscar, clic o Enter para agregar al carrito" />
+                      <ComboBox.Trigger />
+                    </ComboBox.InputGroup>
+                    <ComboBox.Popover>
+                      <ListBox>
+                        {selectableProducts.slice(0, 120).map((p) => (
+                          <ListBox.Item
+                            key={p.id}
+                            id={String(p.id)}
+                            textValue={`${p.name} ${productCode(p)} ${p.sku ?? ""} ${p.barcode ?? ""}`}
+                          >
+                            <span className="flex w-full items-center justify-between gap-2">
+                              <span className="truncate">{p.name}</span>
+                              <span className="shrink-0 text-[11px] text-muted tabular-nums">
+                                {formatMoney(p.price)}
+                                {stockVisible ? ` · stk ${p.stock}` : ""}
+                              </span>
+                            </span>
+                            <ListBox.ItemIndicator />
+                          </ListBox.Item>
+                        ))}
+                      </ListBox>
+                    </ComboBox.Popover>
+                  </ComboBox>
+                </div>
+                {allowCreateProduct ? (
+                  <Button
+                    isIconOnly
+                    size="sm"
+                    variant="secondary"
+                    className="mb-0.5 shrink-0"
+                    aria-label="Crear producto"
+                    data-tour="caja-create-product"
+                    onPress={openCreateProduct}
+                  >
+                    <SquarePlus width={16} height={16} />
+                  </Button>
+                ) : null}
+              </div>
+              <Button
+                size="sm"
+                variant="secondary"
+                data-tour="caja-quick-access"
+                onPress={() => quickModal.open()}
+              >
+                <LayoutCellsLarge width={14} height={14} />
+                Accesos rápidos
+              </Button>
+            </div>
+
+            {allowShowStockToggle ? (
+              <div className="mb-1.5" data-tour="caja-show-stock">
+                <PosCheckbox checked={showStock} onChange={setShowStock}>
+                  Mostrar stock
+                </PosCheckbox>
+              </div>
+            ) : null}
+
+            <div className="pos-scroll" data-tour="caja-cart">
+              <table className="pos-table min-w-[640px]">
+                <thead>
                   <tr>
-                    <td
-                      colSpan={colCount}
-                      className="px-2.5 py-5 text-[12px] text-muted"
-                    >
-                      Aún no hay productos agregados.
-                    </td>
+                    <th>Código</th>
+                    <th>Producto</th>
+                    {stockVisible ? (
+                      <th className="text-center">Stock</th>
+                    ) : null}
+                    <th className="text-center">Cantidad</th>
+                    <th className="text-right">Precio</th>
+                    <th className="text-right">IVA</th>
+                    <th className="text-right">Total</th>
+                    <th className="text-center">Opciones</th>
                   </tr>
-                ) : (
-                  cart.map((row) => {
-                    const b = lineBreakdown(row);
-                    return (
-                      <tr
-                        key={row.key}
-                        className="border-b border-separator/70 last:border-0"
-                      >
-                        <td className="px-2.5 py-1 text-[11px] text-muted">
-                          {row.code || "—"}
-                        </td>
-                        <td className="px-2.5 py-1 font-medium">{row.name}</td>
-                        {stockVisible ? (
-                          <td className="px-2.5 py-1 text-center tabular-nums">
-                            {row.stock}
+                </thead>
+                <tbody>
+                  {cart.length === 0 ? (
+                    <tr>
+                      <td colSpan={colCount} className="!py-6 text-center">
+                        <Boxes3
+                          width={24}
+                          height={24}
+                          className="mx-auto mb-1 text-muted opacity-40"
+                        />
+                        <p className="font-medium">Carrito vacío</p>
+                        <p className="mt-0.5 text-[11px] text-muted">
+                          Buscá un producto arriba o abrí los accesos rápidos.
+                        </p>
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="mt-1.5"
+                          onPress={() => quickModal.open()}
+                        >
+                          <LayoutCellsLarge width={14} height={14} />
+                          Accesos rápidos
+                        </Button>
+                      </td>
+                    </tr>
+                  ) : (
+                    cart.map((row) => {
+                      const b = lineBreakdown(row);
+                      const over = row.quantity > row.stock;
+                      return (
+                        <tr key={row.key}>
+                          <td className="text-[11px] text-muted">
+                            {row.code || "—"}
                           </td>
-                        ) : null}
-                        <td className="px-2.5 py-1">
-                          <CompactNumberInput
-                            aria-label={`Cantidad ${row.name}`}
-                            value={row.quantity}
-                            min={0}
-                            step={1}
-                            onChange={(v) =>
-                              updateRow(row.key, { quantity: v })
-                            }
-                            className="mx-auto w-[4.5rem]"
-                          />
-                        </td>
-                        <td className="px-2.5 py-1">
-                          <CompactNumberInput
-                            aria-label={`Precio ${row.name}`}
-                            value={row.price}
-                            min={0}
-                            step={0.01}
-                            onChange={(v) => updateRow(row.key, { price: v })}
-                            className="ml-auto w-[5.5rem]"
-                          />
-                        </td>
-                        <td className="px-2.5 py-1 text-right tabular-nums">
-                          {formatMoney(b.iva)}
-                        </td>
-                        <td className="px-2.5 py-1 text-right font-semibold tabular-nums">
-                          {formatMoney(b.total)}
-                        </td>
-                        <td className="px-2.5 py-1 text-center">
-                          <div className="inline-flex items-center justify-center gap-0.5">
-                            {allowAutocompleteStock ? (
-                              <Button
-                                isIconOnly
-                                size="sm"
-                                variant="ghost"
-                                aria-label="Autocompletar stock"
-                                title="Poner cantidad = stock disponible"
-                                data-tour="caja-autocomplete-stock"
-                                onPress={() =>
-                                  updateRow(row.key, {
-                                    quantity: Math.max(0, Number(row.stock) || 0),
-                                  })
-                                }
-                              >
-                                <Boxes3 width={13} height={13} />
-                              </Button>
+                          <td className="font-medium">
+                            {row.name}
+                            {over ? (
+                              <span className="ml-1.5 text-[10px] font-normal text-danger">
+                                supera el stock ({row.stock})
+                              </span>
                             ) : null}
-                            {allowEditProduct ? (
-                              <Button
-                                isIconOnly
-                                size="sm"
-                                variant="ghost"
-                                aria-label="Editar producto"
-                                data-tour="caja-edit-product"
-                                onPress={() => openEditProduct(row.productId)}
-                              >
-                                <Pencil width={13} height={13} />
-                              </Button>
-                            ) : null}
-                            <Button
-                              isIconOnly
-                              size="sm"
-                              variant="ghost"
-                              aria-label="Quitar"
-                              onPress={() => removeRow(row.key)}
+                          </td>
+                          {stockVisible ? (
+                            <td
+                              className={`text-center tabular-nums ${
+                                over ? "font-semibold text-danger" : ""
+                              }`}
                             >
-                              <TrashBin width={13} height={13} />
-                            </Button>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })
-                )}
-              </tbody>
-            </table>
+                              {row.stock}
+                            </td>
+                          ) : null}
+                          <td className="text-center">
+                            <QuantityStepper
+                              label={row.name}
+                              value={row.quantity}
+                              over={over}
+                              onChange={(v) =>
+                                updateRow(row.key, { quantity: v })
+                              }
+                            />
+                          </td>
+                          <td>
+                            <CompactNumberInput
+                              aria-label={`Precio ${row.name}`}
+                              value={row.price}
+                              min={0}
+                              step={0.01}
+                              onChange={(v) => updateRow(row.key, { price: v })}
+                              className="ml-auto w-[5.5rem]"
+                            />
+                          </td>
+                          <td className="text-right tabular-nums">
+                            {formatMoney(b.iva)}
+                          </td>
+                          <td className="text-right font-semibold tabular-nums">
+                            {formatMoney(b.total)}
+                          </td>
+                          <td className="text-center">
+                            <div className="inline-flex items-center justify-center gap-0.5">
+                              {allowAutocompleteStock ? (
+                                // El title va en el span: el Button de HeroUI no
+                                // acepta esa prop y el tooltip no se mostraba.
+                                <span
+                                  className="inline-flex"
+                                  title="Poner cantidad = stock disponible"
+                                >
+                                  <Button
+                                    isIconOnly
+                                    size="sm"
+                                    variant="ghost"
+                                    aria-label="Autocompletar stock"
+                                    data-tour="caja-autocomplete-stock"
+                                    onPress={() =>
+                                      updateRow(row.key, {
+                                        quantity: Math.max(
+                                          0,
+                                          Number(row.stock) || 0,
+                                        ),
+                                      })
+                                    }
+                                  >
+                                    <Boxes3 width={13} height={13} />
+                                  </Button>
+                                </span>
+                              ) : null}
+                              {allowEditProduct ? (
+                                <Button
+                                  isIconOnly
+                                  size="sm"
+                                  variant="ghost"
+                                  aria-label="Editar producto"
+                                  data-tour="caja-edit-product"
+                                  onPress={() => openEditProduct(row.productId)}
+                                >
+                                  <Pencil width={13} height={13} />
+                                </Button>
+                              ) : null}
+                              <Button
+                                isIconOnly
+                                size="sm"
+                                variant="ghost"
+                                aria-label="Quitar"
+                                onPress={() => removeRow(row.key)}
+                              >
+                                <TrashBin width={13} height={13} />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })
+                  )}
+                </tbody>
+                {cart.length > 0 ? (
+                  <tfoot>
+                    <tr>
+                      <td colSpan={colCount - 3}>
+                        Subtotal {formatMoney(totals.subtotal)}
+                      </td>
+                      <td className="text-right">{formatMoney(totals.iva)}</td>
+                      <td className="text-right">
+                        {formatMoney(totals.total)}
+                      </td>
+                      <td />
+                    </tr>
+                  </tfoot>
+                ) : null}
+              </table>
+            </div>
           </div>
         </section>
 
-        <aside className="min-w-0 overflow-hidden rounded-xl border border-separator bg-surface p-2 lg:col-span-4">
-          <p className="mb-1 text-[12px] font-bold">
-            Total Venta: {formatMoney(totals.total)}
-          </p>
+        <aside className="pos-panel lg:col-span-4">
+          <div className="pos-panel__head pos-panel__head--accent">
+            <p className="pos-panel__title">
+              <CircleDollar width={14} height={14} />
+              Cobro
+            </p>
+            <span className="pos-panel__total">
+              {formatMoney(totals.total)}
+            </span>
+          </div>
 
-          <div className="flex min-w-0 flex-col gap-1.5">
+          <div className="pos-panel__body flex min-w-0 flex-col gap-1.5">
+            <p className="pos-group">Comprobante</p>
             <ComboBox
               aria-label="Documento"
               selectedKey={documentType}
@@ -918,35 +1045,35 @@ export function PosCashRegister() {
             {needCustomer ? (
               <div className="flex items-end gap-1">
                 <div className="min-w-0 flex-1">
-              <ComboBox
-                aria-label="Cliente"
-                selectedKey={customerId || null}
-                onSelectionChange={(key) =>
-                  setCustomerId(key ? String(key) : "")
-                }
-                isDisabled={customersLoading}
-                variant="secondary"
-              >
-                <Label>Cliente</Label>
-                <ComboBox.InputGroup>
-                  <Input placeholder="Buscar cliente" />
-                  <ComboBox.Trigger />
-                </ComboBox.InputGroup>
-                <ComboBox.Popover>
-                  <ListBox>
-                    {customers.map((c) => (
-                      <ListBox.Item
-                        key={c.id}
-                        id={String(c.id)}
-                        textValue={`${c.name} ${c.lastnames}`}
-                      >
-                        {c.name} {c.lastnames}
-                        <ListBox.ItemIndicator />
-                      </ListBox.Item>
-                    ))}
-                  </ListBox>
-                </ComboBox.Popover>
-              </ComboBox>
+                  <ComboBox
+                    aria-label="Cliente"
+                    selectedKey={customerId || null}
+                    onSelectionChange={(key) =>
+                      setCustomerId(key ? String(key) : "")
+                    }
+                    isDisabled={customersLoading}
+                    variant="secondary"
+                  >
+                    <Label>Cliente</Label>
+                    <ComboBox.InputGroup>
+                      <Input placeholder="Buscar cliente" />
+                      <ComboBox.Trigger />
+                    </ComboBox.InputGroup>
+                    <ComboBox.Popover>
+                      <ListBox>
+                        {customers.map((c) => (
+                          <ListBox.Item
+                            key={c.id}
+                            id={String(c.id)}
+                            textValue={`${c.name} ${c.lastnames}`}
+                          >
+                            {c.name} {c.lastnames}
+                            <ListBox.ItemIndicator />
+                          </ListBox.Item>
+                        ))}
+                      </ListBox>
+                    </ComboBox.Popover>
+                  </ComboBox>
                 </div>
                 <Button
                   isIconOnly
@@ -961,6 +1088,7 @@ export function PosCashRegister() {
               </div>
             ) : null}
 
+            <p className="pos-group mt-0.5">Pago</p>
             <ComboBox
               aria-label="Método de pago"
               selectedKey={method}
@@ -1003,17 +1131,24 @@ export function PosCashRegister() {
               />
             </div>
 
-            <Button
-              variant="primary"
-              className="w-full"
-              isDisabled={pending || cart.length === 0 || !canSell}
-              onPress={() => void onCheckout()}
-            >
-              <CircleDollar width={16} height={16} />
-              {pending ? "Guardando..." : "Cobrar"}
-            </Button>
-
             <div className="my-0.5 border-t border-separator" />
+
+            {/* Primero lo que se cobra, después el botón: antes el total y el
+             * vuelto quedaban debajo de Cobrar. */}
+            <div className="pos-summary">
+              <p className="pos-summary__row">
+                <span>Subtotal</span>
+                <span>{formatMoney(totals.subtotal)}</span>
+              </p>
+              <p className="pos-summary__row">
+                <span>IVA</span>
+                <span>{formatMoney(totals.iva)}</span>
+              </p>
+              <p className="pos-summary__row pos-summary__row--total">
+                <span>Total</span>
+                <span>{formatMoney(totals.total)}</span>
+              </p>
+            </div>
 
             {saleType === "contado" && method === "cash" ? (
               <>
@@ -1030,7 +1165,12 @@ export function PosCashRegister() {
                     className="w-full"
                   />
                 </div>
-                <p className="text-[12px]">Vuelto: {formatMoney(change)}</p>
+                <p className="pos-change">
+                  <span className="pos-change__label">Vuelto</span>
+                  <span className="pos-change__value">
+                    {formatMoney(change)}
+                  </span>
+                </p>
               </>
             ) : saleType === "contado" ? (
               <p className="text-[10px] text-muted">
@@ -1040,11 +1180,15 @@ export function PosCashRegister() {
               </p>
             ) : null}
 
-            <p className="text-[12px]">SUBTOTAL: {formatMoney(totals.subtotal)}</p>
-            <p className="text-[12px]">IVA: {formatMoney(totals.iva)}</p>
-            <p className="pb-0.5 text-[13px] font-bold">
-              TOTAL: {formatMoney(totals.total)}
-            </p>
+            <Button
+              variant="primary"
+              className="w-full"
+              isDisabled={pending || cart.length === 0 || !canSell}
+              onPress={() => void onCheckout()}
+            >
+              <CircleDollar width={16} height={16} />
+              {pending ? "Guardando..." : `Cobrar ${formatMoney(totals.total)}`}
+            </Button>
           </div>
         </aside>
       </div>
@@ -1070,7 +1214,10 @@ export function PosCashRegister() {
                 />
               </Modal.Body>
               <Modal.Footer>
-                <Button variant="secondary" onPress={() => customerModal.close()}>
+                <Button
+                  variant="secondary"
+                  onPress={() => customerModal.close()}
+                >
                   Cancelar
                 </Button>
                 <Button
@@ -1104,6 +1251,7 @@ export function PosCashRegister() {
                     formId="pos-product-form"
                     defaultValues={editingProduct ?? undefined}
                     categories={categories}
+                    units={units}
                     onSubmit={handleSaveProduct}
                   />
                 </Modal.Body>
