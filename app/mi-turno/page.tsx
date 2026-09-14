@@ -131,7 +131,9 @@ export default function MiTurnoPage() {
                   key={a.id}
                   className="rounded-2xl border border-accent/30 bg-accent/5 p-4"
                 >
-                  <p className="text-sm font-semibold">{formatWhen(a.appointmentDate)}</p>
+                  <p className="text-sm font-semibold">
+                    {formatWhen(a.appointmentDate)}
+                  </p>
                   <p className="mt-1 text-sm">{a.title}</p>
                   <p className="mt-1 text-xs text-muted">
                     {statusLabel[a.status] ?? a.status}
@@ -157,7 +159,10 @@ export default function MiTurnoPage() {
         ) : null}
 
         <div className="flex flex-wrap justify-center gap-4 text-sm">
-          <Link href={appRoutes.booking} className="text-accent hover:underline">
+          <Link
+            href={appRoutes.booking}
+            className="text-accent hover:underline"
+          >
             Reservar
           </Link>
           <Link

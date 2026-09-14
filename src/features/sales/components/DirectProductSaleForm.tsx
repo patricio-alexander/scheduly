@@ -13,16 +13,17 @@ import {
 import Plus from "@gravity-ui/icons/Plus";
 import TrashBin from "@gravity-ui/icons/TrashBin";
 import { AppNumberField } from "@/shared/components/AppNumberField";
+import {
+  PaymentMediumSelect,
+  type PaymentMediumOption,
+} from "@/shared/components/PaymentMediumSelect";
 import { useAuth } from "@/src/features/auth";
 import { useCustomers } from "@/src/features/customers";
 import { useProducts } from "@/src/features/products";
 import { BranchSelect, useBranches } from "@/src/features/branches";
 import { formatMoney, lineTotal } from "@/shared/utils/money";
-import {
-  paymentMethodLabel,
-  paymentMethodOptions,
-  type PaymentMethodValue,
-} from "@/shared/utils/payment-methods";
+import { type PaymentMethodValue } from "@/shared/utils/payment-methods";
+import { mediumKindToMethod } from "@/shared/utils/payment-media";
 import { isOwnerRole } from "@/shared/utils/roles";
 import { createDirectProductSale } from "../services/product-sale-service";
 
@@ -59,6 +60,7 @@ export function DirectProductSaleForm({ onSuccess }: Props) {
   const [branchId, setBranchId] = useState<number | null>(defaultBranchId);
   const [customerId, setCustomerId] = useState<string>("none");
   const [method, setMethod] = useState<PaymentMethodValue>("cash");
+  const [paymentMediumId, setPaymentMediumId] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
   const [lines, setLines] = useState<LineRow[]>([emptyLine()]);
   const [productSearch, setProductSearch] = useState("");
@@ -120,6 +122,7 @@ export function DirectProductSaleForm({ onSuccess }: Props) {
         customerId: customerId === "none" ? null : Number(customerId),
         branchId: effectiveBranchId,
         method,
+        paymentMediumId,
         notes,
         lines: validLines.map(({ productId, quantity, unitPrice }) => ({
           productId,
@@ -194,33 +197,13 @@ export function DirectProductSaleForm({ onSuccess }: Props) {
       </div>
 
       <div className="grid gap-4 sm:grid-cols-2">
-        <ComboBox
-          selectedKey={method}
-          onSelectionChange={(key) =>
-            setMethod((key as PaymentMethodValue) ?? "cash")
-          }
-          variant="secondary"
-        >
-          <Label className="text-sm font-medium">Método de pago</Label>
-          <ComboBox.InputGroup>
-            <Input />
-            <ComboBox.Trigger />
-          </ComboBox.InputGroup>
-          <ComboBox.Popover>
-            <ListBox>
-              {paymentMethodOptions.map((option) => (
-                <ListBox.Item
-                  key={option}
-                  id={option}
-                  textValue={paymentMethodLabel[option]}
-                >
-                  {paymentMethodLabel[option]}
-                  <ListBox.ItemIndicator />
-                </ListBox.Item>
-              ))}
-            </ListBox>
-          </ComboBox.Popover>
-        </ComboBox>
+        <PaymentMediumSelect
+          value={paymentMediumId}
+          onChange={(medium: PaymentMediumOption) => {
+            setPaymentMediumId(medium.id);
+            setMethod(mediumKindToMethod(medium.kind));
+          }}
+        />
       </div>
 
       <div className="rounded-2xl border border-separator bg-surface-secondary/30 p-4">

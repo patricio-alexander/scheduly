@@ -39,6 +39,27 @@ export function mediumKindToMethod(
   return "cash";
 }
 
+/**
+ * Clasifica un cobro para caja/resumen.
+ * El tipo del medio (efectivo / transferencia / tarjeta) manda;
+ * si no hay medio, se usa el método de la venta o cita.
+ */
+export function bucketPaymentKind(
+  kind?: string | null,
+  method?: string | null,
+): "cash" | "card" | "transfer" | "other" {
+  const k = String(kind || "").trim().toLowerCase();
+  if (k === "cash") return "cash";
+  if (k === "card") return "card";
+  if (k === "transfer" || k === "voucher") return "transfer";
+
+  const m = String(method || "").trim().toLowerCase();
+  if (m === "card" || m === "tarjeta") return "card";
+  if (m === "transfer" || m === "transferencia") return "transfer";
+  if (m === "credito") return "other";
+  return "cash";
+}
+
 /** Medio por defecto cuando solo llega cash|card|transfer. */
 export function defaultMediumCodeForMethod(
   method: string,
@@ -77,7 +98,7 @@ type PrismaLike = {
   };
 };
 
-/** Crea / actualiza el catálogo default (incluye bancos nuevos como Pichincha). */
+/** Crea los medios default si faltan. No pisa nombre, tipo ni estado editados. */
 export async function ensureDefaultPaymentMedia(db: PrismaLike) {
   for (const m of DEFAULT_PAYMENT_MEDIA) {
     await db.paymentMedium.upsert({
@@ -89,12 +110,7 @@ export async function ensureDefaultPaymentMedia(db: PrismaLike) {
         position: m.position,
         isActive: true,
       },
-      update: {
-        name: m.name,
-        kind: m.kind,
-        position: m.position,
-        isActive: true,
-      },
+      update: {},
     });
   }
 }

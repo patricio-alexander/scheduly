@@ -25,3 +25,15 @@ export function roleDisplayLabel(name: string) {
   if (name === "programmer") return "Programador";
   return name;
 }
+
+/** Nombres en BD (+ alias viejos) para filtrar un appRole. */
+export function dbRoleNamesForAppRole(appRole: string): string[] {
+  const canonical = SYSTEM_ROLES.find((r) => r.appRole === appRole);
+  const aliases: Record<string, string[]> = {
+    employee: ["Empleado", "employee", "user"],
+    owner: ["Dueño", "owner"],
+    admin: ["Administrador", "admin"],
+    programmer: ["Programador", "programmer"],
+  };
+  return [...new Set([canonical?.name, ...(aliases[appRole] ?? [])].filter(Boolean) as string[])];
+}

@@ -5,12 +5,12 @@ import {
   ensureDefaultPaymentMedia,
 } from "@/shared/utils/payment-media";
 import { toDateKey } from "@/shared/utils/payroll-settings";
+import { mediaFromCounts } from "@/shared/utils/turno-cash";
 
 function dayBounds(date: Date) {
-  const start = new Date(date);
-  start.setHours(0, 0, 0, 0);
-  const end = new Date(date);
-  end.setHours(23, 59, 59, 999);
+  const key = toDateKey(date);
+  const start = new Date(`${key}T00:00:00`);
+  const end = new Date(`${key}T23:59:59.999`);
   return { start, end };
 }
 
@@ -60,14 +60,21 @@ export async function suggestCashCloseByMedium(opts: {
 
   const sales = await prisma.sale.findMany({
     where: {
-      status: "pagado",
-      paidAt: { gte: start, lte: end },
+      status: { in: ["pagado", "entregado"] },
       OR: [
-        { shift: { storeId: opts.branchId } },
+        { paidAt: { gte: start, lte: end } },
+        { paidAt: null, date: { gte: start, lte: end } },
+      ],
+      AND: [
         {
-          lines: {
-            some: { deliveredStoreId: opts.branchId },
-          },
+          OR: [
+            { shift: { storeId: opts.branchId } },
+            {
+              lines: {
+                some: { deliveredStoreId: opts.branchId },
+              },
+            },
+          ],
         },
       ],
     },
@@ -85,17 +92,80 @@ export async function suggestCashCloseByMedium(opts: {
     bump(s.paymentMediumId, s.paymentMethod || "cash", total);
   }
 
+  const leftover = new Map<number, number>();
+  const shifts = await prisma.cashShift.findMany({
+    where: {
+      storeId: opts.branchId,
+      openedAt: { lte: end },
+      OR: [{ closedAt: null }, { closedAt: { gte: start } }],
+    },
+    select: {
+      openingCashCounts: true,
+      openingCashTotal: true,
+      closingCashTotal: true,
+      status: true,
+    },
+  });
+  let openingCash = 0;
+  let countedCash: number | null = shifts.length > 0 ? 0 : null;
+  for (const shift of shifts) {
+    openingCash = toAmount(openingCash + toAmount(shift.openingCashTotal));
+    const opening = mediaFromCounts(shift.openingCashCounts);
+    for (const [rawId, amount] of Object.entries(opening)) {
+      const id = Number(rawId);
+      if (!Number.isFinite(id) || amount <= 0) continue;
+      leftover.set(id, toAmount((leftover.get(id) || 0) + amount));
+    }
+    if (countedCash != null) {
+      if (shift.status !== "closed" || shift.closingCashTotal == null) {
+        countedCash = null;
+      } else {
+        countedCash = toAmount(countedCash + toAmount(shift.closingCashTotal));
+      }
+    }
+  }
+
+  const movements = await prisma.cashShiftMovement.findMany({
+    where: {
+      createdAt: { gte: start, lte: end },
+      shift: { storeId: opts.branchId },
+    },
+    select: { direction: true, amount: true },
+  });
+  let cashOut = 0;
+  let cashIn = 0;
+  for (const movement of movements) {
+    const amount = toAmount(movement.amount);
+    if (movement.direction === "out") cashOut = toAmount(cashOut + amount);
+    if (movement.direction === "in") cashIn = toAmount(cashIn + amount);
+  }
+
   const lines = media
-    .map((m) => ({
-      paymentMediumId: m.id,
-      amount: totals.get(m.id) || 0,
-      medium: {
-        id: m.id,
-        name: m.name,
-        code: m.code,
-        kind: m.kind,
-      },
-    }))
+    .map((m) => {
+      const collected = totals.get(m.id) || 0;
+      const kind = String(m.kind || "").toLowerCase();
+      const amount =
+        kind === "cash"
+          ? countedCash != null
+            ? countedCash
+            : toAmount(openingCash + collected - cashOut + cashIn)
+          : toAmount(
+              collected +
+                (kind === "transfer" || kind === "card"
+                  ? leftover.get(m.id) || 0
+                  : 0),
+            );
+      return {
+        paymentMediumId: m.id,
+        amount,
+        medium: {
+          id: m.id,
+          name: m.name,
+          code: m.code,
+          kind: m.kind,
+        },
+      };
+    })
     .filter((l) => l.amount > 0);
 
   const linesTotal = toAmount(lines.reduce((s, l) => s + l.amount, 0));

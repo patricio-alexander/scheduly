@@ -29,11 +29,18 @@ import {
   CASH_COINS,
   computeCashTotal,
   emptyCashCounts,
+  mediaFromCounts,
+  mediaTotalsSum,
   MOVEMENT_IN_CATEGORIES,
   MOVEMENT_OUT_CATEGORIES,
   type CashCountKey,
   type CashCountsForm,
 } from "@/shared/utils/turno-cash";
+import { CashClosePanel } from "./CashClosePanel";
+import {
+  ClosedShiftsRecap,
+  type ClosedShiftSnapshot,
+} from "./ClosedShiftsRecap";
 
 type ActiveShift = {
   id: number;
@@ -41,6 +48,7 @@ type ActiveShift = {
   storeId: number | null;
   openedAt: string;
   openingCashTotal: number;
+  openingCashCounts?: unknown;
   openingNotes: string | null;
   store: { id: number; name: string } | null;
   cashRegister: { id: number; name: string } | null;
@@ -118,34 +126,55 @@ function CashArqueoBlock({
   );
 }
 
-function StatCell({
+function CloseStat({
   label,
   value,
-  highlight,
-  danger,
+  hint,
+  tone,
 }: {
   label: string;
   value: string;
-  highlight?: boolean;
-  danger?: boolean;
+  hint?: string;
+  tone?: "accent" | "success" | "danger" | "warning";
 }) {
+  const toneClass =
+    tone === "accent"
+      ? "text-accent"
+      : tone === "success"
+        ? "text-success"
+        : tone === "danger"
+          ? "text-danger"
+          : tone === "warning"
+            ? "text-warning"
+            : "";
   return (
-    <div className="min-w-0 flex-1 px-1 text-center">
-      <p className="truncate text-[10px] text-muted" title={label}>
+    <div className="min-w-0 rounded-xl border border-separator bg-surface-secondary/40 px-2.5 py-2">
+      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
         {label}
       </p>
-      <p
-        className={`truncate text-sm font-bold tabular-nums ${
-          highlight ? "text-accent" : danger ? "text-warning" : ""
-        }`}
-      >
+      <p className={`mt-0.5 text-lg font-extrabold tabular-nums ${toneClass}`}>
         {value}
       </p>
+      {hint ? (
+        <p className="mt-0.5 text-[10px] leading-tight text-muted">{hint}</p>
+      ) : null}
     </div>
   );
 }
 
-export function ShiftDesk() {
+export function ShiftDesk({
+  embedded = false,
+  storeId: storeIdProp = null,
+  panel = "full",
+  closedShifts = [],
+  onChanged,
+}: {
+  embedded?: boolean;
+  storeId?: number | null;
+  panel?: "full" | "apertura" | "cierre";
+  closedShifts?: ClosedShiftSnapshot[];
+  onChanged?: () => void;
+}) {
   const { user } = useAuth();
   const router = useRouter();
   const { branches } = useBranches();
@@ -158,12 +187,21 @@ export function ShiftDesk() {
 
   const [openCounts, setOpenCounts] = useState(emptyCashCounts);
   const [openCashTotal, setOpenCashTotal] = useState("");
+  const [openMediaTotals, setOpenMediaTotals] = useState<Record<number, number>>(
+    {},
+  );
+  const [transferMedia, setTransferMedia] = useState<
+    Array<{ id: number; name: string }>
+  >([]);
   const [openNotes, setOpenNotes] = useState("");
   const [storeId, setStoreId] = useState<string>("");
 
   const [closeCounts, setCloseCounts] = useState(emptyCashCounts);
   const [closeCashTotal, setCloseCashTotal] = useState("");
   const [closeNotes, setCloseNotes] = useState("");
+  const [justClosed, setJustClosed] = useState<ClosedShiftSnapshot | null>(
+    null,
+  );
 
   const [movDirection, setMovDirection] = useState<"out" | "in">("out");
   const [movCategory, setMovCategory] = useState("gasto_operativo");
@@ -171,12 +209,20 @@ export function ShiftDesk() {
   const [movConcept, setMovConcept] = useState("");
   const [movSaving, setMovSaving] = useState(false);
 
-  const openTotal = useMemo(
+  const openCashAmount = useMemo(
     () =>
       canArqueo
         ? computeCashTotal(openCounts)
         : Number(Number(openCashTotal || 0).toFixed(2)),
     [canArqueo, openCounts, openCashTotal],
+  );
+  const openTransferAmount = useMemo(
+    () => mediaTotalsSum(openMediaTotals),
+    [openMediaTotals],
+  );
+  const openTotal = useMemo(
+    () => Number((openCashAmount + openTransferAmount).toFixed(2)),
+    [openCashAmount, openTransferAmount],
   );
 
   const closeTotal = useMemo(
@@ -191,6 +237,11 @@ export function ShiftDesk() {
     if (!shift) return 0;
     return Number((closeTotal - shift.expectedCashTotal).toFixed(2));
   }, [closeTotal, shift]);
+
+  const openedTransferTotals = useMemo(
+    () => mediaFromCounts(shift?.openingCashCounts),
+    [shift],
+  );
 
   const categories =
     movDirection === "out" ? MOVEMENT_OUT_CATEGORIES : MOVEMENT_IN_CATEGORIES;
@@ -212,16 +263,50 @@ export function ShiftDesk() {
     }
   }, []);
 
+  const loadTransferMedia = useCallback(async () => {
+    try {
+      const res = await fetch(apiUrl("/api/finance/payment-media?active=1"), {
+        credentials: "include",
+        cache: "no-store",
+      });
+      if (!res.ok) return;
+      const json = (await res.json()) as {
+        media?: Array<{ id: number; name: string; kind: string; position?: number }>;
+      };
+      const list = Array.isArray(json.media) ? json.media : [];
+      setTransferMedia(
+        list
+          .filter((m) => String(m.kind).toLowerCase() === "transfer")
+          .map((m) => ({ id: m.id, name: m.name })),
+      );
+    } catch {
+      /* catálogo opcional */
+    }
+  }, []);
+
+  useEffect(() => {
+    void loadTransferMedia();
+    const onVisible = () => {
+      if (document.visibilityState === "visible") void loadTransferMedia();
+    };
+    document.addEventListener("visibilitychange", onVisible);
+    return () => document.removeEventListener("visibilitychange", onVisible);
+  }, [loadTransferMedia]);
+
   useEffect(() => {
     void load();
   }, [load]);
 
   useEffect(() => {
+    if (storeIdProp) {
+      setStoreId(String(storeIdProp));
+      return;
+    }
     if (storeId) return;
     const main = branches.find((b) => b.isMain && b.isActive);
     const first = main ?? branches.find((b) => b.isActive);
     if (first) setStoreId(String(first.id));
-  }, [branches, storeId]);
+  }, [branches, storeId, storeIdProp]);
 
   useEffect(() => {
     if (movDirection === "out") {
@@ -232,8 +317,8 @@ export function ShiftDesk() {
   }, [movDirection]);
 
   const handleOpen = async () => {
-    if (openTotal <= 0) {
-      toast.danger("Indica el capital inicial");
+    if (openCashAmount <= 0 && openTransferAmount <= 0) {
+      toast.danger("Indica el capital inicial (efectivo o transferencias)");
       return;
     }
     setSaving(true);
@@ -241,9 +326,10 @@ export function ShiftDesk() {
       const payload: Record<string, unknown> = {
         notes: openNotes.trim() || undefined,
         storeId: storeId ? Number(storeId) : undefined,
+        mediaTotals: openMediaTotals,
       };
       if (canArqueo) payload.cashCounts = openCounts;
-      else payload.cashTotal = openTotal;
+      else payload.cashTotal = openCashAmount;
 
       const res = await fetch(apiUrl("/api/shifts/open"), {
         method: "POST",
@@ -264,6 +350,7 @@ export function ShiftDesk() {
       setShift(json as ActiveShift);
       setOpenCounts(emptyCashCounts());
       setOpenCashTotal("");
+      setOpenMediaTotals({});
       setOpenNotes("");
       setCloseCounts(emptyCashCounts());
       toast.success("Turno abierto");
@@ -335,16 +422,43 @@ export function ShiftDesk() {
       });
       const json = (await res.json().catch(() => null)) as {
         message?: string;
+        closedAt?: string | null;
+        closingCashTotal?: number;
+        expectedCashTotal?: number;
+        cashDifference?: number | null;
+        summary?: {
+          opening?: number;
+          salesCash?: number;
+          cashOut?: number;
+          cashIn?: number;
+        };
       } | null;
       if (!res.ok) {
         throw new Error(json?.message ?? "No se pudo cerrar el turno");
       }
       toast.success("Turno cerrado");
+      setJustClosed({
+        id: shift.id,
+        operatorName: shift.cashier,
+        closedAt: json?.closedAt ?? new Date().toISOString(),
+        openingCashOnDay: json?.summary?.opening ?? shift.openingCashTotal,
+        expectedCashOnDay:
+          json?.expectedCashTotal ?? shift.expectedCashTotal,
+        closingCashOnDay:
+          json?.expectedCashTotal ?? shift.expectedCashTotal,
+        countedCashOnDay: json?.closingCashTotal ?? closeTotal,
+        salesCashDay: json?.summary?.salesCash ?? shift.sales.salesCash,
+        cashOutDay: json?.summary?.cashOut ?? shift.cashMovements.cashOut,
+        cashInDay: json?.summary?.cashIn ?? shift.cashMovements.cashIn,
+        cashDifference: json?.cashDifference ?? closeTotal - shift.expectedCashTotal,
+        closingNotes: closeNotes.trim() || null,
+      });
       setShift(null);
       setCloseCounts(emptyCashCounts());
       setCloseCashTotal("");
       setCloseNotes("");
       void load();
+      onChanged?.();
     } catch (err) {
       toast.danger(err instanceof Error ? err.message : "Error al cerrar");
     } finally {
@@ -362,10 +476,50 @@ export function ShiftDesk() {
     );
   }
 
+  if (panel === "cierre" && !shift) {
+    const recapShifts =
+      closedShifts.length > 0
+        ? closedShifts
+        : justClosed
+          ? [justClosed]
+          : [];
+    if (recapShifts.length === 0) {
+      return (
+        <p className="py-3 text-center text-xs text-muted">
+          No hay turno abierto. Cuando cierres caja, acá verás el contado.
+        </p>
+      );
+    }
+    return <ClosedShiftsRecap shifts={recapShifts} />;
+  }
+
+  const closeDiffTone =
+    closeTotal <= 0
+      ? undefined
+      : closeDiff === 0
+        ? "success"
+        : closeDiff > 0
+          ? "warning"
+          : "danger";
+  const closeDiffHint =
+    closeTotal <= 0
+      ? "Contá el efectivo"
+      : closeDiff === 0
+        ? "Cuadra"
+        : closeDiff > 0
+          ? "Sobra"
+          : "Falta";
+
   return (
     <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-3">
+      {panel === "cierre" ? null : (
       <div className="flex flex-wrap items-center gap-2">
-        <h1 className="text-xl font-bold tracking-tight">Turno</h1>
+        {embedded ? null : (
+          <h1 className="text-xl font-bold tracking-tight">Caja</h1>
+        )}
+        {embedded && panel !== "cierre" ? (
+          <h2 className="text-sm font-bold">Apertura</h2>
+        ) : null}
         {shift ? (
           <span className="inline-flex items-center gap-1 rounded-full bg-success/15 px-2.5 py-0.5 text-[11px] font-semibold text-success">
             <CircleCheck width={12} height={12} />
@@ -383,7 +537,7 @@ export function ShiftDesk() {
             {` · ${shift.cashier}`}
           </span>
         ) : null}
-        {canArqueo ? (
+        {canArqueo && !embedded ? (
           <Button
             size="sm"
             variant="secondary"
@@ -395,6 +549,7 @@ export function ShiftDesk() {
           </Button>
         ) : null}
       </div>
+      )}
 
       {!shift ? (
         <section className="rounded-2xl border border-separator bg-surface p-4">
@@ -403,7 +558,16 @@ export function ShiftDesk() {
             <p className="text-xs text-muted">{user.name}</p>
           </div>
 
-          {branches.length > 1 && isOwner ? (
+          {storeIdProp ? (
+            <p className="mb-3 text-xs text-muted">
+              Se abrirá en{" "}
+              <strong>
+                {branches.find((b) => String(b.id) === storeId)?.name ??
+                  "la sucursal seleccionada"}
+              </strong>
+            </p>
+          ) : (isOwner || branches.filter((b) => b.isActive).length > 1) &&
+            branches.some((b) => b.isActive) ? (
             <div className="mb-3 max-w-sm">
               <ComboBox
                 aria-label="Sucursal"
@@ -467,6 +631,37 @@ export function ShiftDesk() {
             </div>
           )}
 
+          {transferMedia.length > 0 ? (
+            <div className="mt-4">
+              <p className="mb-1.5 text-xs font-semibold text-muted">
+                Transferencias / bancos
+              </p>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {transferMedia.map((medium) => (
+                  <div
+                    key={medium.id}
+                    className="rounded-xl border border-separator bg-surface-secondary/40 px-2.5 py-2"
+                  >
+                    <AppNumberField
+                      label={medium.name}
+                      value={openMediaTotals[medium.id] ?? 0}
+                      minValue={0}
+                      step={0.01}
+                      onChange={(value) =>
+                        setOpenMediaTotals((prev) => {
+                          const next = { ...prev };
+                          if (!value || value <= 0) delete next[medium.id];
+                          else next[medium.id] = Number(value.toFixed(2));
+                          return next;
+                        })
+                      }
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
           <div className="mt-3 flex flex-col gap-2">
             <div className="min-w-0 flex-1">
               <TextField>
@@ -479,12 +674,24 @@ export function ShiftDesk() {
                 />
               </TextField>
             </div>
-            <p className="min-w-[8rem] text-sm font-extrabold text-accent tabular-nums">
-              Total: {formatMoney(openTotal)}
-            </p>
+            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm tabular-nums">
+              <p className="text-muted">
+                Efectivo {formatMoney(openCashAmount)}
+              </p>
+              {openTransferAmount > 0 ? (
+                <p className="text-muted">
+                  Transfer. {formatMoney(openTransferAmount)}
+                </p>
+              ) : null}
+              <p className="font-extrabold text-accent">
+                Caja inicial {formatMoney(openTotal)}
+              </p>
+            </div>
             <Button
               variant="primary"
-              isDisabled={saving || openTotal <= 0}
+              isDisabled={
+                saving || (openCashAmount <= 0 && openTransferAmount <= 0)
+              }
               onPress={() => void handleOpen()}
             >
               <Play width={16} height={16} />
@@ -494,7 +701,41 @@ export function ShiftDesk() {
         </section>
       ) : (
         <>
-          {shift.cashRegisters.length > 0 ? (
+          {panel !== "cierre" && transferMedia.length > 0 ? (
+            <section className="rounded-2xl border border-separator bg-surface p-3">
+              <h2 className="mb-2 text-sm font-bold">Apertura</h2>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                <div className="rounded-xl border border-separator bg-surface-secondary/40 px-2.5 py-2">
+                  <p className="text-[10px] text-muted">Caja inicial</p>
+                  <p className="text-sm font-bold tabular-nums text-accent">
+                    {formatMoney(
+                      Number(shift.openingCashTotal) +
+                        mediaTotalsSum(openedTransferTotals),
+                    )}
+                  </p>
+                </div>
+                <div className="rounded-xl border border-separator bg-surface-secondary/40 px-2.5 py-2">
+                  <p className="text-[10px] text-muted">Efectivo</p>
+                  <p className="text-sm font-bold tabular-nums">
+                    {formatMoney(shift.openingCashTotal)}
+                  </p>
+                </div>
+                {transferMedia.map((medium) => (
+                  <div
+                    key={medium.id}
+                    className="rounded-xl border border-separator bg-surface-secondary/40 px-2.5 py-2"
+                  >
+                    <p className="text-[10px] text-muted">{medium.name}</p>
+                    <p className="text-sm font-bold tabular-nums">
+                      {formatMoney(openedTransferTotals[medium.id] ?? 0)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </section>
+          ) : null}
+
+          {panel !== "cierre" && shift.cashRegisters.length > 0 ? (
             <section className="rounded-2xl border border-separator bg-surface p-3">
               <h2 className="mb-2 text-sm font-bold">Cajas del local</h2>
               <div className="flex flex-wrap gap-1.5">
@@ -517,7 +758,7 @@ export function ShiftDesk() {
             </section>
           ) : null}
 
-          {/* Movimientos */}
+          {panel !== "cierre" ? (
           <section className="rounded-2xl border border-separator bg-surface p-4">
             <h2 className="mb-3 text-sm font-bold">Movimientos de caja</h2>
 
@@ -666,92 +907,117 @@ export function ShiftDesk() {
               efectivo para que el cierre cuadre.
             </p>
           </section>
+          ) : null}
 
-          {/* Cierre */}
-          <section className="rounded-2xl border border-separator bg-surface p-4">
-            <h2 className="mb-3 text-sm font-bold">Cierre de caja</h2>
+          {panel === "cierre" && closedShifts.length > 0 ? (
+            <ClosedShiftsRecap shifts={closedShifts} />
+          ) : null}
 
-            <div className="mb-4 flex flex-wrap items-stretch gap-y-2 rounded-xl border border-separator bg-surface-secondary/30 py-2">
-              <StatCell
-                label="Apertura"
-                value={formatMoney(shift.openingCashTotal)}
-              />
-              <StatCell
-                label="Efec. ventas"
-                value={formatMoney(shift.sales.salesCash)}
-              />
-              <StatCell
-                label="Salidas"
-                value={formatMoney(shift.cashMovements.cashOut)}
-              />
-              <StatCell
-                label="Entradas"
-                value={formatMoney(shift.cashMovements.cashIn)}
-              />
-              <StatCell
-                label="Esperado"
-                value={formatMoney(shift.expectedCashTotal)}
-                highlight
-              />
-              <StatCell
-                label="Transfer."
-                value={formatMoney(shift.sales.salesTransfer)}
-              />
-              <StatCell
-                label="Tarjeta"
-                value={formatMoney(shift.sales.salesCard)}
-              />
-              <StatCell label="Ventas" value={String(shift.orderCount)} />
-            </div>
-
-            {canArqueo ? (
-              <CashArqueoBlock
-                counts={closeCounts}
-                onChange={(key, val) =>
-                  setCloseCounts((p) => ({ ...p, [key]: val }))
-                }
-              />
-            ) : (
-              <div className="mb-3 max-w-xs">
-                <AppNumberField
-                  label="Total en efectivo (cierre)"
-                  value={closeCashTotal === "" ? null : Number(closeCashTotal)}
-                  minValue={0}
-                  step={0.01}
-                  onChange={(v) => setCloseCashTotal(String(v))}
-                />
-              </div>
+          {panel !== "apertura" ? (
+          <section
+            className={
+              panel === "cierre"
+                ? "flex flex-col gap-3"
+                : "rounded-2xl border border-separator bg-surface p-4"
+            }
+          >
+            {panel === "cierre" ? null : (
+              <h2 className="mb-3 text-sm font-bold">Cerrar turno</h2>
             )}
 
-            <div className="mt-3 flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between">
-              <div className="flex flex-wrap items-end gap-3">
-                <div>
-                  <p className="text-xs text-muted">Contado</p>
-                  <p className="text-sm font-bold tabular-nums">
-                    {formatMoney(closeTotal)}
-                  </p>
-                </div>
-                <div>
-                  <p className="text-xs text-muted">Dif.</p>
-                  <p
-                    className={`text-sm font-bold tabular-nums ${
-                      closeDiff === 0 ? "text-success" : "text-warning"
-                    }`}
-                  >
-                    {formatMoney(closeDiff)}
-                  </p>
-                </div>
-                <div className="min-w-[12rem] flex-1">
-                  <Label className="mb-1">Notas (opc.)</Label>
-                  <Input
-                    value={closeNotes}
-                    onChange={(e) => setCloseNotes(e.target.value)}
-                    placeholder="Notas de cierre"
+            <p className="cash-formula">
+              <span>
+                Efectivo {formatMoney(shift.openingCashTotal)}
+              </span>
+              <span aria-hidden>+</span>
+              <span>
+                ventas efec. {formatMoney(shift.sales.salesCash)}
+              </span>
+              <span aria-hidden>−</span>
+              <span>salidas {formatMoney(shift.cashMovements.cashOut)}</span>
+              {shift.cashMovements.cashIn > 0 ? (
+                <>
+                  <span aria-hidden>+</span>
+                  <span>
+                    entradas {formatMoney(shift.cashMovements.cashIn)}
+                  </span>
+                </>
+              ) : null}
+              <span aria-hidden>=</span>
+              <span className="font-semibold text-warning">
+                esperado {formatMoney(shift.expectedCashTotal)}
+              </span>
+            </p>
+
+            <div className="grid grid-cols-3 gap-2">
+              <CloseStat
+                label="Esperado"
+                value={formatMoney(shift.expectedCashTotal)}
+                hint="Solo efectivo"
+                tone="warning"
+              />
+              <CloseStat
+                label="Contado"
+                value={formatMoney(closeTotal)}
+                hint={canArqueo ? "Suma del arqueo" : "Efectivo en caja"}
+                tone={closeTotal > 0 ? "accent" : undefined}
+              />
+              <CloseStat
+                label="Diferencia"
+                value={formatMoney(closeDiff)}
+                hint={closeDiffHint}
+                tone={closeDiffTone}
+              />
+            </div>
+
+            <p className="text-[11px] text-muted">
+              Transfer. {formatMoney(shift.sales.salesTransfer)}
+              {" · "}
+              Tarjeta {formatMoney(shift.sales.salesCard)}
+              {" · "}
+              {shift.orderCount} venta{shift.orderCount === 1 ? "" : "s"}
+              <span className="text-muted">
+                {" "}
+                · no entran al esperado
+              </span>
+            </p>
+
+            <div className="rounded-xl border border-separator bg-surface-secondary/30 p-3">
+              <p className="mb-2 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                Arqueo de efectivo
+              </p>
+              {canArqueo ? (
+                <CashArqueoBlock
+                  counts={closeCounts}
+                  onChange={(key, val) =>
+                    setCloseCounts((p) => ({ ...p, [key]: val }))
+                  }
+                />
+              ) : (
+                <div className="max-w-xs">
+                  <AppNumberField
+                    label="Total en efectivo"
+                    value={closeCashTotal === "" ? null : Number(closeCashTotal)}
+                    minValue={0}
+                    step={0.01}
+                    onChange={(v) => setCloseCashTotal(String(v))}
                   />
                 </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+              <div className="min-w-0 flex-1">
+                <Label className="mb-1">Notas (opc.)</Label>
+                <Input
+                  value={closeNotes}
+                  onChange={(e) => setCloseNotes(e.target.value)}
+                  placeholder="Observación del cierre"
+                />
               </div>
               <Button
                 variant="primary"
+                className="sm:min-w-[10rem]"
                 isDisabled={saving || closeTotal <= 0}
                 onPress={() => void handleClose()}
               >
@@ -760,8 +1026,11 @@ export function ShiftDesk() {
               </Button>
             </div>
           </section>
+          ) : null}
         </>
       )}
+
+      {canArqueo && !embedded ? <CashClosePanel /> : null}
     </div>
   );
 }

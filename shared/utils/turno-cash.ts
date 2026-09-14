@@ -68,20 +68,68 @@ export function countsToFormState(counts: unknown): CashCountsForm {
   return base;
 }
 
+export function normalizeMediaTotals(input: unknown): Record<number, number> {
+  if (!input || typeof input !== "object" || Array.isArray(input)) return {};
+  const out: Record<number, number> = {};
+  for (const [rawId, rawAmount] of Object.entries(
+    input as Record<string, unknown>,
+  )) {
+    const id = Number(rawId);
+    const amount = Number(Number(rawAmount ?? 0).toFixed(2));
+    if (!Number.isInteger(id) || id <= 0 || !Number.isFinite(amount) || amount <= 0) {
+      continue;
+    }
+    out[id] = amount;
+  }
+  return out;
+}
+
+export function mediaTotalsSum(totals: Record<number, number>): number {
+  return Number(
+    Object.values(totals).reduce((sum, amount) => sum + amount, 0).toFixed(2),
+  );
+}
+
+export function mediaFromCounts(counts: unknown): Record<number, number> {
+  if (!counts || typeof counts !== "object" || Array.isArray(counts)) return {};
+  return normalizeMediaTotals((counts as { media?: unknown }).media);
+}
+
 export function resolveCashFromBody(body: {
   cashCounts?: unknown;
   cashTotal?: unknown;
-}): { counts: CashCountsNormalized; total: number } | null {
+  mediaTotals?: unknown;
+}): {
+  counts: CashCountsNormalized & { media?: Record<number, number> };
+  mediaTotals: Record<number, number>;
+  cashTotal: number;
+  total: number;
+} | null {
+  const fromCounts =
+    body.cashCounts && typeof body.cashCounts === "object"
+      ? (body.cashCounts as Record<string, unknown>).media
+      : undefined;
+  const mediaTotals = normalizeMediaTotals(body.mediaTotals ?? fromCounts);
+  const mediaSum = mediaTotalsSum(mediaTotals);
+
+  let cashTotal = 0;
+  let counts = normalizeCashCounts(emptyCashCounts());
   if (body.cashCounts && typeof body.cashCounts === "object") {
-    const counts = normalizeCashCounts(body.cashCounts);
-    const total = computeCashTotal(counts);
-    if (total > 0) return { counts, total };
+    counts = normalizeCashCounts(body.cashCounts);
+    cashTotal = computeCashTotal(counts);
+  } else {
+    cashTotal = Number(Number(body.cashTotal || 0).toFixed(2));
+    if (!Number.isFinite(cashTotal) || cashTotal < 0) cashTotal = 0;
   }
-  const total = Number(Number(body.cashTotal || 0).toFixed(2));
-  if (total > 0) {
-    return { counts: normalizeCashCounts(emptyCashCounts()), total };
-  }
-  return null;
+
+  if (cashTotal <= 0 && mediaSum <= 0) return null;
+
+  return {
+    counts: mediaSum > 0 ? { ...counts, media: mediaTotals } : counts,
+    mediaTotals,
+    cashTotal,
+    total: cashTotal,
+  };
 }
 
 export function computeExpectedCash(

@@ -75,10 +75,10 @@ export default function PayrollHistoryPage() {
         }
         action={
           <Link
-            href={appRoutes.finance.payroll}
+            href={appRoutes.finance.payrollWeek}
             className="text-sm font-medium text-accent hover:underline"
           >
-            Volver a sueldos
+            Volver a liquidación
           </Link>
         }
       />

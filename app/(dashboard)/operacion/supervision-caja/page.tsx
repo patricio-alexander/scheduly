@@ -1,7 +1,6 @@
-"use client";
-
-import { CashSupervision } from "@/src/features/shifts/components/CashSupervision";
+import { redirect } from "next/navigation";
+import { appRoutes } from "@/shared/utils/app-routes";
 
 export default function ShiftSupervisionPage() {
-  return <CashSupervision />;
+  redirect(appRoutes.operation.shifts);
 }

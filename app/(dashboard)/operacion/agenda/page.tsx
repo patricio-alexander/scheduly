@@ -44,7 +44,9 @@ import CreditCard from "@gravity-ui/icons/CreditCard";
 import CrownDiamond from "@gravity-ui/icons/CrownDiamond";
 import { formatRewardApplyLabel } from "@/shared/utils/reward-apply";
 import { calcRewardDiscountAmount } from "@/shared/utils/reward-discount";
-import { paymentMethodLabel, paymentMethodOptions, type PaymentMethodValue } from "@/shared/utils/payment-methods";
+import { PaymentMediumSelect, type PaymentMediumOption } from "@/shared/components/PaymentMediumSelect";
+import { paymentMethodLabel, type PaymentMethodValue } from "@/shared/utils/payment-methods";
+import { mediumKindToMethod } from "@/shared/utils/payment-media";
 import { formatMoney, lineTotal, toAmount, toQuantity } from "@/shared/utils/money";
 import { useAppointmentSocket } from "@/src/features/appointments";
 import type { AppointmentCalendarEvent } from "@/src/features/appointments";
@@ -423,6 +425,8 @@ export default function AgendaPage() {
   const [serviceMenuOpen, setServiceMenuOpen] = useState(false);
   const [productMenuOpen, setProductMenuOpen] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethodValue>("cash");
+  const [paymentMediumId, setPaymentMediumId] = useState<number | null>(null);
+  const [paymentMediumName, setPaymentMediumName] = useState("Efectivo");
   const [paymentNotes, setPaymentNotes] = useState("");
   const [selectedRewardId, setSelectedRewardId] = useState<number | null>(null);
   const [paying, setPaying] = useState(false);
@@ -971,6 +975,7 @@ export default function AgendaPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           method: paymentMethod,
+          paymentMediumId,
           amount: paymentTotal,
           notes: paymentNotes,
           rewardId: selectedRewardId,
@@ -1680,34 +1685,14 @@ export default function AgendaPage() {
                               ) : null}
 
                               <div className="grid gap-4 sm:grid-cols-2">
-                                <ComboBox
-                                  selectedKey={paymentMethod}
-                                  onSelectionChange={(key) =>
-                                    setPaymentMethod((key as PaymentMethodValue) ?? "cash")
-                                  }
-                                  variant="secondary"
-                                  className="sm:col-span-1"
-                                >
-                                  <Label className="text-sm font-medium">Método de pago</Label>
-                                  <ComboBox.InputGroup>
-                                    <Input />
-                                    <ComboBox.Trigger />
-                                  </ComboBox.InputGroup>
-                                  <ComboBox.Popover>
-                                    <ListBox>
-                                      {paymentMethodOptions.map((key) => (
-                                        <ListBox.Item
-                                          key={key}
-                                          id={key}
-                                          textValue={paymentMethodLabel[key]}
-                                        >
-                                          {paymentMethodLabel[key]}
-                                          <ListBox.ItemIndicator />
-                                        </ListBox.Item>
-                                      ))}
-                                    </ListBox>
-                                  </ComboBox.Popover>
-                                </ComboBox>
+                                <PaymentMediumSelect
+                                  value={paymentMediumId}
+                                  onChange={(medium: PaymentMediumOption) => {
+                                    setPaymentMediumId(medium.id);
+                                    setPaymentMediumName(medium.name);
+                                    setPaymentMethod(mediumKindToMethod(medium.kind));
+                                  }}
+                                />
                                 <div className="flex flex-col gap-1 sm:col-span-1">
                                   <label htmlFor="payment-notes" className="text-sm font-medium">
                                     Notas <span className="font-normal text-foreground/45">(opcional)</span>
@@ -2282,7 +2267,7 @@ export default function AgendaPage() {
                 ) : null}
                 <div className="mt-2 flex items-center justify-between border-t border-separator pt-2">
                   <span className="text-foreground/65">Método de pago</span>
-                  <span className="font-medium">{paymentMethodLabel[paymentMethod]}</span>
+                  <span className="font-medium">{paymentMediumName}</span>
                 </div>
                 {selectedReward ? (
                   <div className="mt-2 flex items-center justify-between border-t border-separator pt-2">

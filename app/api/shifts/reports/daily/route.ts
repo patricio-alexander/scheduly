@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
 import { checkAuth } from "@/shared/utils/check-auth";
 import { isManagementRole } from "@/shared/utils/roles";
-import { buildDailyShiftReport } from "@/shared/utils/shift-reports";
+import {
+  buildDailyShiftReport,
+  parseBranchIdParam,
+} from "@/shared/utils/shift-reports";
 
 export async function GET(request: Request) {
   const auth = await checkAuth();
@@ -13,7 +16,8 @@ export async function GET(request: Request) {
   try {
     const url = new URL(request.url);
     const date = url.searchParams.get("date") ?? undefined;
-    const report = await buildDailyShiftReport(date ?? "");
+    const branchId = parseBranchIdParam(url.searchParams.get("branchId"));
+    const report = await buildDailyShiftReport(date ?? "", branchId);
     return NextResponse.json(report);
   } catch (error) {
     console.error("GET /api/shifts/reports/daily", error);

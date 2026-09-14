@@ -8,7 +8,21 @@ import type {
 } from "@/generated/prisma/client";
 import { hashPassword } from "../shared/utils/password";
 import { calcAppointmentCommission } from "../shared/utils/commissions";
-import { SYSTEM_ROLES } from "../shared/utils/system-roles";
+import {
+  defaultMediumCodeForMethod,
+  ensureDefaultPaymentMedia,
+} from "../shared/utils/payment-media";
+import { dbRoleNamesForAppRole, SYSTEM_ROLES } from "../shared/utils/system-roles";
+import { computeExpectedCash } from "../shared/utils/turno-cash";
+import {
+  calcPayrollLineTotal,
+  DEFAULT_PAYROLL_SETTINGS,
+  endOfLocalDay,
+  getPayrollWeekRange,
+  mergePayrollIntoReceiptSettings,
+  toDateKey,
+  toDateOnly,
+} from "../shared/utils/payroll-settings";
 
 type SeedPaymentMethod = "cash" | "card" | "transfer";
 
@@ -590,14 +604,28 @@ const DEMO = {
     {
       name: "Cuidado capilar",
       description: "Shampoos, acondicionadores y tratamientos",
+      commissionPct: 12,
     },
     {
       name: "Styling profesional",
       description: "Serums, ceras modeladoras y kits de acabado",
+      commissionPct: 10,
     },
-    { name: "Uñas y spa", description: "Esmaltes, kits y cuidado de uñas" },
-    { name: "Coloración", description: "Tintes y productos de color" },
-    { name: "Accesorios", description: "Cepillos y herramientas de venta" },
+    {
+      name: "Uñas y spa",
+      description: "Esmaltes, kits y cuidado de uñas",
+      commissionPct: 15,
+    },
+    {
+      name: "Coloración",
+      description: "Tintes y productos de color",
+      commissionPct: 8,
+    },
+    {
+      name: "Accesorios",
+      description: "Cepillos y herramientas de venta",
+      commissionPct: 10,
+    },
   ],
   products: [
     {
@@ -941,12 +969,18 @@ async function registerCompletedAppointmentPayment(
     params.productLines,
   );
   const method = pickPaymentMethod(params.paymentIndex);
+  const medium = await resolveSeedPaymentMedium(
+    prisma,
+    method,
+    params.paymentIndex,
+  );
 
   await prisma.appointmentPayment.create({
     data: {
       appointmentId: params.appointmentId,
       amount: total,
       method,
+      paymentMediumId: medium?.id ?? null,
       paidAt: params.appointmentDate,
       notes: pickPaymentNote(method, params.paymentIndex),
     },
@@ -1065,6 +1099,329 @@ async function seedEmployeeMyDayAppointments(
       }
     }
   }
+}
+
+const SEED_PAYROLL_APPOINTMENT_MARK = "[seed-liq]";
+
+async function wipeSeedPayrollAppointments(prisma: PrismaClient) {
+  const old = await prisma.appointment.findMany({
+    where: { description: { startsWith: SEED_PAYROLL_APPOINTMENT_MARK } },
+    select: { id: true },
+  });
+  if (old.length === 0) return;
+  const ids = old.map((a) => a.id);
+  await prisma.commissionRecord.deleteMany({
+    where: { appointmentId: { in: ids } },
+  });
+  await prisma.appointmentPayment.deleteMany({
+    where: { appointmentId: { in: ids } },
+  });
+  await prisma.appointmentProduct.deleteMany({
+    where: { appointmentId: { in: ids } },
+  });
+  await prisma.appointmentService.deleteMany({
+    where: { appointmentId: { in: ids } },
+  });
+  await prisma.appointment.deleteMany({ where: { id: { in: ids } } });
+}
+
+async function seedEmployeeCommissionWeekAppointments(
+  prisma: PrismaClient,
+  now: Date,
+  users: Array<{ personId: number }>,
+  customers: Array<{ id: number }>,
+  services: SeedService[],
+  products: Array<{ id: number; name: string; price: number }>,
+  branches: Array<{ id: number }>,
+  appointmentTemplates: AppointmentTemplate[],
+  periodStart: Date,
+  periodEnd: Date,
+) {
+  await wipeSeedPayrollAppointments(prisma);
+
+  const lastCompleted = startOfDay(now);
+  const endDay = startOfDay(periodEnd);
+  let paymentIndex = 8000;
+  let created = 0;
+
+  for (let employeeIndex = 0; employeeIndex < users.length; employeeIndex++) {
+    const user = users[employeeIndex];
+    const branch =
+      branches[Math.floor(employeeIndex / STAFF_PER_BRANCH)] ?? branches[0];
+    const cursor = startOfDay(periodStart);
+
+    while (cursor <= endDay && cursor <= lastCompleted) {
+      const dow = cursor.getDay();
+      if (dow !== 0) {
+        const visits = dow === 6 ? 2 : 1;
+        for (let visit = 0; visit < visits; visit++) {
+          const template =
+            appointmentTemplates[
+              (employeeIndex * 5 + cursor.getDate() + visit) %
+                appointmentTemplates.length
+            ];
+          const customer =
+            customers[
+              (employeeIndex + cursor.getDate() + visit) % customers.length
+            ];
+          const appointmentDate = atTime(
+            cursor,
+            9 + visit * 4,
+            employeeIndex % 2 === 0 ? 0 : 30,
+          );
+
+          const apt = await prisma.appointment.create({
+            data: {
+              title: template.title,
+              description: `${SEED_PAYROLL_APPOINTMENT_MARK} ${template.description}`,
+              customerId: customer.id,
+              userId: user.personId,
+              branchId: branch.id,
+              appointmentDate,
+              status: "completed",
+              reminderSent: "yes",
+              stockDeducted: false,
+            },
+          });
+
+          const linkedServices = template.serviceNames
+            .map((name) => services.find((s) => s.name === name))
+            .filter((s): s is SeedService => Boolean(s));
+
+          for (const svc of linkedServices) {
+            await prisma.appointmentService.create({
+              data: { appointmentId: apt.id, serviceId: svc.id },
+            });
+          }
+
+          const productLines: Array<{ price: number; quantity: number }> = [];
+          const productNames =
+            template.productNames ??
+            (visit > 0 || employeeIndex % 3 === 0
+              ? (["Serum reparador"] as const)
+              : []);
+          for (const productName of productNames) {
+            const product = products.find((p) => p.name === productName);
+            if (!product) continue;
+            productLines.push({ price: product.price, quantity: 1 });
+            await prisma.appointmentProduct.create({
+              data: {
+                appointmentId: apt.id,
+                productId: product.id,
+                quantity: 1,
+              },
+            });
+          }
+
+          await registerCompletedAppointmentPayment(prisma, {
+            appointmentId: apt.id,
+            userId: user.personId,
+            appointmentDate,
+            linkedServices,
+            productLines,
+            paymentIndex: paymentIndex++,
+          });
+
+          if (productLines.length > 0) {
+            await prisma.appointment.update({
+              where: { id: apt.id },
+              data: { stockDeducted: true },
+            });
+          }
+          created += 1;
+        }
+      }
+      cursor.setDate(cursor.getDate() + 1);
+    }
+  }
+
+  return created;
+}
+
+async function computeSeedEmployeeCommissions(
+  prisma: PrismaClient,
+  periodStart: Date,
+  periodEnd: Date,
+) {
+  const employees = await prisma.account.findMany({
+    where: {
+      isActive: true,
+      userId: { not: null },
+      roles: {
+        some: { role: { name: { in: dbRoleNamesForAppRole("employee") } } },
+      },
+    },
+    select: {
+      id: true,
+      userId: true,
+      person: {
+        select: {
+          firstName: true,
+          secondName: true,
+          firstLastName: true,
+          secondLastName: true,
+        },
+      },
+      branches: {
+        where: { isPrimary: true },
+        select: { branchId: true },
+        take: 1,
+      },
+    },
+  });
+
+  const personIds = employees
+    .map((e) => e.userId)
+    .filter((id): id is number => id != null);
+
+  const appts = await prisma.appointment.findMany({
+    where: {
+      userId: { in: personIds.length ? personIds : [-1] },
+      appointmentDate: { gte: periodStart, lte: periodEnd },
+      status: "completed",
+      payment: { isNot: null },
+    },
+    select: {
+      userId: true,
+      branchId: true,
+      payment: { select: { amount: true } },
+      services: {
+        select: {
+          service: { select: { price: true, commissionPct: true } },
+        },
+      },
+      products: {
+        select: {
+          quantity: true,
+          product: {
+            select: {
+              price: true,
+              commissionPct: true,
+              category: { select: { commissionPct: true } },
+            },
+          },
+        },
+      },
+    },
+  });
+
+  type Acc = { produced: number; sales: number; branchId: number | null };
+  const byPerson = new Map<number, Acc>();
+
+  for (const apt of appts) {
+    const paid = Number(apt.payment?.amount ?? 0);
+    const calc = calcAppointmentCommission(apt.services, apt.products, paid);
+    const prev = byPerson.get(apt.userId) ?? {
+      produced: 0,
+      sales: 0,
+      branchId: apt.branchId ?? null,
+    };
+    prev.produced += calc.servicesCommission;
+    prev.sales += calc.productsCommission;
+    if (!prev.branchId && apt.branchId) prev.branchId = apt.branchId;
+    byPerson.set(apt.userId, prev);
+  }
+
+  return employees
+    .filter((e) => e.userId != null)
+    .map((e) => {
+      const stats = byPerson.get(e.userId!) ?? {
+        produced: 0,
+        sales: 0,
+        branchId: e.branches[0]?.branchId ?? null,
+      };
+      const producedAmount = Math.round(stats.produced * 100) / 100;
+      const salesAmount = Math.round(stats.sales * 100) / 100;
+      return {
+        accountId: e.id,
+        producedAmount,
+        salesAmount,
+        branchId: stats.branchId ?? e.branches[0]?.branchId ?? null,
+        totalAmount: calcPayrollLineTotal({
+          producedAmount,
+          salesAmount,
+          vouchersAmount: 0,
+          cafeteriaAmount: 0,
+          finesAmount: 0,
+          discountsAmount: 0,
+          additionalAmount: 0,
+        }),
+      };
+    });
+}
+
+async function seedCurrentPayrollWeek(opts: {
+  prisma: PrismaClient;
+  createdById: number;
+  now: Date;
+  users: Array<{ personId: number }>;
+  customers: Array<{ id: number }>;
+  services: SeedService[];
+  products: Array<{ id: number; name: string; price: number }>;
+  branches: Array<{ id: number }>;
+  appointmentTemplates: AppointmentTemplate[];
+}) {
+  const {
+    prisma,
+    createdById,
+    now,
+    users,
+    customers,
+    services,
+    products,
+    branches,
+    appointmentTemplates,
+  } = opts;
+
+  const range = getPayrollWeekRange(
+    now,
+    DEFAULT_PAYROLL_SETTINGS.payrollWeekStartDay,
+  );
+  const start = toDateOnly(range.start);
+  const end = toDateOnly(range.end);
+
+  await prisma.payrollWeek.deleteMany({});
+
+  const extraAppointments = await seedEmployeeCommissionWeekAppointments(
+    prisma,
+    now,
+    users,
+    customers,
+    services,
+    products,
+    branches,
+    appointmentTemplates,
+    start,
+    end,
+  );
+
+  const computed = await computeSeedEmployeeCommissions(
+    prisma,
+    start,
+    endOfLocalDay(end),
+  );
+
+  const week = await prisma.payrollWeek.create({
+    data: {
+      periodStart: start,
+      periodEnd: end,
+      status: "draft",
+      notes:
+        "Semana demo · Se/Pr calculados desde turnos cobrados de cada empleado",
+      createdById,
+      lines: {
+        create: computed.map((line) => ({
+          accountId: line.accountId,
+          branchId: line.branchId,
+          producedAmount: line.producedAmount,
+          salesAmount: line.salesAmount,
+          totalAmount: line.totalAmount,
+        })),
+      },
+    },
+  });
+
+  return { week, computed, extraAppointments, start, end };
 }
 
 function buildSubscriptionPayload(now: Date): Prisma.InputJsonValue {
@@ -1327,10 +1684,366 @@ function appointmentsForDay(
 }
 
 function pickPaymentMethod(index: number): SeedPaymentMethod {
-  const roll = index % 20;
-  if (roll < 10) return "cash";
-  if (roll < 17) return "card";
-  return "transfer";
+  const roll = index % 10;
+  if (roll < 4) return "cash";
+  if (roll < 8) return "transfer";
+  return "card";
+}
+
+function pickTransferCode(index: number): string {
+  return (["de_una", "loja", "pichincha", "de_una", "coopmego"] as const)[
+    index % 5
+  ];
+}
+
+let seedMediaByCode: Map<string, { id: number; kind: string }> | null = null;
+
+async function getSeedMediaByCode(prisma: PrismaClient) {
+  if (seedMediaByCode) return seedMediaByCode;
+  await ensureDefaultPaymentMedia(prisma);
+  const rows = await prisma.paymentMedium.findMany();
+  seedMediaByCode = new Map(
+    rows
+      .filter((row) => row.code)
+      .map((row) => [String(row.code), { id: row.id, kind: row.kind }]),
+  );
+  return seedMediaByCode;
+}
+
+async function resolveSeedPaymentMedium(
+  prisma: PrismaClient,
+  method: SeedPaymentMethod,
+  index: number,
+) {
+  const byCode = await getSeedMediaByCode(prisma);
+  const code =
+    method === "transfer"
+      ? pickTransferCode(index)
+      : defaultMediumCodeForMethod(method);
+  return byCode.get(code) ?? byCode.get(defaultMediumCodeForMethod(method));
+}
+
+function money2(n: number) {
+  return Number(Number(n || 0).toFixed(2));
+}
+
+function mondayOf(date: Date) {
+  const start = startOfDay(date);
+  const dow = start.getDay();
+  return addDays(start, dow === 0 ? -6 : 1 - dow);
+}
+
+function openingCounts(cash: number, media: Record<number, number>) {
+  let left = Math.max(0, Math.round(cash));
+  const b_020 = Math.floor(left / 20);
+  left -= b_020 * 20;
+  const b_010 = Math.floor(left / 10);
+  left -= b_010 * 10;
+  const b_005 = Math.floor(left / 5);
+  left -= b_005 * 5;
+  return {
+    b_020,
+    b_010,
+    b_005,
+    b_001: left,
+    media,
+  };
+}
+
+async function wipeCashDeskDemo(prisma: PrismaClient) {
+  await prisma.cashCloseLine.deleteMany({});
+  await prisma.cashClose.deleteMany({});
+  await prisma.itemGroupItem.deleteMany({}).catch(() => undefined);
+  await prisma.electronicInvoice.deleteMany({
+    where: { orderId: { not: null } },
+  }).catch(() => undefined);
+  await prisma.salePaymentInstallment.deleteMany({}).catch(() => undefined);
+  await prisma.saleLine.deleteMany({});
+  await prisma.sale.deleteMany({});
+  await prisma.cashShiftMovement.deleteMany({});
+  await prisma.cashShift.deleteMany({});
+}
+
+async function seedCashWeekDemo(opts: {
+  prisma: PrismaClient;
+  now: Date;
+  owner: SeedAccount;
+  branchAdmins: SeedAccount[];
+  staff: SeedAccount[];
+  customers: Array<{ id: number }>;
+  products: Array<{ id: number; name: string; price: number }>;
+  branches: Array<{ id: number; name: string; key: string }>;
+}) {
+  const { prisma, now, owner, branchAdmins, staff, customers, products, branches } =
+    opts;
+  if (products.length === 0 || customers.length === 0 || branches.length === 0) {
+    return { shifts: 0, sales: 0, closes: 0 };
+  }
+
+  await wipeCashDeskDemo(prisma);
+  const byCode = await getSeedMediaByCode(prisma);
+  const mediaId = (code: string) => byCode.get(code)?.id ?? null;
+  const efectivoId = mediaId("efectivo");
+  const deUnaId = mediaId("de_una");
+  const lojaId = mediaId("loja");
+  const pichinchaId = mediaId("pichincha");
+  const tarjetaId = mediaId("tarjeta");
+
+  const today = startOfDay(now);
+  const weekStart = mondayOf(now);
+
+  const branchWeight: Record<string, number> = {
+    colon: 1.2,
+    eguiguren: 1,
+    lourdes: 0.72,
+    centrosur: 0.65,
+  };
+  const branchOpeningCash: Record<string, number> = {
+    colon: 120,
+    eguiguren: 100,
+    lourdes: 80,
+    centrosur: 70,
+  };
+
+  const posCatalog = products.filter((p) =>
+    /shampoo|serum|cera|mascarilla|keratina|aceite|tinte/i.test(p.name),
+  );
+  const sellable = posCatalog.length > 0 ? posCatalog : products.slice(0, 6);
+
+  const adminByBranch = new Map<string, SeedAccount>();
+  for (const adminUser of branchAdmins) {
+    const seed = DEMO.branchAdmins.find((a) => a.username === adminUser.username);
+    if (seed) adminByBranch.set(seed.branchCode, adminUser);
+  }
+
+  let shifts = 0;
+  let sales = 0;
+  let closes = 0;
+
+  for (let branchIndex = 0; branchIndex < branches.length; branchIndex++) {
+    const branch = branches[branchIndex];
+    const weight = branchWeight[branch.key] ?? 0.8;
+    const cashier =
+      adminByBranch.get(branch.key) ??
+      staff[branchIndex * STAFF_PER_BRANCH] ??
+      owner;
+    const existingRegister = await prisma.cashRegister.findFirst({
+      where: { storeId: branch.id },
+      orderBy: [{ position: "asc" }, { id: "asc" }],
+    });
+    const register =
+      existingRegister ??
+      (await prisma.cashRegister.create({
+        data: {
+          storeId: branch.id,
+          name: "Caja 1",
+          code: "C1",
+          emissionPointCode: "001",
+          isActive: true,
+          position: 0,
+        },
+      }));
+
+    for (let dayOffset = 0; dayOffset < 7; dayOffset++) {
+      const day = addDays(weekStart, dayOffset);
+      if (day > today) continue;
+      const isToday = day.getTime() === today.getTime();
+      const isSunday = day.getDay() === 0;
+      if (isSunday && branch.key !== "colon") continue;
+
+      const opener = isToday && branch.key === "colon" ? owner : cashier;
+      const dow = day.getDay();
+      const dayFactor = dow === 6 ? 1.35 : dow === 5 ? 1.2 : dow === 1 ? 0.85 : 1;
+      const openingCash = money2(
+        (branchOpeningCash[branch.key] ?? 90) + (dow === 6 ? 20 : 0),
+      );
+      const openingMedia: Record<number, number> = {};
+      if (deUnaId) openingMedia[deUnaId] = money2(28 * weight + (dayOffset % 3) * 6);
+      if (lojaId) openingMedia[lojaId] = money2(12 * weight + (dayOffset % 2) * 5);
+      if (pichinchaId) {
+        openingMedia[pichinchaId] = money2(18 * weight + (branchIndex % 3) * 4);
+      }
+
+      const openedAt = atTime(day, 8, 10 + branchIndex);
+      const shift = await prisma.cashShift.create({
+        data: {
+          accountId: opener.accountId,
+          userId: opener.personId,
+          storeId: branch.id,
+          activeCashRegisterId: register.id,
+          establishmentCode: String(branchIndex + 1).padStart(3, "0"),
+          emissionPointCode: "001",
+          status: isToday ? "open" : "closed",
+          openedAt,
+          openingCashCounts: openingCounts(openingCash, openingMedia),
+          openingCashTotal: openingCash,
+          openingNotes: isToday
+            ? "Apertura demo · cambio del día y saldos en bancos"
+            : null,
+        },
+      });
+      shifts += 1;
+
+      const saleCount = Math.max(3, Math.round(5 * weight * dayFactor));
+      let salesCash = 0;
+      let salesTransfer = 0;
+      let salesCard = 0;
+      const mediumTotals = new Map<number, number>();
+      const bumpMedium = (id: number | null, amount: number) => {
+        if (!id) return;
+        mediumTotals.set(id, money2((mediumTotals.get(id) || 0) + amount));
+      };
+
+      for (let n = 0; n < saleCount; n++) {
+        const method = pickPaymentMethod(branchIndex * 20 + dayOffset * 7 + n);
+        const medium = await resolveSeedPaymentMedium(
+          prisma,
+          method,
+          branchIndex * 20 + dayOffset * 7 + n,
+        );
+        const product = pick(sellable, n + dayOffset + branchIndex);
+        const qty = n % 4 === 0 ? 2 : 1;
+        const lineTotal = money2(product.price * qty);
+        const paidAt = atTime(day, 10 + (n % 8), (n * 7) % 60);
+        await prisma.sale.create({
+          data: {
+            customerId: pick(customers, n + branchIndex).id,
+            status: "pagado",
+            notes: method === "cash" ? "Mostrador" : "Cobro del día",
+            shiftId: shift.id,
+            cashRegisterId: register.id,
+            sellerAccountId: opener.accountId,
+            paymentMethod: method,
+            paymentMediumId: medium?.id ?? null,
+            paidAt,
+            documentType: "nota_venta",
+            date: paidAt,
+            lines: {
+              create: {
+                productId: product.id,
+                quantity: qty,
+                price: product.price,
+                soldQty: qty,
+                paidAt,
+                deliveredAt: paidAt,
+                deliveredStoreId: branch.id,
+              },
+            },
+          },
+        });
+        sales += 1;
+        if (method === "cash") salesCash += lineTotal;
+        else if (method === "card") salesCard += lineTotal;
+        else salesTransfer += lineTotal;
+        bumpMedium(medium?.id ?? null, lineTotal);
+      }
+
+      const lunch = money2(4.5 + (branchIndex % 3) * 0.5);
+      const supplies = money2(dow === 3 ? 8.4 : 3.2);
+      await prisma.cashShiftMovement.create({
+        data: {
+          shiftId: shift.id,
+          accountId: opener.accountId,
+          userId: opener.personId,
+          direction: "out",
+          category: "gasto_operativo",
+          amount: lunch,
+          concept: "Almuerzo personal",
+          createdAt: atTime(day, 13, 15),
+        },
+      });
+      await prisma.cashShiftMovement.create({
+        data: {
+          shiftId: shift.id,
+          accountId: opener.accountId,
+          userId: opener.personId,
+          direction: "out",
+          category: "compra_mercancia",
+          amount: supplies,
+          concept: dow === 3 ? "Toallas y papel" : "Insumos de caja",
+          createdAt: atTime(day, 11, 40),
+        },
+      });
+      let cashOut = money2(lunch + supplies);
+      if (dow === 5 && openingCash > 80) {
+        const retiro = 20;
+        await prisma.cashShiftMovement.create({
+          data: {
+            shiftId: shift.id,
+            accountId: opener.accountId,
+            userId: opener.personId,
+            direction: "out",
+            category: "retiro",
+            amount: retiro,
+            concept: "Retiro para depósito",
+            createdAt: atTime(day, 17, 10),
+          },
+        });
+        cashOut = money2(cashOut + retiro);
+      }
+
+      const expected = computeExpectedCash(openingCash, salesCash, cashOut, 0);
+      if (!isToday) {
+        const difference = dayOffset % 4 === 1 ? -1.5 : dayOffset % 4 === 2 ? 0.75 : 0;
+        const closingCash = money2(expected + difference);
+        await prisma.cashShift.update({
+          where: { id: shift.id },
+          data: {
+            status: "closed",
+            closedAt: atTime(day, 19, 5),
+            closingCashCounts: openingCounts(closingCash, {}),
+            closingCashTotal: closingCash,
+            expectedCashTotal: expected,
+            cashDifference: money2(difference),
+            salesCashTotal: money2(salesCash),
+            salesTransferTotal: money2(salesTransfer),
+            salesCardTotal: money2(salesCard),
+            salesTotal: money2(salesCash + salesTransfer + salesCard),
+            cashOutTotal: cashOut,
+            cashInTotal: 0,
+            closingNotes:
+              difference === 0 ? "Cuadre OK" : "Diferencia menor al cierre",
+          },
+        });
+
+        const close = await prisma.cashClose.create({
+          data: {
+            branchId: branch.id,
+            closeDate: toDateOnly(day),
+            expensesTotal: cashOut,
+            notes: "Cuadre demo del día",
+            createdById: opener.accountId,
+          },
+        });
+        const lineIds = [
+          efectivoId,
+          deUnaId,
+          lojaId,
+          pichinchaId,
+          tarjetaId,
+        ].filter((id): id is number => id != null);
+        for (const paymentMediumId of lineIds) {
+          const collected = mediumTotals.get(paymentMediumId) || 0;
+          const leftover =
+            paymentMediumId === efectivoId
+              ? 0
+              : openingMedia[paymentMediumId] || 0;
+          const amount = money2(collected + leftover);
+          if (amount <= 0) continue;
+          await prisma.cashCloseLine.create({
+            data: {
+              cashCloseId: close.id,
+              paymentMediumId,
+              amount,
+            },
+          });
+        }
+        closes += 1;
+      }
+    }
+  }
+
+  return { shifts, sales, closes };
 }
 
 function pickPaymentNote(method: SeedPaymentMethod, index: number): string {
@@ -1520,6 +2233,7 @@ function buildAppointmentPlans(now: Date): DayPlan[] {
 }
 
 async function refreshOperationalData(prisma: PrismaClient) {
+  await prisma.payrollWeek.deleteMany({});
   await prisma.commissionRecord.deleteMany({});
   await prisma.appointmentPayment.deleteMany({});
   await prisma.appointmentProduct.deleteMany({});
@@ -1536,6 +2250,14 @@ async function seedBusinessSettings(prisma: PrismaClient) {
     dangerColor: DEMO.business.dangerColor,
   };
 
+  const existingSettings = await prisma.appSettings.findUnique({
+    where: { id: 1 },
+  });
+  const receiptDetailSettings = mergePayrollIntoReceiptSettings(
+    existingSettings?.receiptDetailSettings,
+    DEFAULT_PAYROLL_SETTINGS,
+  );
+
   await prisma.appSettings.upsert({
     where: { id: 1 },
     create: {
@@ -1548,6 +2270,7 @@ async function seedBusinessSettings(prisma: PrismaClient) {
       socialFacebook: DEMO.business.facebook,
       socialInstagram: DEMO.business.instagram,
       logoPath: null,
+      receiptDetailSettings,
       ...colors,
     },
     update: {
@@ -1558,6 +2281,7 @@ async function seedBusinessSettings(prisma: PrismaClient) {
       socialWhatsapp: DEMO.business.whatsapp,
       socialFacebook: DEMO.business.facebook,
       socialInstagram: DEMO.business.instagram,
+      receiptDetailSettings,
       ...colors,
     },
   });
@@ -1725,7 +2449,10 @@ async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
       categories.push(
         await prisma.category.update({
           where: { id: existing.id },
-          data: { description: c.description },
+          data: {
+            description: c.description,
+            commissionPct: c.commissionPct,
+          },
         }),
       );
     } else {
@@ -2199,6 +2926,29 @@ async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
     appointmentTemplates,
   );
 
+  const payrollWeek = await seedCurrentPayrollWeek({
+    prisma,
+    createdById: adminAccountId,
+    now,
+    users,
+    customers,
+    services,
+    products,
+    branches,
+    appointmentTemplates,
+  });
+
+  const cashWeek = await seedCashWeekDemo({
+    prisma,
+    now,
+    owner: admin,
+    branchAdmins: branchAdminUsers,
+    staff: users,
+    customers,
+    products,
+    branches,
+  });
+
   // Restaurar stocks demo (sin decrementar por turnos) para alertas estables
   for (const p of productsData) {
     const product = products.find((x) => x.name === p.name);
@@ -2462,9 +3212,121 @@ async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
   );
   console.log(`  - ${notificationsCreated} notificaciones`);
   console.log(`  - entitlement: subscribed=true, maintenance=false`);
+  const withCommission = payrollWeek.computed.filter(
+    (l) => l.producedAmount > 0 || l.salesAmount > 0,
+  );
+  const seTotal = payrollWeek.computed.reduce((s, l) => s + l.producedAmount, 0);
+  const prTotal = payrollWeek.computed.reduce((s, l) => s + l.salesAmount, 0);
+  console.log(
+    `  - Liquidación ${toDateKey(payrollWeek.start)} → ${toDateKey(payrollWeek.end)} (martes–lunes)`,
+  );
+  console.log(
+    `      · ${withCommission.length}/${payrollWeek.computed.length} empleados con Se/Pr · +${payrollWeek.extraAppointments} turnos cobrados`,
+  );
+  console.log(
+    `      · Se $${seTotal.toFixed(2)} · Pr $${prTotal.toFixed(2)}`,
+  );
+  console.log(
+    `  - Caja demo ${cashWeek.shifts} aperturas · ${cashWeek.sales} ventas POS · ${cashWeek.closes} cuadres`,
+  );
 }
 
-main().catch((e) => {
+async function seedPayrollWeekStandalone() {
+  const adapter = new PrismaMariaDb(process.env.DATABASE_URL!);
+  const prisma = new PrismaClient({ adapter });
+  const now = new Date();
+
+  const admin = await prisma.account.findFirst({
+    where: { username: DEMO.admin.username },
+  });
+  if (!admin) {
+    throw new Error(
+      "No hay cuenta owner. Corre primero `npm run seed` completo.",
+    );
+  }
+
+  for (const c of DEMO.categories) {
+    await prisma.category.updateMany({
+      where: { name: c.name },
+      data: { commissionPct: c.commissionPct },
+    });
+  }
+
+  const existingSettings = await prisma.appSettings.findUnique({
+    where: { id: 1 },
+  });
+  if (existingSettings) {
+    await prisma.appSettings.update({
+      where: { id: 1 },
+      data: {
+        receiptDetailSettings: mergePayrollIntoReceiptSettings(
+          existingSettings.receiptDetailSettings,
+          DEFAULT_PAYROLL_SETTINGS,
+        ),
+      },
+    });
+  }
+
+  const users = await prisma.account.findMany({
+    where: {
+      isActive: true,
+      userId: { not: null },
+      roles: {
+        some: { role: { name: { in: dbRoleNamesForAppRole("employee") } } },
+      },
+    },
+    select: { userId: true },
+  });
+  const staff = users
+    .filter((u) => u.userId != null)
+    .map((u) => ({ personId: u.userId! }));
+
+  const customers = await prisma.customer.findMany({ select: { id: true } });
+  const services = await prisma.service.findMany({
+    select: { id: true, name: true, price: true, commissionPct: true },
+  });
+  const products = await prisma.product.findMany({
+    select: { id: true, name: true, price: true },
+  });
+  const branches = await prisma.branch.findMany({
+    orderBy: { id: "asc" },
+    select: { id: true },
+  });
+
+  if (staff.length === 0 || customers.length === 0 || services.length === 0) {
+    throw new Error("Faltan empleados, clientes o servicios para armar la semana.");
+  }
+
+  const payrollWeek = await seedCurrentPayrollWeek({
+    prisma,
+    createdById: admin.id,
+    now,
+    users: staff,
+    customers,
+    services,
+    products,
+    branches,
+    appointmentTemplates: DEMO.appointmentTemplates.map((t) => ({ ...t })),
+  });
+
+  const withCommission = payrollWeek.computed.filter(
+    (l) => l.producedAmount > 0 || l.salesAmount > 0,
+  );
+  const seTotal = payrollWeek.computed.reduce((s, l) => s + l.producedAmount, 0);
+  const prTotal = payrollWeek.computed.reduce((s, l) => s + l.salesAmount, 0);
+  console.log(
+    `Liquidación ${toDateKey(payrollWeek.start)} → ${toDateKey(payrollWeek.end)} (martes–lunes)`,
+  );
+  console.log(
+    `  ${withCommission.length}/${payrollWeek.computed.length} empleados con Se/Pr · +${payrollWeek.extraAppointments} turnos cobrados`,
+  );
+  console.log(`  Se $${seTotal.toFixed(2)} · Pr $${prTotal.toFixed(2)}`);
+
+  await prisma.$disconnect();
+}
+
+const runPayrollWeekOnly = process.argv.includes("--payroll-week");
+(runPayrollWeekOnly ? seedPayrollWeekStandalone() : main()).catch((e) => {
   console.error(e);
   process.exit(1);
 });

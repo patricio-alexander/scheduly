@@ -94,6 +94,7 @@ export interface CreateDirectProductSalePayload {
   documentType?: string;
   /** Cuotas de crédito (dueDate null = sin fecha) */
   installments?: Array<{ dueDate: string | null; amount: number }>;
+  paymentMediumId?: number | null;
   lines: Array<{
     productId: number;
     quantity: number;

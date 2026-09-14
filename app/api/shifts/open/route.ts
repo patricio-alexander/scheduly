@@ -47,13 +47,37 @@ export async function POST(request: Request) {
     const resolved = resolveCashFromBody({
       cashCounts: body.cashCounts,
       cashTotal: body.cashTotal,
+      mediaTotals: body.mediaTotals,
     });
     if (!resolved) {
       return NextResponse.json(
-        { message: "Indica el capital inicial (arqueo o total)" },
+        { message: "Indica el capital inicial (efectivo o transferencias)" },
         { status: 400 },
       );
     }
+
+    const transferIds = Object.keys(resolved.mediaTotals).map(Number);
+    let mediaTotals = resolved.mediaTotals;
+    if (transferIds.length > 0) {
+      const allowed = await prisma.paymentMedium.findMany({
+        where: {
+          id: { in: transferIds },
+          isActive: true,
+          kind: "transfer",
+        },
+        select: { id: true },
+      });
+      const allowedIds = new Set(allowed.map((m) => m.id));
+      mediaTotals = Object.fromEntries(
+        Object.entries(resolved.mediaTotals).filter(([id]) =>
+          allowedIds.has(Number(id)),
+        ),
+      );
+    }
+    const counts =
+      Object.keys(mediaTotals).length > 0
+        ? { ...resolved.counts, media: mediaTotals }
+        : resolved.counts;
 
     const rawStore =
       body.storeId != null && body.storeId !== ""
@@ -155,8 +179,8 @@ export async function POST(request: Request) {
         emissionPointCode: branch.emissionPointCode || "001",
         status: "open",
         openedAt,
-        openingCashCounts: resolved.counts,
-        openingCashTotal: resolved.total,
+        openingCashCounts: counts,
+        openingCashTotal: resolved.cashTotal,
         openingNotes: notes,
       },
       select: { id: true },

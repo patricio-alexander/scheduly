@@ -4,8 +4,14 @@ import {
   calcAppointmentCommission,
   resolveProductCommissionPct,
 } from "@/shared/utils/commissions";
-import { movementCategoryLabel } from "@/shared/utils/turno-cash";
 import {
+  computeExpectedCash,
+  mediaFromCounts,
+  mediaTotalsSum,
+  movementCategoryLabel,
+} from "@/shared/utils/turno-cash";
+import {
+  bucketPaymentKind,
   defaultMediumCodeForMethod,
   ensureDefaultPaymentMedia,
 } from "@/shared/utils/payment-media";
@@ -23,6 +29,35 @@ const WEEKDAY_LONG = [
 
 function to2(n: number) {
   return Number(Number(n || 0).toFixed(2));
+}
+
+export function parseBranchIdParam(raw: string | null | undefined): number | null {
+  if (raw == null || raw === "") return null;
+  const n = Number(raw);
+  return Number.isInteger(n) && n > 0 ? n : null;
+}
+
+function branchShiftWhere(branchId?: number | null) {
+  return branchId ? { storeId: branchId } : {};
+}
+
+function branchSaleWhere(branchId?: number | null) {
+  return branchId
+    ? {
+        OR: [
+          { shift: { is: { storeId: branchId } } },
+          { cashRegister: { is: { storeId: branchId } } },
+        ],
+      }
+    : {};
+}
+
+function branchAppointmentWhere(branchId?: number | null) {
+  return branchId ? { branchId } : {};
+}
+
+function branchMovementWhere(branchId?: number | null) {
+  return branchId ? { shift: { is: { storeId: branchId } } } : {};
 }
 
 export function formatDateKey(value: Date) {
@@ -104,12 +139,38 @@ function posSaleCommission(
   );
 }
 
-function bucketMethod(method: string | null | undefined) {
-  const m = String(method || "").toLowerCase();
-  if (m === "transfer" || m === "transferencia") return "transfer" as const;
-  if (m === "card" || m === "tarjeta") return "card" as const;
-  if (m === "credito") return "other" as const;
-  return "cash" as const;
+function bucketMethod(
+  method: string | null | undefined,
+  kind?: string | null,
+) {
+  return bucketPaymentKind(kind, method);
+}
+
+type CollectionBuckets = {
+  salesTotal: number;
+  salesCash: number;
+  salesTransfer: number;
+  salesCard: number;
+};
+
+function applyCollection(
+  row: CollectionBuckets,
+  amount: number,
+  bucket: ReturnType<typeof bucketPaymentKind>,
+) {
+  if (amount <= 0 || bucket === "other") return;
+  row.salesTotal = to2(row.salesTotal + amount);
+  if (bucket === "transfer") row.salesTransfer = to2(row.salesTransfer + amount);
+  else if (bucket === "card") row.salesCard = to2(row.salesCard + amount);
+  else row.salesCash = to2(row.salesCash + amount);
+}
+
+async function paymentKindById() {
+  await ensureDefaultPaymentMedia(prisma);
+  const media = await prisma.paymentMedium.findMany({
+    select: { id: true, kind: true },
+  });
+  return new Map(media.map((row) => [row.id, row.kind]));
 }
 
 export type PaymentMediumTotal = {
@@ -120,6 +181,84 @@ export type PaymentMediumTotal = {
   amount: number;
   count: number;
 };
+
+function accumulateOpeningMedia(
+  target: Map<number, number>,
+  counts: unknown,
+) {
+  const media = mediaFromCounts(counts);
+  for (const [rawId, amount] of Object.entries(media)) {
+    const id = Number(rawId);
+    if (!Number.isFinite(id) || amount <= 0) continue;
+    target.set(id, to2((target.get(id) ?? 0) + amount));
+  }
+}
+
+function openingRowsFromMap(map: Map<number, number>): PaymentMediumTotal[] {
+  return [...map.entries()].map(([id, amount]) => ({
+    id,
+    name: "",
+    code: null,
+    kind: "transfer",
+    amount,
+    count: 0,
+  }));
+}
+
+function catalogOpeningMedia(
+  catalog: PaymentMediumTotal[],
+  openingCash: number,
+  openingById: Map<number, number>,
+): PaymentMediumTotal[] {
+  return catalog
+    .map((medium) => {
+      const kind = String(medium.kind || "").toLowerCase();
+      const amount =
+        kind === "cash"
+          ? openingCash
+          : kind === "transfer"
+            ? openingById.get(medium.id) ?? 0
+            : 0;
+      return { ...medium, amount, count: 0 };
+    })
+    .filter((medium) => {
+      const kind = String(medium.kind || "").toLowerCase();
+      return kind === "cash" || medium.amount > 0;
+    });
+}
+
+function catalogCloseMedia(
+  catalog: PaymentMediumTotal[],
+  openingById: Map<number, number>,
+  cash?: {
+    openingCash?: number;
+    cashOut?: number;
+    cashIn?: number;
+    countedCash?: number | null;
+  },
+): PaymentMediumTotal[] {
+  return catalog.map((medium) => {
+    const kind = String(medium.kind || "").toLowerCase();
+    if (kind === "cash") {
+      const expected = to2(
+        Number(cash?.openingCash ?? 0) +
+          medium.amount -
+          Number(cash?.cashOut ?? 0) +
+          Number(cash?.cashIn ?? 0),
+      );
+      const counted = cash?.countedCash;
+      return {
+        ...medium,
+        amount: counted != null ? to2(counted) : expected,
+      };
+    }
+    const leftover =
+      kind === "transfer" || kind === "card"
+        ? openingById.get(medium.id) ?? 0
+        : 0;
+    return { ...medium, amount: to2(medium.amount + leftover) };
+  });
+}
 
 async function buildPaymentMediumTotals(
   entries: Array<{
@@ -172,11 +311,16 @@ function emptyDaySummary(date: string) {
   return {
     date,
     openingCashTotal: 0,
+    openingTransferTotal: 0,
     closingCashTotal: 0,
     salesTotal: 0,
     salesCash: 0,
     salesTransfer: 0,
     salesCard: 0,
+    servicesTotal: 0,
+    productsTotal: 0,
+    servicesCount: 0,
+    productsCount: 0,
     cashOutTotal: 0,
     ordersCount: 0,
   };
@@ -203,13 +347,23 @@ function customerLabel(customer: {
   );
 }
 
-function computeClosingTotal(opening: number | null, sales: number) {
-  return to2(Number(opening || 0) + Number(sales || 0));
+function computeClosingTotal(
+  opening: number | null,
+  salesCash: number,
+  cashOut = 0,
+  cashIn = 0,
+) {
+  return computeExpectedCash(
+    Number(opening || 0),
+    Number(salesCash || 0),
+    Number(cashOut || 0),
+    Number(cashIn || 0),
+  );
 }
 
 const UNATTRIBUTED_PERSON_ID = 0;
 
-export type EmployeeTicketSource = "turno" | "tienda";
+export type EmployeeTicketSource = "turno" | "tienda" | "vale";
 
 export type EmployeeProductionTicket = {
   id: number;
@@ -218,6 +372,7 @@ export type EmployeeProductionTicket = {
   customerName: string;
   services: number;
   products: number;
+  vouchers: number;
   total: number;
   method: string | null;
   itemsSummary: string;
@@ -230,6 +385,7 @@ export type EmployeeProductionRow = {
   ticketsCount: number;
   servicesTotal: number;
   productsTotal: number;
+  vouchersTotal: number;
   total: number;
   tickets: EmployeeProductionTicket[];
 };
@@ -240,6 +396,7 @@ export type EmployeeProductionSummary = {
   ticketsCount: number;
   servicesTotal: number;
   productsTotal: number;
+  vouchersTotal: number;
   total: number;
 };
 
@@ -254,6 +411,7 @@ function emptyEmployeeRow(
     ticketsCount: 0,
     servicesTotal: 0,
     productsTotal: 0,
+    vouchersTotal: 0,
     total: 0,
     tickets: [],
   };
@@ -269,6 +427,7 @@ function summarizeEmployees(
     ticketsCount: rows.reduce((s, r) => s + r.ticketsCount, 0),
     servicesTotal: to2(rows.reduce((s, r) => s + r.servicesTotal, 0)),
     productsTotal: to2(rows.reduce((s, r) => s + r.productsTotal, 0)),
+    vouchersTotal: to2(rows.reduce((s, r) => s + r.vouchersTotal, 0)),
     total: to2(rows.reduce((s, r) => s + r.total, 0)),
   };
 }
@@ -308,6 +467,7 @@ const paidAppointmentInclude = {
       method: true,
       paidAt: true,
       paymentMediumId: true,
+      paymentMedium: { select: { id: true, kind: true } },
     },
   },
   services: {
@@ -323,10 +483,15 @@ const paidAppointmentInclude = {
   },
 } as const;
 
-async function loadPaidAppointments(from: Date, to: Date) {
+async function loadPaidAppointments(
+  from: Date,
+  to: Date,
+  branchId?: number | null,
+) {
   return prisma.appointment.findMany({
     where: {
       status: { not: "cancelled" },
+      ...branchAppointmentWhere(branchId),
       payment: {
         is: {
           paidAt: { gte: from, lte: to },
@@ -335,6 +500,26 @@ async function loadPaidAppointments(from: Date, to: Date) {
     },
     include: paidAppointmentInclude,
   });
+}
+
+function appointmentPaidSplit(
+  apt: Awaited<ReturnType<typeof loadPaidAppointments>>[number],
+) {
+  const paid = toAmount(apt.payment?.amount);
+  if (paid <= 0) return { services: 0, products: 0 };
+  const servicesList = to2(
+    apt.services.reduce((sum, row) => sum + toAmount(row.service.price), 0),
+  );
+  const productsList = to2(
+    apt.products.reduce(
+      (sum, row) => sum + toAmount(row.product.price) * toAmount(row.quantity),
+      0,
+    ),
+  );
+  const list = to2(servicesList + productsList);
+  if (list <= 0) return { services: paid, products: 0 };
+  const services = to2((paid * servicesList) / list);
+  return { services, products: to2(paid - services) };
 }
 
 function foldAppointmentsIntoEmployees(
@@ -371,6 +556,7 @@ function foldAppointmentsIntoEmployees(
         customerName: customerLabel(apt.customer),
         services,
         products,
+        vouchers: 0,
         total,
         method: apt.payment.method,
         itemsSummary: itemsSummary || apt.title || "Turno",
@@ -413,6 +599,7 @@ function foldPosSalesIntoEmployees(
         customerName: sale.customerName || "Cliente",
         services: 0,
         products,
+        vouchers: 0,
         total: products,
         method: sale.paymentMethod,
         itemsSummary: sale.itemsSummary || "Venta tienda",
@@ -422,13 +609,66 @@ function foldPosSalesIntoEmployees(
   }
 }
 
-export async function buildWeeklyShiftReport(dateStr: string) {
+async function loadEmployeeVouchers(
+  from: Date,
+  to: Date,
+  branchId?: number | null,
+) {
+  return prisma.employeeVoucher.findMany({
+    where: {
+      issuedAt: { gte: from, lte: to },
+      ...(branchId ? { branchId } : {}),
+    },
+    include: {
+      person: { select: { firstName: true, firstLastName: true } },
+    },
+    orderBy: { issuedAt: "asc" },
+  });
+}
+
+function foldVouchersIntoEmployees(
+  map: Map<number, EmployeeProductionRow>,
+  vouchers: Awaited<ReturnType<typeof loadEmployeeVouchers>>,
+  keepTickets: boolean,
+) {
+  for (const voucher of vouchers) {
+    const amount = toAmount(voucher.amount);
+    if (amount <= 0) continue;
+    const row =
+      map.get(voucher.userId) ??
+      emptyEmployeeRow(voucher.userId, personLabel(voucher.person));
+    row.vouchersTotal = to2(row.vouchersTotal + amount);
+    row.ticketsCount += 1;
+    if (keepTickets) {
+      row.tickets.push({
+        id: voucher.id,
+        source: "vale",
+        paidAt: voucher.issuedAt.toISOString(),
+        customerName: voucher.reason?.trim() || "Vale",
+        services: 0,
+        products: 0,
+        vouchers: amount,
+        total: 0,
+        method: voucher.method,
+        itemsSummary: voucher.reason?.trim() || "Adelanto",
+      });
+    }
+    map.set(voucher.userId, row);
+  }
+}
+
+export async function buildWeeklyShiftReport(
+  dateStr: string,
+  branchId?: number | null,
+) {
   const week = parseWeekRange(dateStr);
 
-  const [sales, shiftsInWeek, outflows, appointments] = await Promise.all([
+  const [sales, shiftsInWeek, outflows, appointments, kindMap, vouchers] =
+    await Promise.all([
     prisma.sale.findMany({
       where: {
         status: { in: ["pagado", "entregado"] },
+        ...branchSaleWhere(branchId),
         OR: [
           { paidAt: { gte: week.weekStartDate, lte: week.weekEndDate } },
           {
@@ -452,22 +692,31 @@ export async function buildWeeklyShiftReport(dateStr: string) {
             person: { select: { firstName: true, firstLastName: true } },
           },
         },
+        paymentMedium: { select: { id: true, kind: true } },
       },
     }),
     prisma.cashShift.findMany({
       where: {
         openedAt: { gte: week.weekStartDate, lte: week.weekEndDate },
+        ...branchShiftWhere(branchId),
       },
-      select: { openedAt: true, openingCashTotal: true },
+      select: {
+        openedAt: true,
+        openingCashTotal: true,
+        openingCashCounts: true,
+      },
     }),
     prisma.cashShiftMovement.findMany({
       where: {
         direction: "out",
         createdAt: { gte: week.weekStartDate, lte: week.weekEndDate },
+        ...branchMovementWhere(branchId),
       },
       select: { amount: true, createdAt: true },
     }),
-    loadPaidAppointments(week.weekStartDate, week.weekEndDate),
+    loadPaidAppointments(week.weekStartDate, week.weekEndDate, branchId),
+    paymentKindById(),
+    loadEmployeeVouchers(week.weekStartDate, week.weekEndDate, branchId),
   ]);
   const employeeMap = new Map<number, EmployeeProductionRow>();
   foldAppointmentsIntoEmployees(employeeMap, appointments, false);
@@ -486,6 +735,7 @@ export async function buildWeeklyShiftReport(dateStr: string) {
     })),
     false,
   );
+  foldVouchersIntoEmployees(employeeMap, vouchers, false);
   const employees = sortEmployeeRows([...employeeMap.values()]);
   const employeeSummary = summarizeEmployees(employees);
 
@@ -500,20 +750,51 @@ export async function buildWeeklyShiftReport(dateStr: string) {
     const total = saleTotal(sale.lines);
     const row = byDay[key];
     row.ordersCount += 1;
-    row.salesTotal = to2(row.salesTotal + total);
-    const bucket = bucketMethod(sale.paymentMethod);
-    if (bucket === "transfer") row.salesTransfer = to2(row.salesTransfer + total);
-    else if (bucket === "card") row.salesCard = to2(row.salesCard + total);
-    else if (bucket === "cash") row.salesCash = to2(row.salesCash + total);
+    applyCollection(
+      row,
+      total,
+      bucketMethod(
+        sale.paymentMethod,
+        sale.paymentMedium?.kind ?? kindMap.get(sale.paymentMediumId ?? 0),
+      ),
+    );
+    row.productsTotal = to2(row.productsTotal + total);
+    row.productsCount += 1;
   }
 
+  for (const apt of appointments) {
+    if (!apt.payment) continue;
+    const key = formatDateKey(apt.payment.paidAt);
+    if (!byDay[key]) continue;
+    applyCollection(
+      byDay[key],
+      toAmount(apt.payment.amount),
+      bucketMethod(
+        apt.payment.method,
+        apt.payment.paymentMedium?.kind ??
+          kindMap.get(apt.payment.paymentMediumId ?? 0),
+      ),
+    );
+    const split = appointmentPaidSplit(apt);
+    byDay[key].servicesTotal = to2(byDay[key].servicesTotal + split.services);
+    byDay[key].productsTotal = to2(byDay[key].productsTotal + split.products);
+    if (split.services > 0) byDay[key].servicesCount += 1;
+    if (split.products > 0) byDay[key].productsCount += 1;
+  }
+
+  const weekOpeningById = new Map<number, number>();
   for (const shift of shiftsInWeek) {
     const openKey = formatDateKey(shift.openedAt);
     if (byDay[openKey]) {
       byDay[openKey].openingCashTotal = to2(
         byDay[openKey].openingCashTotal + toAmount(shift.openingCashTotal),
       );
+      const media = mediaFromCounts(shift.openingCashCounts);
+      byDay[openKey].openingTransferTotal = to2(
+        byDay[openKey].openingTransferTotal + mediaTotalsSum(media),
+      );
     }
+    accumulateOpeningMedia(weekOpeningById, shift.openingCashCounts);
   }
 
   for (const m of outflows) {
@@ -528,7 +809,8 @@ export async function buildWeeklyShiftReport(dateStr: string) {
   for (const key of week.dayKeys) {
     byDay[key].closingCashTotal = computeClosingTotal(
       byDay[key].openingCashTotal,
-      byDay[key].salesTotal,
+      byDay[key].salesCash,
+      byDay[key].cashOutTotal,
     );
   }
 
@@ -536,11 +818,18 @@ export async function buildWeeklyShiftReport(dateStr: string) {
   for (const key of week.dayKeys) {
     const src = byDay[key];
     summary.openingCashTotal = to2(summary.openingCashTotal + src.openingCashTotal);
+    summary.openingTransferTotal = to2(
+      summary.openingTransferTotal + src.openingTransferTotal,
+    );
     summary.closingCashTotal = to2(summary.closingCashTotal + src.closingCashTotal);
     summary.salesTotal = to2(summary.salesTotal + src.salesTotal);
     summary.salesCash = to2(summary.salesCash + src.salesCash);
     summary.salesTransfer = to2(summary.salesTransfer + src.salesTransfer);
     summary.salesCard = to2(summary.salesCard + src.salesCard);
+    summary.servicesTotal = to2(summary.servicesTotal + src.servicesTotal);
+    summary.productsTotal = to2(summary.productsTotal + src.productsTotal);
+    summary.servicesCount += src.servicesCount;
+    summary.productsCount += src.productsCount;
     summary.cashOutTotal = to2(summary.cashOutTotal + src.cashOutTotal);
     summary.ordersCount += src.ordersCount;
   }
@@ -583,20 +872,40 @@ export async function buildWeeklyShiftReport(dateStr: string) {
     weekEnd: week.weekEnd,
     anchorDate: week.anchorDate,
     days,
-    summary: { ...summary, paymentMedia },
+    summary: {
+      ...summary,
+      openingTotal: to2(summary.openingCashTotal + summary.openingTransferTotal),
+      paymentMedia,
+      openingByMedium: openingRowsFromMap(weekOpeningById),
+      openingMedia: catalogOpeningMedia(
+        paymentMedia,
+        summary.openingCashTotal,
+        weekOpeningById,
+      ),
+      closeMedia: catalogCloseMedia(paymentMedia, weekOpeningById, {
+        openingCash: summary.openingCashTotal,
+        cashOut: summary.cashOutTotal,
+        cashIn: summary.cashInMovementsTotal,
+      }),
+    },
     employees,
     employeeSummary,
   };
 }
 
-export async function buildDailyShiftReport(dateStr: string) {
+export async function buildDailyShiftReport(
+  dateStr: string,
+  branchId?: number | null,
+) {
   const { date, dayStart, dayEnd } = parseDayBounds(dateStr);
 
-  const [shifts, sales, movements, appointments] = await Promise.all([
+  const [shifts, sales, movements, appointments, kindMap, vouchers] =
+    await Promise.all([
     prisma.cashShift.findMany({
       where: {
         openedAt: { lte: dayEnd },
         OR: [{ closedAt: null }, { closedAt: { gte: dayStart } }],
+        ...branchShiftWhere(branchId),
       },
       include: {
         person: {
@@ -608,6 +917,7 @@ export async function buildDailyShiftReport(dateStr: string) {
     prisma.sale.findMany({
       where: {
         status: { in: ["pagado", "entregado"] },
+        ...branchSaleWhere(branchId),
         OR: [
           { paidAt: { gte: dayStart, lte: dayEnd } },
           { paidAt: null, date: { gte: dayStart, lte: dayEnd } },
@@ -628,6 +938,7 @@ export async function buildDailyShiftReport(dateStr: string) {
             person: { select: { firstName: true, firstLastName: true } },
           },
         },
+        paymentMedium: { select: { id: true, kind: true } },
         lines: {
           include: {
             product: { select: { id: true, ...productCommissionSelect } },
@@ -639,6 +950,7 @@ export async function buildDailyShiftReport(dateStr: string) {
     prisma.cashShiftMovement.findMany({
       where: {
         createdAt: { gte: dayStart, lte: dayEnd },
+        ...branchMovementWhere(branchId),
       },
       include: {
         person: {
@@ -647,7 +959,9 @@ export async function buildDailyShiftReport(dateStr: string) {
       },
       orderBy: { createdAt: "desc" },
     }),
-    loadPaidAppointments(dayStart, dayEnd),
+    loadPaidAppointments(dayStart, dayEnd, branchId),
+    paymentKindById(),
+    loadEmployeeVouchers(dayStart, dayEnd, branchId),
   ]);
 
   const saleRows = sales.map((sale) => {
@@ -666,6 +980,9 @@ export async function buildDailyShiftReport(dateStr: string) {
       shiftId: sale.shiftId,
       paidAt: (sale.paidAt ?? sale.date).toISOString(),
       paymentMethod: sale.paymentMethod,
+      paymentMediumId: sale.paymentMediumId,
+      paymentKind:
+        sale.paymentMedium?.kind ?? kindMap.get(sale.paymentMediumId ?? 0) ?? null,
       documentType: sale.documentType,
       customerName,
       operatorName: sale.seller?.person
@@ -723,9 +1040,9 @@ export async function buildDailyShiftReport(dateStr: string) {
   const shiftRows = shifts.map((shift) => {
     const openedOnDay =
       shift.openedAt >= dayStart && shift.openedAt <= dayEnd;
-    const openingCashOnDay = openedOnDay
-      ? toAmount(shift.openingCashTotal)
-      : null;
+    const openingCashOnDay = toAmount(shift.openingCashTotal);
+    const openingMedia = mediaFromCounts(shift.openingCashCounts);
+    const openingTransferOnDay = mediaTotalsSum(openingMedia);
 
     let salesTotalDay = 0;
     let salesCashDay = 0;
@@ -734,7 +1051,7 @@ export async function buildDailyShiftReport(dateStr: string) {
       if (sale.shiftId !== shift.id) continue;
       ordersCountDay += 1;
       salesTotalDay += sale.total;
-      const bucket = bucketMethod(sale.paymentMethod);
+      const bucket = bucketMethod(sale.paymentMethod, sale.paymentKind);
       if (bucket === "cash") salesCashDay += sale.total;
     }
     const cashOutDay = to2(
@@ -748,38 +1065,125 @@ export async function buildDailyShiftReport(dateStr: string) {
         .reduce((s, m) => s + m.amount, 0),
     );
 
+    const expectedCashOnDay = computeClosingTotal(
+      openingCashOnDay,
+      salesCashDay,
+      cashOutDay,
+      cashInDay,
+    );
+    const countedCashOnDay =
+      shift.status === "closed" && shift.closingCashTotal != null
+        ? toAmount(shift.closingCashTotal)
+        : null;
+    const cashDifference =
+      countedCashOnDay != null
+        ? to2(countedCashOnDay - expectedCashOnDay)
+        : shift.cashDifference;
+
     return {
       id: shift.id,
       status: shift.status,
       operatorName: personLabel(shift.person),
       openedAt: shift.openedAt.toISOString(),
       closedAt: shift.closedAt?.toISOString() ?? null,
+      openedOnDay,
       openingCashOnDay,
-      closingCashOnDay: computeClosingTotal(openingCashOnDay, salesTotalDay),
+      openingTransferOnDay,
+      openingMedia,
+      closingCashOnDay: expectedCashOnDay,
+      expectedCashOnDay,
+      countedCashOnDay,
       salesCashDay: to2(salesCashDay),
       salesTotalDay: to2(salesTotalDay),
       cashOutDay,
       cashInDay,
       cashEnteredDay: to2(salesCashDay + cashInDay),
       ordersCountDay,
-      cashDifference: shift.cashDifference,
+      cashDifference,
+      closingNotes: shift.closingNotes,
     };
   });
+
+  const openingById = new Map<number, number>();
+  for (const row of shiftRows) {
+    for (const [rawId, amount] of Object.entries(row.openingMedia)) {
+      const id = Number(rawId);
+      if (!Number.isFinite(id) || amount <= 0) continue;
+      openingById.set(id, to2((openingById.get(id) ?? 0) + amount));
+    }
+  }
 
   const openingCashTotal = to2(
     shiftRows.reduce((s, r) => s + Number(r.openingCashOnDay || 0), 0),
   );
-  const salesTotal = to2(saleRows.reduce((s, r) => s + r.total, 0));
+  const openingTransferTotal = to2(
+    shiftRows.reduce((s, r) => s + Number(r.openingTransferOnDay || 0), 0),
+  );
   const cashOutTotal = to2(outflows.reduce((s, r) => s + r.amount, 0));
   const cashInMovementsTotal = to2(inflows.reduce((s, r) => s + r.amount, 0));
-  let salesCash = 0;
-  let salesTransfer = 0;
-  let salesCard = 0;
+  const buckets: CollectionBuckets = {
+    salesTotal: 0,
+    salesCash: 0,
+    salesTransfer: 0,
+    salesCard: 0,
+  };
   for (const sale of saleRows) {
-    const bucket = bucketMethod(sale.paymentMethod);
-    if (bucket === "transfer") salesTransfer += sale.total;
-    else if (bucket === "card") salesCard += sale.total;
-    else if (bucket === "cash") salesCash += sale.total;
+    applyCollection(
+      buckets,
+      sale.total,
+      bucketMethod(sale.paymentMethod, sale.paymentKind),
+    );
+  }
+  for (const apt of appointments) {
+    if (!apt.payment) continue;
+    const amount = toAmount(apt.payment.amount);
+    const bucket = bucketMethod(
+      apt.payment.method,
+      apt.payment.paymentMedium?.kind ??
+        kindMap.get(apt.payment.paymentMediumId ?? 0),
+    );
+    applyCollection(buckets, amount, bucket);
+    if (bucket !== "cash") continue;
+    const paidAt = apt.payment.paidAt;
+    const shift = shiftRows.find((row) => {
+      const opened = new Date(row.openedAt);
+      const closed = row.closedAt ? new Date(row.closedAt) : null;
+      return opened <= paidAt && (!closed || closed >= paidAt);
+    });
+    if (shift) {
+      shift.salesCashDay = to2(shift.salesCashDay + amount);
+      shift.salesTotalDay = to2(shift.salesTotalDay + amount);
+      shift.cashEnteredDay = to2(shift.salesCashDay + shift.cashInDay);
+      shift.expectedCashOnDay = computeClosingTotal(
+        shift.openingCashOnDay,
+        shift.salesCashDay,
+        shift.cashOutDay,
+        shift.cashInDay,
+      );
+      shift.closingCashOnDay = shift.expectedCashOnDay;
+      if (shift.countedCashOnDay != null) {
+        shift.cashDifference = to2(
+          shift.countedCashOnDay - shift.expectedCashOnDay,
+        );
+      }
+    }
+  }
+  const { salesTotal, salesCash, salesTransfer, salesCard } = buckets;
+  let servicesTotal = 0;
+  let productsTotal = 0;
+  let servicesCount = 0;
+  let productsCount = 0;
+  for (const sale of saleRows) {
+    productsTotal = to2(productsTotal + sale.total);
+    productsCount += 1;
+  }
+  for (const apt of appointments) {
+    if (!apt.payment) continue;
+    const split = appointmentPaidSplit(apt);
+    servicesTotal = to2(servicesTotal + split.services);
+    productsTotal = to2(productsTotal + split.products);
+    if (split.services > 0) servicesCount += 1;
+    if (split.products > 0) productsCount += 1;
   }
 
   const employeeMap = new Map<number, EmployeeProductionRow>();
@@ -798,6 +1202,7 @@ export async function buildDailyShiftReport(dateStr: string) {
     })),
     true,
   );
+  foldVouchersIntoEmployees(employeeMap, vouchers, true);
   for (const row of employeeMap.values()) {
     row.tickets.sort(
       (a, b) => new Date(a.paidAt).getTime() - new Date(b.paidAt).getTime(),
@@ -836,17 +1241,47 @@ export async function buildDailyShiftReport(dateStr: string) {
       shiftsCount: shiftRows.length,
       ordersCount: saleRows.length,
       openingCashTotal,
-      closingCashTotal: computeClosingTotal(openingCashTotal, salesTotal),
-      salesTotal,
+      openingTransferTotal,
+      openingTotal: to2(openingCashTotal + openingTransferTotal),
+      closingCashTotal: computeClosingTotal(
+        openingCashTotal,
+        salesCash,
+        cashOutTotal,
+        cashInMovementsTotal,
+      ),
+      salesTotal: to2(salesTotal),
       salesCash: to2(salesCash),
       salesTransfer: to2(salesTransfer),
       salesCard: to2(salesCard),
+      servicesTotal,
+      productsTotal,
+      servicesCount,
+      productsCount,
       cashOutTotal,
       cashInMovementsTotal,
       cashEnteredTotal: to2(salesCash + cashInMovementsTotal),
       outflowsCount: outflows.length,
       inflowsCount: inflows.length,
       paymentMedia,
+      openingByMedium: openingRowsFromMap(openingById),
+      openingMedia: catalogOpeningMedia(
+        paymentMedia,
+        openingCashTotal,
+        openingById,
+      ),
+      closeMedia: catalogCloseMedia(paymentMedia, openingById, {
+        openingCash: openingCashTotal,
+        cashOut: cashOutTotal,
+        cashIn: cashInMovementsTotal,
+        countedCash: shiftRows.every((row) => row.status !== "open")
+          ? to2(
+              shiftRows.reduce(
+                (sum, row) => sum + Number(row.countedCashOnDay ?? 0),
+                0,
+              ),
+            )
+          : null,
+      }),
     },
     employeeSummary,
     employees,

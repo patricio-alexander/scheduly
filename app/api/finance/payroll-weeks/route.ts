@@ -15,9 +15,13 @@ import {
   endOfLocalDay,
   getPayrollWeekRange,
   parseDateKey,
+  shiftPayrollWeekRange,
   startOfLocalDay,
   toDateKey,
+  toDateOnly,
+  weekdayLabel,
 } from "@/shared/utils/payroll-settings";
+import { dbRoleNamesForAppRole } from "@/shared/utils/system-roles";
 
 async function canManagePayroll(user: {
   id: number;
@@ -89,6 +93,11 @@ function serializeWeek(
       totalAmount: number;
       notes: string | null;
       employeeConfirmedAt: Date | null;
+      payments?: Array<{
+        paidAt: Date;
+        amount: number;
+        method: string;
+      }>;
       account?: {
         id: number;
         person: {
@@ -103,6 +112,7 @@ function serializeWeek(
   },
 ) {
   const confirmed = week.lines.filter((l) => l.employeeConfirmedAt).length;
+  const paidCount = week.lines.filter((l) => (l.payments?.length ?? 0) > 0).length;
   return {
     id: week.id,
     periodStart: toDateKey(week.periodStart),
@@ -114,6 +124,7 @@ function serializeWeek(
     createdAt: week.createdAt.toISOString(),
     updatedAt: week.updatedAt.toISOString(),
     confirmedCount: confirmed,
+    paidCount,
     lineCount: week.lines.length,
     grandTotal: Math.round(
       week.lines.reduce((s, l) => s + toAmount(l.totalAmount), 0) * 100,
@@ -134,6 +145,9 @@ function serializeWeek(
       totalAmount: toAmount(l.totalAmount),
       notes: l.notes,
       employeeConfirmedAt: l.employeeConfirmedAt?.toISOString() ?? null,
+      paidAt: l.payments?.[0]?.paidAt.toISOString() ?? null,
+      paidAmount: toAmount(l.payments?.[0]?.amount ?? 0),
+      paidMethod: l.payments?.[0]?.method ?? null,
     })),
   };
 }
@@ -170,6 +184,11 @@ async function loadWeekInclude(id: number) {
             },
           },
           branch: { select: { id: true, name: true } },
+          payments: {
+            select: { paidAt: true, amount: true, method: true },
+            orderBy: { paidAt: "desc" },
+            take: 1,
+          },
         },
         orderBy: { id: "asc" },
       },
@@ -187,7 +206,7 @@ async function computeEmployeeCommissions(
     where: {
       isActive: true,
       userId: { not: null },
-      roles: { some: { role: { name: "employee" } } },
+      roles: { some: { role: { name: { in: dbRoleNamesForAppRole("employee") } } } },
       ...(branchId
         ? { branches: { some: { branchId } } }
         : {}),
@@ -379,16 +398,38 @@ export async function GET(request: Request) {
               },
             },
             branch: { select: { id: true, name: true } },
+            payments: {
+              select: { paidAt: true, amount: true, method: true },
+              orderBy: { paidAt: "desc" },
+              take: 1,
+            },
           },
         },
       },
     });
 
     const settings = await getBusinessSettings();
+    const serialized = weeks.map(serializeWeek);
+    const currentRange = getPayrollWeekRange(
+      new Date(),
+      settings.payrollWeekStartDay,
+    );
+    const currentStart = toDateKey(currentRange.start);
+    const currentEnd = toDateKey(currentRange.end);
+    const currentExisting = serialized.find(
+      (w) => w.periodStart === currentStart && w.periodEnd === currentEnd,
+    );
     return NextResponse.json({
       payrollWeekStartDay: settings.payrollWeekStartDay,
+      payrollWeekStartLabel: weekdayLabel(settings.payrollWeekStartDay),
       payrollAllowBranchAdmin: settings.payrollAllowBranchAdmin,
-      weeks: weeks.map(serializeWeek),
+      currentPeriod: {
+        start: currentStart,
+        end: currentEnd,
+        exists: Boolean(currentExisting),
+        id: currentExisting?.id ?? null,
+      },
+      weeks: serialized,
     });
   } catch (error) {
     console.error("GET /api/finance/payroll-weeks", error);
@@ -414,16 +455,22 @@ export async function POST(request: Request) {
     const settings = await getBusinessSettings();
     const ref =
       parseDateKey(String(body.date ?? body.periodStart ?? "")) ?? new Date();
+    const weekOffset = Number(body.weekOffset ?? 0);
     let start = parseDateKey(String(body.periodStart ?? ""));
     let end = parseDateKey(String(body.periodEnd ?? ""));
     if (!start || !end) {
-      const range = getPayrollWeekRange(ref, settings.payrollWeekStartDay);
+      let range = getPayrollWeekRange(ref, settings.payrollWeekStartDay);
+      if (Number.isInteger(weekOffset) && weekOffset !== 0) {
+        range = shiftPayrollWeekRange(range, weekOffset);
+      }
       start = range.start;
       end = startOfLocalDay(range.end);
     } else {
       start = startOfLocalDay(start);
       end = startOfLocalDay(end);
     }
+    start = toDateOnly(start);
+    end = toDateOnly(end);
 
     let branchId: number | null = null;
     if (isBranchAdminRole(auth.user.role)) {
@@ -438,9 +485,14 @@ export async function POST(request: Request) {
       },
     });
     if (existing) {
+      const full = await loadWeekInclude(existing.id);
       return NextResponse.json(
-        { message: "Ya existe una liquidación para esa semana", id: existing.id },
-        { status: 409 },
+        {
+          ...serializeWeek(full!),
+          alreadyExists: true,
+          message: `Ya está armada la semana ${toDateKey(start)} → ${toDateKey(end)}. Se abrió esa liquidación.`,
+        },
+        { status: 200 },
       );
     }
 

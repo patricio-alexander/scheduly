@@ -1491,12 +1491,16 @@ model EmployeePayment {
   amount         Float
   method         String   @default("cash") @db.VarChar(20)
   notes          String?  @db.Text
-  paidAt         DateTime @default(now())
-  createdAt      DateTime @default(now())
+  paidAt            DateTime @default(now())
+  payrollWeekLineId Int?
+  createdAt         DateTime @default(now())
 
-  person       Person  @relation(fields: [userId], references: [id])
-  branch       Branch? @relation(fields: [branchId], references: [id])
-  registeredBy Account @relation("EmployeePaymentRegistrar", fields: [registeredById], references: [id])
+  person          Person           @relation(fields: [userId], references: [id])
+  branch          Branch?          @relation(fields: [branchId], references: [id])
+  registeredBy    Account          @relation("EmployeePaymentRegistrar", fields: [registeredById], references: [id])
+  payrollWeekLine PayrollWeekLine? @relation(fields: [payrollWeekLineId], references: [id], onDelete: SetNull)
+
+  @@index([payrollWeekLineId])
 
   @@index([userId, paidAt])
   @@index([branchId, paidAt])
@@ -1618,9 +1622,10 @@ model PayrollWeekLine {
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  payrollWeek PayrollWeek @relation(fields: [payrollWeekId], references: [id], onDelete: Cascade)
-  account     Account     @relation("PayrollWeekLineEmployee", fields: [accountId], references: [id])
-  branch      Branch?     @relation(fields: [branchId], references: [id])
+  payrollWeek PayrollWeek      @relation(fields: [payrollWeekId], references: [id], onDelete: Cascade)
+  account     Account          @relation("PayrollWeekLineEmployee", fields: [accountId], references: [id])
+  branch      Branch?          @relation(fields: [branchId], references: [id])
+  payments    EmployeePayment[]
 
   @@unique([payrollWeekId, accountId])
   @@index([accountId, employeeConfirmedAt])

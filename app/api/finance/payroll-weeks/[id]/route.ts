@@ -51,7 +51,7 @@ function personName(
   );
 }
 
-function serializeWeek(
+export function serializeWeek(
   week: {
     id: number;
     periodStart: Date;
@@ -83,6 +83,11 @@ function serializeWeek(
       totalAmount: number;
       notes: string | null;
       employeeConfirmedAt: Date | null;
+      payments?: Array<{
+        paidAt: Date;
+        amount: number;
+        method: string;
+      }>;
       account?: {
         id: number;
         person: {
@@ -97,6 +102,7 @@ function serializeWeek(
   },
 ) {
   const confirmed = week.lines.filter((l) => l.employeeConfirmedAt).length;
+  const paidCount = week.lines.filter((l) => (l.payments?.length ?? 0) > 0).length;
   return {
     id: week.id,
     periodStart: toDateKey(week.periodStart),
@@ -108,6 +114,7 @@ function serializeWeek(
     createdAt: week.createdAt.toISOString(),
     updatedAt: week.updatedAt.toISOString(),
     confirmedCount: confirmed,
+    paidCount,
     lineCount: week.lines.length,
     grandTotal:
       Math.round(
@@ -129,11 +136,14 @@ function serializeWeek(
       totalAmount: toAmount(l.totalAmount),
       notes: l.notes,
       employeeConfirmedAt: l.employeeConfirmedAt?.toISOString() ?? null,
+      paidAt: l.payments?.[0]?.paidAt.toISOString() ?? null,
+      paidAmount: toAmount(l.payments?.[0]?.amount ?? 0),
+      paidMethod: l.payments?.[0]?.method ?? null,
     })),
   };
 }
 
-async function loadWeek(id: number) {
+export async function loadWeek(id: number) {
   return prisma.payrollWeek.findUnique({
     where: { id },
     include: {
@@ -165,6 +175,11 @@ async function loadWeek(id: number) {
             },
           },
           branch: { select: { id: true, name: true } },
+          payments: {
+            select: { paidAt: true, amount: true, method: true },
+            orderBy: { paidAt: "desc" },
+            take: 1,
+          },
         },
         orderBy: { id: "asc" },
       },
@@ -223,14 +238,17 @@ export async function PATCH(
         { status: 404 },
       );
     }
-    if (week.status === "closed") {
+    const body = (await request.json()) as Record<string, unknown>;
+    const nextStatus =
+      body.status != null ? String(body.status) : null;
+    const reopening = week.status === "closed" && nextStatus === "draft";
+
+    if (week.status === "closed" && !reopening) {
       return NextResponse.json(
         { message: "La liquidación está cerrada" },
         { status: 400 },
       );
     }
-
-    const body = (await request.json()) as Record<string, unknown>;
 
     if (body.status != null) {
       const status = String(body.status);
@@ -268,7 +286,11 @@ export async function PATCH(
         const additionalAmount = Math.max(0, toAmount(row.additionalAmount));
 
         await prisma.payrollWeekLine.updateMany({
-          where: { id: lineId, payrollWeekId: id },
+          where: {
+            id: lineId,
+            payrollWeekId: id,
+            payments: { none: {} },
+          },
           data: {
             producedAmount,
             salesAmount,
@@ -303,6 +325,43 @@ export async function PATCH(
     console.error("PATCH /api/finance/payroll-weeks/[id]", error);
     return NextResponse.json(
       { message: "Error al actualizar liquidación" },
+      { status: 400 },
+    );
+  }
+}
+
+export async function DELETE(
+  _request: Request,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const auth = await checkAuth();
+  if (!auth.ok) return auth.response;
+
+  const perm = await canManagePayroll(auth.user);
+  if (!perm.ok) {
+    return NextResponse.json({ message: perm.message }, { status: 403 });
+  }
+
+  const id = Number((await params).id);
+  if (!Number.isInteger(id) || id <= 0) {
+    return NextResponse.json({ message: "ID inválido" }, { status: 400 });
+  }
+
+  try {
+    const week = await prisma.payrollWeek.findUnique({ where: { id } });
+    if (!week) {
+      return NextResponse.json(
+        { message: "Liquidación no encontrada" },
+        { status: 404 },
+      );
+    }
+
+    await prisma.payrollWeek.delete({ where: { id } });
+    return NextResponse.json({ ok: true, id });
+  } catch (error) {
+    console.error("DELETE /api/finance/payroll-weeks/[id]", error);
+    return NextResponse.json(
+      { message: "Error al borrar liquidación" },
       { status: 400 },
     );
   }

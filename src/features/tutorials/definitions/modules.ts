@@ -144,7 +144,7 @@ export const MODULE_DRIVER_TOURS: ModuleDriverTour[] = [
   // Operación
   {
     id: "cash",
-    label: "Caja",
+    label: "Punto de venta",
     match: [appRoutes.operation.cash],
     steps: [
       {
@@ -411,11 +411,11 @@ export const MODULE_DRIVER_TOURS: ModuleDriverTour[] = [
   },
   {
     id: "shift-supervision",
-    label: "Supervisión de caja",
-    match: [appRoutes.operation.shiftSupervision],
+    label: "Caja",
+    match: [appRoutes.operation.shifts, appRoutes.operation.shiftSupervision],
     steps: pageIntro(
-      "Supervisión de caja",
-      "Revisa turnos abiertos, diferencias y control de caja.",
+      "Caja",
+      "Apertura, cierre de caja y cuadre del día. Tocá un día de la semana.",
     ),
   },
 

@@ -6,11 +6,12 @@ import { formatMoney } from "@/shared/utils/money";
 
 export type EmployeeTicket = {
   id: number;
-  source: "turno" | "tienda";
+  source: "turno" | "tienda" | "vale";
   paidAt: string;
   customerName: string;
   services: number;
   products: number;
+  vouchers: number;
   total: number;
   method: string | null;
   itemsSummary: string;
@@ -23,6 +24,7 @@ export type EmployeeProduction = {
   ticketsCount: number;
   servicesTotal: number;
   productsTotal: number;
+  vouchersTotal: number;
   total: number;
   tickets?: EmployeeTicket[];
 };
@@ -33,8 +35,15 @@ export type EmployeeProductionTotals = {
   ticketsCount: number;
   servicesTotal: number;
   productsTotal: number;
+  vouchersTotal: number;
   total: number;
 };
+
+function ticketSourceLabel(source: EmployeeTicket["source"]) {
+  if (source === "turno") return "turno";
+  if (source === "vale") return "vale";
+  return "venta";
+}
 
 function ticketTime(iso: string) {
   try {
@@ -63,7 +72,7 @@ export function EmployeeProductionPanel({
   if (employees.length === 0) {
     return (
       <p className="py-5 text-center text-xs text-muted">
-        Nadie generó comisiones en este periodo
+        Nadie tiene servicios, productos ni vales en este periodo
       </p>
     );
   }
@@ -72,7 +81,7 @@ export function EmployeeProductionPanel({
 
   return (
     <div className="cash-scroll">
-      <table className="cash-table min-w-[480px]">
+      <table className="cash-table min-w-[560px]">
         <thead>
           <tr>
             <th className="hidden w-7 pr-2 sm:table-cell">#</th>
@@ -88,6 +97,12 @@ export function EmployeeProductionPanel({
               title="Comisión por productos"
             >
               Productos
+            </th>
+            <th
+              className="text-right text-amber-600"
+              title="Vales / adelantos"
+            >
+              Vales
             </th>
             <th className="text-right">Comisiones</th>
             <th className="pl-2 text-right" title="Tickets cobrados">
@@ -151,6 +166,9 @@ export function EmployeeProductionPanel({
                   <td className="text-right tabular-nums text-sky-500">
                     {formatMoney(row.productsTotal)}
                   </td>
+                  <td className="text-right tabular-nums text-amber-600">
+                    {formatMoney(row.vouchersTotal ?? 0)}
+                  </td>
                   <td className="text-right font-semibold tabular-nums">
                     {formatMoney(row.total)}
                   </td>
@@ -173,7 +191,7 @@ export function EmployeeProductionPanel({
                           </span>
                           <span className="ml-1.5 text-muted">
                             {ticketTime(ticket.paidAt)} ·{" "}
-                            {ticket.source === "turno" ? "turno" : "venta"}
+                            {ticketSourceLabel(ticket.source)}
                           </span>
                           {ticket.itemsSummary ? (
                             <span className="mt-0.5 block truncate text-[10px] text-muted">
@@ -186,6 +204,9 @@ export function EmployeeProductionPanel({
                         </td>
                         <td className="text-right tabular-nums text-sky-500">
                           {formatMoney(ticket.products)}
+                        </td>
+                        <td className="text-right tabular-nums text-amber-600">
+                          {formatMoney(ticket.vouchers ?? 0)}
                         </td>
                         <td className="text-right tabular-nums">
                           {formatMoney(ticket.total)}
@@ -214,6 +235,9 @@ export function EmployeeProductionPanel({
               </td>
               <td className="text-right tabular-nums text-sky-500">
                 {formatMoney(summary.productsTotal)}
+              </td>
+              <td className="text-right tabular-nums text-amber-600">
+                {formatMoney(summary.vouchersTotal ?? 0)}
               </td>
               <td className="text-right tabular-nums">
                 {formatMoney(summary.total)}

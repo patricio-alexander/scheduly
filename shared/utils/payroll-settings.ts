@@ -1,6 +1,6 @@
 /**
  * Config de liquidación semanal (receiptDetailSettings JSON · sin migrate extra).
- * Semana por defecto: lunes (1) → domingo.
+ * Semana por defecto: martes (2) → lunes (los pagos se hacen el lunes).
  */
 import {
   parseReceiptDetailSettings,
@@ -15,7 +15,7 @@ export type PayrollSettings = {
 };
 
 export const DEFAULT_PAYROLL_SETTINGS: PayrollSettings = {
-  payrollWeekStartDay: 1,
+  payrollWeekStartDay: 2,
   payrollAllowBranchAdmin: false,
 };
 
@@ -74,9 +74,14 @@ export function mergePayrollIntoReceiptSettings(
   });
 }
 
-/** Inicio del día local a las 00:00. */
+/** Medianoche local. */
 export function startOfLocalDay(d: Date): Date {
   return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 0, 0, 0, 0);
+}
+
+/** Mediodía local: estable al guardar DATE en Prisma (evita correr el día por TZ). */
+export function toDateOnly(d: Date): Date {
+  return new Date(d.getFullYear(), d.getMonth(), d.getDate(), 12, 0, 0, 0);
 }
 
 export function endOfLocalDay(d: Date): Date {
@@ -93,13 +98,37 @@ export function getPayrollWeekRange(
   const startDow =
     Number.isInteger(weekStartDay) && weekStartDay >= 0 && weekStartDay <= 6
       ? weekStartDay
-      : 1;
+      : 2;
   const diff = (current - startDow + 7) % 7;
   const start = new Date(day);
   start.setDate(start.getDate() - diff);
   const end = new Date(start);
   end.setDate(end.getDate() + 6);
   return { start: startOfLocalDay(start), end: endOfLocalDay(end) };
+}
+
+export function shiftPayrollWeekRange(
+  range: { start: Date; end: Date },
+  weeks: number,
+): { start: Date; end: Date } {
+  const start = new Date(range.start);
+  start.setDate(start.getDate() + weeks * 7);
+  const end = new Date(range.end);
+  end.setDate(end.getDate() + weeks * 7);
+  return { start: startOfLocalDay(start), end: endOfLocalDay(end) };
+}
+
+export function weekdayLabel(day: number): string {
+  return WEEKDAY_OPTIONS.find((o) => o.value === day)?.label ?? "Lunes";
+}
+
+export function formatPeriodLabel(startKey: string, endKey: string): string {
+  const start = parseDateKey(startKey);
+  const end = parseDateKey(endKey);
+  if (!start || !end) return `${startKey} → ${endKey}`;
+  const fmt = (d: Date) =>
+    d.toLocaleDateString("es-EC", { day: "numeric", month: "short" });
+  return `${fmt(start)} – ${fmt(end)}`;
 }
 
 export function toDateKey(d: Date): string {

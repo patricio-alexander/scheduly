@@ -122,13 +122,13 @@ export const navModules: NavModule[] = [
       },
       {
         href: appRoutes.operation.cash,
-        label: "Caja",
+        label: "Punto de venta",
         icon: CircleDollar,
         tourId: "nav-cash",
       },
       {
         href: appRoutes.operation.shifts,
-        label: "Turno",
+        label: "Caja",
         icon: ArrowRightFromSquare,
         tourId: "nav-shift",
       },
@@ -149,12 +149,6 @@ export const navModules: NavModule[] = [
         href: appRoutes.operation.posReceipts,
         label: "Comprobantes POS",
         icon: Receipt,
-        adminOnly: true,
-      },
-      {
-        href: appRoutes.operation.shiftSupervision,
-        label: "Supervisión caja",
-        icon: ChartColumn,
         adminOnly: true,
       },
       {
@@ -179,21 +173,9 @@ export const navModules: NavModule[] = [
         adminOnly: true,
       },
       {
-        href: appRoutes.finance.payroll,
-        label: "Sueldos / comisiones",
-        icon: CircleDollar,
-        adminOnly: true,
-      },
-      {
         href: appRoutes.finance.payrollWeek,
-        label: "Liquidación semanal",
+        label: "Sueldos / liquidación",
         icon: CircleDollar,
-        ownerOnly: true,
-      },
-      {
-        href: appRoutes.finance.cashClose,
-        label: "Cuadre de caja",
-        icon: Receipt,
         adminOnly: true,
       },
       {

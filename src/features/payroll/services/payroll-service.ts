@@ -42,6 +42,36 @@ export async function registerEmployeePayment(
   return json;
 }
 
+export async function payPayrollWeekLine(params: {
+  weekId: number;
+  lineId: number;
+  method: "cash" | "card" | "transfer";
+  notes?: string;
+}) {
+  const res = await fetch(
+    apiUrl(`/api/finance/payroll-weeks/${params.weekId}/pay`),
+    {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify({
+        lineId: params.lineId,
+        method: params.method,
+        notes: params.notes,
+      }),
+    },
+  );
+  const json = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(
+      json && typeof json === "object" && "message" in json
+        ? String((json as { message: unknown }).message)
+        : "Error al confirmar el pago",
+    );
+  }
+  return json;
+}
+
 export async function fetchPayrollHistory(params: {
   period: DashboardPeriod;
   branchId?: number | null;

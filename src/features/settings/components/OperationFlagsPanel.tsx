@@ -506,11 +506,11 @@ export function OperationFlagsPanel({ tab }: { tab: TabId }) {
           </SettingsSection>
           <SettingsSection
             title="Liquidación semanal"
-            hint="Semana laboral y quién puede armar el pago semanal."
+            hint="Semana de martes a lunes (pago el lunes). Quién puede armar el cierre."
           >
             <SettingsRow
               label="Inicio de semana"
-              description="Por defecto lunes → domingo. La dueña puede cambiar el día de inicio."
+              description="Martes → lunes. El pago se hace el lunes, al cierre de esa semana."
               control={
                 <select
                   className="w-full max-w-[14rem] rounded-lg border border-separator bg-field-background px-2 py-1.5 text-sm"

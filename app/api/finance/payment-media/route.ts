@@ -15,14 +15,14 @@ async function ensureDefaultMedia() {
 export async function GET(request: Request) {
   const auth = await checkAuth();
   if (!auth.ok) return auth.response;
-  if (!isManagementRole(auth.user.role)) {
+  const url = new URL(request.url);
+  const activeOnly = url.searchParams.get("active") === "1";
+  if (!isManagementRole(auth.user.role) && !activeOnly) {
     return NextResponse.json({ message: "No autorizado" }, { status: 403 });
   }
 
   try {
     await ensureDefaultMedia();
-    const url = new URL(request.url);
-    const activeOnly = url.searchParams.get("active") === "1";
     const media = await prisma.paymentMedium.findMany({
       where: activeOnly ? { isActive: true } : undefined,
       orderBy: [{ position: "asc" }, { name: "asc" }],

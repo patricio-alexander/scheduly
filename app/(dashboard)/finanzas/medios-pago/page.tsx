@@ -29,6 +29,9 @@ export default function PaymentMediaPage() {
   const [name, setName] = useState("");
   const [kind, setKind] = useState<PaymentMediumKind>("transfer");
   const [pending, setPending] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editKind, setEditKind] = useState<PaymentMediumKind>("transfer");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -79,6 +82,40 @@ export default function PaymentMediaPage() {
     }
   };
 
+  const startEdit = (m: Medium) => {
+    setEditingId(m.id);
+    setEditName(m.name);
+    setEditKind((m.kind as PaymentMediumKind) || "other");
+  };
+
+  const saveEdit = async (m: Medium) => {
+    const nextName = editName.trim();
+    if (!nextName) {
+      toast.danger("Indicá un nombre");
+      return;
+    }
+    setPending(true);
+    try {
+      const res = await fetch(apiUrl(`/api/finance/payment-media/${m.id}`), {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: nextName, kind: editKind }),
+      });
+      if (!res.ok) {
+        const j = (await res.json().catch(() => ({}))) as { message?: string };
+        throw new Error(j.message || "Error");
+      }
+      toast.success("Medio actualizado");
+      setEditingId(null);
+      await load();
+    } catch (e) {
+      toast.danger(e instanceof Error ? e.message : "No se pudo actualizar");
+    } finally {
+      setPending(false);
+    }
+  };
+
   const toggleActive = async (m: Medium) => {
     setPending(true);
     try {
@@ -102,7 +139,7 @@ export default function PaymentMediaPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Medios de pago"
-        description="Bancos y formas de cobro del cuadre diario. No se eliminan: se deshabilitan."
+        description="Bancos y formas de cobro del cuadre. Se pueden renombrar o cambiar de tipo; no se eliminan, se deshabilitan."
         icon={<Plus className="size-5" />}
       />
 
@@ -155,24 +192,84 @@ export default function PaymentMediaPage() {
             <tbody>
               {media.map((m) => (
                 <tr key={m.id} className="border-t border-separator">
-                  <td className="px-3 py-2">{m.name}</td>
                   <td className="px-3 py-2">
-                    {paymentMediumKindLabel[m.kind as PaymentMediumKind] ??
-                      m.kind}
+                    {isOwner && editingId === m.id ? (
+                      <input
+                        className="w-full min-w-[10rem] rounded-lg border border-separator bg-field-background px-2 py-1.5 text-sm"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        aria-label={`Nombre de ${m.name}`}
+                      />
+                    ) : (
+                      m.name
+                    )}
+                  </td>
+                  <td className="px-3 py-2">
+                    {isOwner && editingId === m.id ? (
+                      <select
+                        className="rounded-lg border border-separator bg-field-background px-2 py-1.5 text-sm"
+                        value={editKind}
+                        onChange={(e) =>
+                          setEditKind(e.target.value as PaymentMediumKind)
+                        }
+                        aria-label={`Tipo de ${m.name}`}
+                      >
+                        {Object.entries(paymentMediumKindLabel).map(
+                          ([k, label]) => (
+                            <option key={k} value={k}>
+                              {label}
+                            </option>
+                          ),
+                        )}
+                      </select>
+                    ) : (
+                      paymentMediumKindLabel[m.kind as PaymentMediumKind] ??
+                      m.kind
+                    )}
                   </td>
                   <td className="px-3 py-2">
                     {m.isActive ? "Activo" : "Deshabilitado"}
                   </td>
                   {isOwner ? (
                     <td className="px-3 py-2">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        isDisabled={pending}
-                        onPress={() => void toggleActive(m)}
-                      >
-                        {m.isActive ? "Deshabilitar" : "Habilitar"}
-                      </Button>
+                      <div className="flex flex-wrap gap-1.5">
+                        {editingId === m.id ? (
+                          <>
+                            <Button
+                              size="sm"
+                              isDisabled={pending}
+                              onPress={() => void saveEdit(m)}
+                            >
+                              Guardar
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="secondary"
+                              isDisabled={pending}
+                              onPress={() => setEditingId(null)}
+                            >
+                              Cancelar
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            isDisabled={pending}
+                            onPress={() => startEdit(m)}
+                          >
+                            Editar
+                          </Button>
+                        )}
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          isDisabled={pending}
+                          onPress={() => void toggleActive(m)}
+                        >
+                          {m.isActive ? "Deshabilitar" : "Habilitar"}
+                        </Button>
+                      </div>
                     </td>
                   ) : null}
                 </tr>

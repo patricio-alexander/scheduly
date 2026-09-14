@@ -72,22 +72,16 @@ export const APP_MODULE_CATALOG: AppModuleCatalogGroup[] = [
         description: "Cobro en mostrador: servicios, productos y comprobantes POS.",
       },
       {
-        name: "Turno",
+        name: "Caja",
         path: appRoutes.operation.shifts,
         status: "planned",
-        description: "Apertura/cierre de caja, capital inicial y efectivo.",
+        description: "Apertura, cierre de caja y cuadre por día.",
       },
       {
         name: "Comprobantes POS",
         path: appRoutes.operation.posReceipts,
         description:
           "Facturas, notas de venta, emitidos SRI y reimpresión de ventas de caja.",
-      },
-      {
-        name: "Supervisión caja",
-        path: appRoutes.operation.shiftSupervision,
-        status: "planned",
-        description: "Revisión de turnos cerrados y diferencias.",
       },
       {
         name: "Vales",

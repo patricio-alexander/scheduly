@@ -50,7 +50,12 @@ import { apiUrl } from "@/shared/utils/api";
 import { appRoutes } from "@/shared/utils/app-routes";
 import { formatMoney, lineTotal } from "@/shared/utils/money";
 import { type PaymentMethodValue } from "@/shared/utils/payment-methods";
+import { mediumKindToMethod } from "@/shared/utils/payment-media";
 import { isManagementRole, isOwnerRole } from "@/shared/utils/roles";
+import {
+  PaymentMediumSelect,
+  type PaymentMediumOption,
+} from "@/shared/components/PaymentMediumSelect";
 import { createDirectProductSale } from "../services/product-sale-service";
 import {
   CreditPlanFields,
@@ -250,6 +255,7 @@ export function PosCashRegister() {
   const [useCustomerData, setUseCustomerData] = useState(false);
   const [customerId, setCustomerId] = useState<string>("");
   const [method, setMethod] = useState<PaymentMethodValue>("cash");
+  const [paymentMediumId, setPaymentMediumId] = useState<number | null>(null);
   const [notes, setNotes] = useState("");
   const [amountReceived, setAmountReceived] = useState("");
   const [pending, setPending] = useState(false);
@@ -551,6 +557,7 @@ export function PosCashRegister() {
             ? Number(customerId)
             : null,
         method: saleType === "credito" ? "cash" : method,
+        paymentMediumId: saleType === "credito" ? null : paymentMediumId,
         saleType,
         documentType,
         notes: notes.trim() || undefined,
@@ -1089,38 +1096,16 @@ export function PosCashRegister() {
             ) : null}
 
             <p className="pos-group mt-0.5">Pago</p>
-            <ComboBox
-              aria-label="Método de pago"
-              selectedKey={method}
+            <PaymentMediumSelect
+              value={paymentMediumId}
               isDisabled={saleType === "credito"}
-              onSelectionChange={(key) => {
-                const next = String(key || "cash") as PaymentMethodValue;
+              onChange={(medium: PaymentMediumOption) => {
+                setPaymentMediumId(medium.id);
+                const next = mediumKindToMethod(medium.kind);
                 setMethod(next);
                 if (next !== "cash") setAmountReceived("");
               }}
-            >
-              <Label>Método de pago</Label>
-              <ComboBox.InputGroup>
-                <Input />
-                <ComboBox.Trigger />
-              </ComboBox.InputGroup>
-              <ComboBox.Popover>
-                <ListBox>
-                  {(
-                    [
-                      ["cash", "Efectivo"],
-                      ["transfer", "Transferencia"],
-                      ["card", "Tarjeta"],
-                    ] as const
-                  ).map(([id, label]) => (
-                    <ListBox.Item key={id} id={id} textValue={label}>
-                      {label}
-                      <ListBox.ItemIndicator />
-                    </ListBox.Item>
-                  ))}
-                </ListBox>
-              </ComboBox.Popover>
-            </ComboBox>
+            />
 
             <div className="min-w-0">
               <Label className="mb-1">Notas (opcional)</Label>
