@@ -278,14 +278,14 @@ const ACCOUNTS_CFG: EntityCreateTourConfig = {
   tourId: "accounts-create",
   prefix: "accounts",
   moduleId: "accounts",
-  helpTitle: "Tutorial de Cuentas",
+  helpTitle: "Tutorial de Usuarios",
   helpDescription:
-    "Simulamos empezar sin cuentas. Creas un empleado de prueba y lo ves en la lista. Nada se guarda de verdad.",
-  emptyTitle: "Sin cuentas",
+    "Simulamos empezar sin usuarios. Creas un empleado de prueba y lo ves en la lista. Nada se guarda de verdad.",
+  emptyTitle: "Sin usuarios",
   emptyDescription: "Así se ve al inicio. Da de alta al primer usuario.",
-  createTitle: "Nueva cuenta",
+  createTitle: "Nuevo usuario",
   createDescription: "Abrimos el formulario de usuario.",
-  listTitle: "Listo: tu cuenta",
+  listTitle: "Listo: tu usuario",
   listDescription: "Aquí administras accesos del equipo.",
   fields: [
     {
@@ -314,6 +314,24 @@ const ACCOUNTS_CFG: EntityCreateTourConfig = {
       description: "Clave temporal de acceso.",
       value: ENTITY_CREATE_DEMOS.accounts.password,
       msPerChar: 45,
+    },
+    {
+      key: "roles",
+      label: "Roles",
+      description:
+        "Elegí uno o varios roles (Empleado, Admin de sucursal, etc.). Definen qué puede hacer en el sistema. Tocá para marcar o desmarcar.",
+      demo: "clickFirst",
+      side: "top",
+      dwellMs: 3200,
+    },
+    {
+      key: "branch",
+      label: "Local / sucursal",
+      description:
+        "La vinculación al local y el encargado se hacen en Sucursales → Gestionar equipo. Acá solo creás la cuenta.",
+      demo: "none",
+      side: "top",
+      dwellMs: 3400,
     },
   ],
 };

@@ -7,7 +7,7 @@ import { isOwnerRole, mapExternalRoleName } from "@/shared/utils/roles";
 /**
  * POST /api/auth/change-role
  * body: { roleId: number } | { role: "owner"|"admin"|"employee" }
- * Cambia el rol activo preferido reordenando AccountRole (Dueño).
+ * Cambia el rol activo: recrea AccountRole dejando el elegido primero (id ASC = activo).
  */
 export async function POST(request: Request) {
   const auth = await checkAuth();
@@ -28,11 +28,15 @@ export async function POST(request: Request) {
     let targetRole = payloadPreview.roles.find(
       (r) =>
         (body.roleId != null && r.id === Number(body.roleId)) ||
-        (body.role != null && r.name === String(body.role)),
+        (body.role != null &&
+          (r.name === String(body.role) ||
+            mapExternalRoleName(r.name) === mapExternalRoleName(body.role))),
     );
 
     if (!targetRole && isOwnerRole(auth.user.role) && body.role) {
-      targetRole = payloadPreview.roles.find((r) => r.name === body.role);
+      targetRole = payloadPreview.roles.find(
+        (r) => mapExternalRoleName(r.name) === mapExternalRoleName(body.role),
+      );
     }
 
     if (!targetRole) {
@@ -46,24 +50,50 @@ export async function POST(request: Request) {
       return NextResponse.json(payloadPreview);
     }
 
-    // Preferir el rol elegido: lo dejamos como primer AccountRole
     const links = await prisma.accountRole.findMany({
       where: { accountId },
       include: { role: true },
+      orderBy: { id: "asc" },
     });
-    const chosen = links.find(
-      (l) =>
-        l.roleId === targetRole!.id ||
-        mapExternalRoleName(l.role.name) === targetRole!.name,
+
+    const preferredRoleId = targetRole.id;
+    const otherRoleIds = [
+      ...new Set(
+        links
+          .map((l) => l.roleId)
+          .filter((id) => id !== preferredRoleId),
+      ),
+    ];
+
+    // Si la cuenta es dueña (tiene Dueño en links o activo), asegurar trio switchable
+    const hasOwnerLink = links.some((l) =>
+      isOwnerRole(mapExternalRoleName(l.role.name)),
     );
-    if (chosen) {
-      await prisma.$transaction([
-        prisma.accountRole.delete({ where: { id: chosen.id } }),
-        prisma.accountRole.create({
-          data: { accountId, roleId: chosen.roleId },
-        }),
-      ]);
+    if (hasOwnerLink || isOwnerRole(payloadPreview.role)) {
+      for (const name of ["Dueño", "Administrador", "Empleado"] as const) {
+        let role = await prisma.role.findFirst({ where: { name } });
+        if (!role) role = await prisma.role.create({ data: { name } });
+        if (
+          role.id !== preferredRoleId &&
+          !otherRoleIds.includes(role.id)
+        ) {
+          otherRoleIds.push(role.id);
+        }
+      }
     }
+
+    await prisma.$transaction(async (tx) => {
+      await tx.accountRole.deleteMany({ where: { accountId } });
+      // Primero = rol activo (check-auth / serialize leen orderBy id ASC)
+      await tx.accountRole.create({
+        data: { accountId, roleId: preferredRoleId },
+      });
+      for (const roleId of otherRoleIds) {
+        await tx.accountRole.create({
+          data: { accountId, roleId },
+        });
+      }
+    });
 
     const updated = await serializeAuthUser(prisma, accountId);
     return NextResponse.json({

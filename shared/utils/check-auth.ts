@@ -180,7 +180,7 @@ export async function checkAuth(): Promise<AuthResult> {
       where: { id: accountId },
       include: {
         person: true,
-        roles: { include: { role: true } },
+        roles: { include: { role: true }, orderBy: { id: "asc" } },
       },
     });
 

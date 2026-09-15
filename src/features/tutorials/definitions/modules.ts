@@ -289,6 +289,15 @@ export const MODULE_DRIVER_TOURS: ModuleDriverTour[] = [
 
   // Finanzas
   {
+    id: "payroll-week",
+    label: "Liquidación semanal",
+    match: [appRoutes.finance.payrollWeek],
+    steps: pageIntro(
+      "Liquidación semanal",
+      "Armá la semana, publicá montos, esperá la confirmación del empleado y confirmá el pago.",
+    ),
+  },
+  {
     id: "finance",
     label: "Finanzas",
     match: ["/finanzas"],
@@ -324,6 +333,15 @@ export const MODULE_DRIVER_TOURS: ModuleDriverTour[] = [
   },
 
   // Marketing / canal
+  {
+    id: "promotions",
+    label: "Promociones",
+    match: [appRoutes.marketing.promotions, appRoutes.promotions.list],
+    steps: pageIntro(
+      "Promociones",
+      "Ofertas de productos y servicios: quién las ve y hasta cuándo aplican.",
+    ),
+  },
   {
     id: "marketing",
     label: "Marketing",
@@ -392,6 +410,24 @@ export const MODULE_DRIVER_TOURS: ModuleDriverTour[] = [
 
   // Empleado / fidelización
   {
+    id: "employee-payroll",
+    label: "Mi liquidación",
+    match: [appRoutes.employee.myPayroll],
+    steps: pageIntro(
+      "Mi liquidación",
+      "Revisá lo generado y comisiones: aceptá los valores y después confirmá que te pagaron.",
+    ),
+  },
+  {
+    id: "employee-day",
+    label: "Mi día",
+    match: [appRoutes.employee.myDay],
+    steps: pageIntro(
+      "Mi día",
+      "Lo que tenés hoy: citas, producción y pendientes de tu jornada.",
+    ),
+  },
+  {
     id: "employee",
     label: "Área empleado",
     match: ["/empleado"],
@@ -406,7 +442,7 @@ export const MODULE_DRIVER_TOURS: ModuleDriverTour[] = [
     match: [appRoutes.loyalty.hub],
     steps: pageIntro(
       "Fidelización",
-      "Programa de puntos y beneficios para clientes frecuentes.",
+      "Programa de puntos y beneficios para clientes que vienen seguido.",
     ),
   },
   {
