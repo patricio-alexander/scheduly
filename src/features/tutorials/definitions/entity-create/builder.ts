@@ -17,9 +17,10 @@ export type EntityCreateFieldConfig = {
   /**
    * type = escribir (default);
    * pickFirst = abrir select/combo y elegir primera opción real;
+   * clickFirst = clic en el primer botón dentro del wrap (chips de rol, etc.);
    * none = solo explicar (puntero al campo).
    */
-  demo?: "type" | "pickFirst" | "none";
+  demo?: "type" | "pickFirst" | "clickFirst" | "none";
   side?: "top" | "bottom" | "left" | "right";
   dwellMs?: number;
 };
@@ -79,6 +80,14 @@ function buildFieldTourSteps(
           },
         ],
       };
+    } else if (demoKind === "clickFirst") {
+      demo = {
+        kind: "sequence",
+        steps: [
+          { kind: "waitFor", selector: `${wrap} button`, timeoutMs: 4000 },
+          { kind: "click", selector: `${wrap} button` },
+        ],
+      };
     } else {
       demo = {
         kind: "sequence",
@@ -97,7 +106,13 @@ function buildFieldTourSteps(
     return {
       element: wrap,
       allowMissing: true,
-      dwellMs: field.dwellMs ?? (demoKind === "pickFirst" ? 1800 : 1200),
+      dwellMs:
+        field.dwellMs ??
+        (demoKind === "pickFirst" || demoKind === "clickFirst"
+          ? 1800
+          : demoKind === "none"
+            ? 2800
+            : 1200),
       demo,
       popover: {
         title: field.label,

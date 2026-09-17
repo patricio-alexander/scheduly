@@ -89,8 +89,8 @@ export const TUTORIAL_HUB_ENTRIES: TutorialHubEntry[] = [
   },
   {
     id: "accounts",
-    title: "Cuentas",
-    description: "Usuarios y accesos del equipo.",
+    title: "Usuarios",
+    description: "Alta de usuarios y accesos del equipo.",
     group: "Administración",
     route: appRoutes.admin.accounts,
   },

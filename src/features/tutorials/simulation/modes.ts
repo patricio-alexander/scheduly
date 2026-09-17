@@ -9,7 +9,7 @@ import type { TourRunMode } from "../core/types";
  */
 export const TOUR_RUN_MODE_LABELS: Record<TourRunMode, string> = {
   guide: "Guía",
-  demo: "Simulación (datos de prueba)",
+  demo: "Simulación",
   live: "Simulación (datos reales)",
 };
 

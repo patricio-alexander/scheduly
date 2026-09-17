@@ -68,8 +68,10 @@ async function ensureOwnerSwitchableRoles(
   db: Db,
   accountId: number,
   currentRole: string,
+  linkNames: string[],
 ) {
-  if (!isOwnerRole(currentRole)) return;
+  const hasOwnerLink = linkNames.some((n) => isOwnerRole(n));
+  if (!isOwnerRole(currentRole) && !hasOwnerLink) return;
 
   for (const name of SWITCHABLE_FOR_OWNER) {
     let role = await db.role.findFirst({ where: { name } });
@@ -95,7 +97,7 @@ export async function serializeAuthUser(
     where: { id: accountId },
     include: {
       person: true,
-      roles: { include: { role: true } },
+      roles: { include: { role: true }, orderBy: { id: "asc" } },
     },
   });
 
@@ -130,21 +132,31 @@ export async function serializeAuthUser(
     ];
   }
 
-  await ensureOwnerSwitchableRoles(db, account.id, activeRole);
+  await ensureOwnerSwitchableRoles(
+    db,
+    account.id,
+    activeRole,
+    account.roles.map((l) => l.role.name ?? ""),
+  );
 
-  if (isOwnerRole(activeRole)) {
+  // Releer en orden estable tras posibles altas de roles switchables
+  {
     const refreshed = await db.accountRole.findMany({
       where: { accountId: account.id },
       include: { role: true },
+      orderBy: { id: "asc" },
     });
-    roles = refreshed.map((link) => {
-      const appRole = mapExternalRoleName(link.role.name ?? "");
-      return {
-        id: link.role.id,
-        name: appRole,
-        label: roleLabel(appRole),
-      };
-    });
+    if (refreshed.length) {
+      activeRole = mapExternalRoleName(refreshed[0]?.role.name ?? "Empleado");
+      roles = refreshed.map((link) => {
+        const appRole = mapExternalRoleName(link.role.name ?? "");
+        return {
+          id: link.role.id,
+          name: appRole,
+          label: roleLabel(appRole),
+        };
+      });
+    }
   }
 
   // Una opción por AppRole (Dueño/Admin/Empleado/Programador)

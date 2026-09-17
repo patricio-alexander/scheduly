@@ -10,6 +10,8 @@ import {
   type TourEntityAction,
 } from "./overlays";
 import { notifyTourDestroyed } from "../simulation/launch";
+import { shouldRunStepDemos } from "../simulation/modes";
+import type { TourRunMode } from "./types";
 
 /**
  * Acciones de demo del tour.
@@ -494,6 +496,7 @@ export function runSchedulyTour({
   autoPlayMs = 2200,
   showPointer = true,
   popoverOffset = 14,
+  mode = "demo",
 }: {
   steps: SchedulyTourStep[];
   onDestroyed?: () => void;
@@ -501,6 +504,8 @@ export function runSchedulyTour({
   autoPlayMs?: number;
   showPointer?: boolean;
   popoverOffset?: number;
+  /** guide = solo highlight; demo/live = ejecuta demos embebidos */
+  mode?: TourRunMode;
 }): Driver | null {
   if (!Array.isArray(steps) || steps.length === 0) return null;
 
@@ -656,12 +661,13 @@ export function runSchedulyTour({
       stepAbort = ac;
 
       try {
+        const runDemos = Boolean(s.demo && shouldRunStepDemos(mode));
         // Si el paso no abre un select, asegúrate de que no quede uno colgado
-        if (s.demo?.kind !== "pickFirst") {
+        if (!runDemos || s.demo?.kind !== "pickFirst") {
           await ensureSelectsClosed(ac.signal);
         }
-        if (el && !s.demo) await pointer?.moveTo(el, ac.signal);
-        if (s.demo) await runDemo(s.demo, ac.signal, pointer);
+        if (el && !runDemos) await pointer?.moveTo(el, ac.signal);
+        if (runDemos && s.demo) await runDemo(s.demo, ac.signal, pointer);
       } catch (e) {
         if (!(e instanceof DOMException && e.name === "AbortError")) {
           /* ignore */
@@ -671,10 +677,11 @@ export function runSchedulyTour({
       if (ac.signal.aborted || closed || !opts.driver.isActive()) return;
       if (paused) return;
 
+      const ranDemo = Boolean(s.demo && shouldRunStepDemos(mode));
       scheduleAdvance(
         opts.driver,
         s,
-        (s.dwellMs ?? autoPlayMs) + (s.demo ? 400 : 0),
+        (s.dwellMs ?? autoPlayMs) + (ranDemo ? 400 : 0),
       );
     },
 

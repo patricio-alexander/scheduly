@@ -23,13 +23,15 @@ import {
   isModuleTourSeen,
   markModuleTourSeen,
 } from "../prefs/module";
-import { runSchedulyTour } from "../core/run-tour";
+import { runSchedulyTour, type SchedulyTourStep } from "../core/run-tour";
+import type { TourRunMode } from "../core/types";
+import { isTourRunMode } from "../simulation/modes";
 import { START_MODULE_TOUR_EVENT } from "./ModuleTutorialOrchestrator";
 
 type Ctx = {
   running: boolean;
   /** Tour de página: vacío → crear → lista. */
-  startOverview: () => void;
+  startOverview: (mode?: TourRunMode) => void;
   /** Tour del modal: solo campos (no reinicia la pantalla). */
   startForm: () => void;
   moduleId: EntityCreateModuleId;
@@ -40,9 +42,9 @@ const EntityCreateTutorialContext = createContext<Ctx | null>(null);
 type ProviderProps = {
   children: ReactNode;
   moduleId: EntityCreateModuleId;
-  /** Prepara lista vacía demo (solo overview). */
+  /** Prepara lista vacía demo (solo overview en modo demo). */
   prepareTour?: () => void;
-  /** Restaura lista real (solo overview). */
+  /** Restaura lista real (solo overview en modo demo). */
   cleanupTour?: () => void;
   /** Abre el modal de alta (tour del formulario). */
   openCreateForm?: () => void;
@@ -50,6 +52,96 @@ type ProviderProps = {
   resetFormTour?: () => void;
   enabled?: boolean;
 };
+
+/** Ajusta textos cuando la dueña completa el alta de verdad (guía). */
+function adaptStepsForGuide(steps: SchedulyTourStep[]): SchedulyTourStep[] {
+  return steps.map((step, index) => {
+    const el = String(step.element ?? "");
+    const pop = step.popover;
+    if (!pop) return step;
+
+    if (index === 0) {
+      return {
+        ...step,
+        dwellMs: 4200,
+        popover: {
+          ...pop,
+          title: "Guía: crear usuario",
+          description:
+            "Te acompañamos en la pantalla real. Completá vos los datos; al guardar se crea de verdad en el sistema.",
+        },
+      };
+    }
+    if (el.includes("-empty")) {
+      return {
+        ...step,
+        popover: {
+          ...pop,
+          description:
+            "Si no hay usuarios, empezás acá. Si ya hay lista, igual podés agregar uno nuevo.",
+        },
+      };
+    }
+    if (el.includes("-create") && !el.includes("form")) {
+      return {
+        ...step,
+        popover: {
+          ...pop,
+          description:
+            "Pulsá este botón para abrir el formulario. El tour espera a que lo hagas.",
+        },
+      };
+    }
+    if (el.includes("form-submit")) {
+      return {
+        ...step,
+        popover: {
+          ...pop,
+          title: "Guardar en el sistema",
+          description:
+            "Cuando termines de llenar los campos, pulsá Guardar. La cuenta se crea de verdad.",
+        },
+      };
+    }
+    if (el.includes("form-roles")) {
+      return {
+        ...step,
+        popover: {
+          ...pop,
+          description:
+            "Marcá el rol que corresponde (podés elegir más de uno). Sin rol no se puede guardar.",
+        },
+      };
+    }
+    if (el.includes("form-branch")) {
+      return {
+        ...step,
+        popover: {
+          ...pop,
+          description:
+            "El local se asigna después en Sucursales → Gestionar equipo. Acá solo creás la cuenta.",
+        },
+      };
+    }
+    if (el.includes("-list")) {
+      return {
+        ...step,
+        popover: {
+          ...pop,
+          description:
+            "Si guardaste bien, el nuevo usuario aparece acá en la lista.",
+        },
+      };
+    }
+    return {
+      ...step,
+      popover: {
+        ...pop,
+        description: `${String(pop.description ?? "").trim()} Completalo vos.`.trim(),
+      },
+    };
+  });
+}
 
 /**
  * Dos tutoriales distintos (como Agenda):
@@ -91,36 +183,47 @@ export function EntityCreateTutorialProvider({
     setRunning(false);
   }, []);
 
-  const startOverview = useCallback(() => {
-    if (!enabled) return;
-    if (startedRef.current && instanceRef.current?.isActive()) return;
-    stopTour();
-    startedRef.current = true;
-    setRunning(true);
-    prepareRef.current?.();
-    window.setTimeout(() => {
-      instanceRef.current = runSchedulyTour({
-        steps: getEntityCreateTourSteps(moduleId),
-        autoPlay: true,
-        autoPlayMs: 2600,
-        showPointer: true,
-        popoverOffset: 14,
-        onDestroyed: () => {
-          markModuleTourSeen(overviewTourId);
-          markModuleTourSeen(moduleId);
-          cleanupRef.current?.();
-          instanceRef.current = null;
+  const startOverview = useCallback(
+    (mode: TourRunMode = "demo") => {
+      if (!enabled) return;
+      if (startedRef.current && instanceRef.current?.isActive()) return;
+      stopTour();
+      startedRef.current = true;
+      setRunning(true);
+
+      const isDemo = mode === "demo";
+      if (isDemo) prepareRef.current?.();
+
+      const baseSteps = getEntityCreateTourSteps(moduleId);
+      const steps =
+        mode === "guide" ? adaptStepsForGuide(baseSteps) : baseSteps;
+
+      window.setTimeout(() => {
+        instanceRef.current = runSchedulyTour({
+          steps,
+          mode,
+          autoPlay: isDemo,
+          autoPlayMs: 2600,
+          showPointer: true,
+          popoverOffset: 14,
+          onDestroyed: () => {
+            markModuleTourSeen(overviewTourId);
+            markModuleTourSeen(moduleId);
+            if (isDemo) cleanupRef.current?.();
+            instanceRef.current = null;
+            startedRef.current = false;
+            setRunning(false);
+          },
+        });
+        if (!instanceRef.current) {
+          if (isDemo) cleanupRef.current?.();
           startedRef.current = false;
           setRunning(false);
-        },
-      });
-      if (!instanceRef.current) {
-        cleanupRef.current?.();
-        startedRef.current = false;
-        setRunning(false);
-      }
-    }, 280);
-  }, [enabled, moduleId, stopTour, overviewTourId]);
+        }
+      }, 280);
+    },
+    [enabled, moduleId, stopTour, overviewTourId],
+  );
 
   const startForm = useCallback(() => {
     if (!enabled) return;
@@ -133,6 +236,7 @@ export function EntityCreateTutorialProvider({
     window.setTimeout(() => {
       instanceRef.current = runSchedulyTour({
         steps: getEntityFormTourSteps(moduleId),
+        mode: "demo",
         autoPlay: true,
         autoPlayMs: 2400,
         showPointer: true,
@@ -156,13 +260,17 @@ export function EntityCreateTutorialProvider({
   useEffect(() => {
     if (!enabled) return;
     if (isModuleTourSeen(overviewTourId) || isModuleTourSeen(moduleId)) return;
-    const t = window.setTimeout(() => startOverview(), 900);
+    const t = window.setTimeout(() => startOverview("demo"), 900);
     return () => window.clearTimeout(t);
   }, [enabled, moduleId, startOverview, overviewTourId]);
 
   useEffect(() => {
     if (!enabled) return;
-    const onStart = () => startOverview();
+    const onStart = (ev: Event) => {
+      const detail = (ev as CustomEvent<{ mode?: unknown }>).detail;
+      const mode = isTourRunMode(detail?.mode) ? detail.mode : "demo";
+      startOverview(mode);
+    };
     window.addEventListener(START_MODULE_TOUR_EVENT, onStart);
     return () => window.removeEventListener(START_MODULE_TOUR_EVENT, onStart);
   }, [enabled, startOverview]);
@@ -217,7 +325,7 @@ export function EntityCreateHelpButton({
     <button
       type="button"
       data-tour={inModal ? `${moduleId}-form-help` : `${moduleId}-help`}
-      onClick={inModal ? startForm : startOverview}
+      onClick={inModal ? startForm : () => startOverview("demo")}
       disabled={running}
       className={inModal ? helpBtnClassModal : helpBtnClass}
       title={label}

@@ -769,7 +769,10 @@ export default function AccountsPage() {
                         />
                       </div>
                     </div>
-                    <div className="flex flex-col gap-0.5">
+                    <div
+                      className="flex flex-col gap-0.5"
+                      data-tour="accounts-form-roles"
+                    >
                       <Label>
                         {isBranchAdmin ? "Rol" : "Roles"}
                       </Label>
@@ -801,7 +804,10 @@ export default function AccountsPage() {
                         </div>
                       )}
                     </div>
-                    <div className="flex flex-col gap-0.5">
+                    <div
+                      className="flex flex-col gap-0.5"
+                      data-tour="accounts-form-branch"
+                    >
                       <Label>Local</Label>
                       {isBranchAdmin ? (
                         <p className="rounded-lg border border-separator bg-surface-secondary px-2.5 py-1.5 text-xs">
