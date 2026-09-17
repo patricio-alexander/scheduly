@@ -7,10 +7,11 @@ import {
   isOwnerRole,
 } from "@/shared/utils/roles";
 import { getUserPrimaryBranchId } from "@/shared/utils/branches";
-import { settleCommissionsForEmployeePayment } from "@/shared/utils/commissions";
 import { toAmount } from "@/shared/utils/money";
-import { endOfLocalDay, startOfLocalDay } from "@/shared/utils/payroll-settings";
-import { invalidateDashboard } from "@/shared/utils/socket";
+import {
+  emitPayrollPaymentRequested,
+  invalidateDashboard,
+} from "@/shared/utils/socket";
 import { loadWeek, serializeWeek } from "../route";
 
 const METHODS = new Set(["cash", "card", "transfer"]);
@@ -48,6 +49,7 @@ export async function POST(
           select: { periodStart: true, periodEnd: true },
         },
         account: { select: { userId: true } },
+        branch: { select: { name: true } },
         payments: { select: { id: true }, take: 1 },
       },
     });
@@ -61,6 +63,12 @@ export async function POST(
     if (line.payments.length > 0) {
       return NextResponse.json(
         { message: "Esa línea ya está pagada" },
+        { status: 409 },
+      );
+    }
+    if (line.paymentRequestedAt && !line.paymentRejectedAt) {
+      return NextResponse.json(
+        { message: "El pago ya está esperando confirmación del empleado" },
         { status: 409 },
       );
     }
@@ -91,31 +99,54 @@ export async function POST(
       }
     }
 
+    const requestedAt = new Date();
     await prisma.$transaction(async (tx) => {
-      await tx.employeePayment.create({
+      await tx.payrollWeekLine.update({
+        where: { id: line.id },
         data: {
-          userId,
-          branchId: line.branchId,
-          registeredById: auth.user.id,
-          amount,
-          method,
-          notes,
-          payrollWeekLineId: line.id,
+          paymentRequestedAt: requestedAt,
+          paymentRequestedById: auth.user.id,
+          paymentRequestMethod: method,
+          paymentRequestNotes: notes,
+          paymentAcceptedAt: null,
+          paymentRejectedAt: null,
         },
       });
-      await settleCommissionsForEmployeePayment(tx, {
+
+      await tx.notification.updateMany({
+        where: {
+          userId,
+          sourceKey: `payroll-payment-request:${line.id}`,
+        },
+        data: { deleted: true },
+      });
+      await tx.notification.create({
+        data: {
         userId,
-        branchId: line.branchId,
-        paymentAmount: amount,
-        periodStart: startOfLocalDay(line.payrollWeek.periodStart),
-        periodEnd: endOfLocalDay(line.payrollWeek.periodEnd),
+          type: "alert",
+          title: "Confirma tu pago",
+          message: `Administración solicita validar un pago de ${amount.toFixed(2)} por la liquidación ${line.payrollWeek.periodStart.toISOString().slice(0, 10)} → ${line.payrollWeek.periodEnd.toISOString().slice(0, 10)}.`,
+          link: "/mobile",
+          sourceKey: `payroll-payment-request:${line.id}`,
+        },
       });
     });
 
-    invalidateDashboard("payroll:payment-created");
+    emitPayrollPaymentRequested(line.accountId, {
+      lineId: line.id,
+      weekId,
+      periodStart: line.payrollWeek.periodStart.toISOString().slice(0, 10),
+      periodEnd: line.payrollWeek.periodEnd.toISOString().slice(0, 10),
+      branchName: line.branch?.name ?? null,
+      amount,
+      method,
+      notes: notes ?? "",
+      requestedAt: requestedAt.toISOString(),
+    });
+    invalidateDashboard("payroll:payment-requested");
 
     const full = await loadWeek(weekId);
-    return NextResponse.json(serializeWeek(full!), { status: 201 });
+    return NextResponse.json(serializeWeek(full!), { status: 202 });
   } catch (error) {
     console.error("POST /api/finance/payroll-weeks/[id]/pay", error);
     return NextResponse.json(

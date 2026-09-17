@@ -1,10 +1,14 @@
-import { createHmac, timingSafeEqual } from "crypto";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { mapExternalRoleName } from "@/shared/utils/roles";
+import {
+  AUTH_COOKIE,
+  signSessionToken,
+  verifySessionToken,
+} from "@/shared/utils/session-token";
 
-export const AUTH_COOKIE = "scheduly_session";
+export { AUTH_COOKIE, signSessionToken, verifySessionToken };
 
 export type AuthSessionUser = {
   /** Account.id */
@@ -20,43 +24,10 @@ export type AuthResult =
   | { ok: true; user: AuthSessionUser }
   | { ok: false; response: NextResponse };
 
-function getAuthSecret() {
-  const secret = process.env.AUTH_SECRET?.trim();
-  if (!secret) {
-    throw new Error("AUTH_SECRET no está configurada");
-  }
-  return secret;
-}
-
 function cookiePath() {
   // Con basePath (/scheduly) Path="/" es el que el navegador y Next
   // envían/leen de forma fiable en todas las rutas de la app.
   return "/";
-}
-
-export function signSessionToken(accountId: number) {
-  const payload = String(accountId);
-  const sig = createHmac("sha256", getAuthSecret()).update(payload).digest("hex");
-  return `${payload}.${sig}`;
-}
-
-export function verifySessionToken(token: string): number | null {
-  const [body, sig] = token.split(".");
-  if (!body || !sig) return null;
-
-  let expected: string;
-  try {
-    expected = createHmac("sha256", getAuthSecret()).update(body).digest("hex");
-  } catch {
-    return null;
-  }
-
-  const a = Buffer.from(sig);
-  const b = Buffer.from(expected);
-  if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
-
-  const accountId = Number(body);
-  return Number.isFinite(accountId) && accountId > 0 ? accountId : null;
 }
 
 export function buildAuthCookie(accountId: number) {

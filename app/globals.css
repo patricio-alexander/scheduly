@@ -2896,5 +2896,46 @@ textarea[data-slot="input"]::placeholder {
   }
 }
 
+.mobile-fullcalendar .fc {
+  font-size: 0.75rem;
+}
+
+.mobile-fullcalendar .fc .fc-toolbar {
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.mobile-fullcalendar .fc .fc-toolbar-title {
+  font-size: 0.95rem;
+  text-align: center;
+}
+
+.mobile-fullcalendar .fc .fc-button {
+  padding: 0.3rem 0.55rem;
+  font-size: 0.7rem;
+}
+
+.mobile-fullcalendar .fc .fc-footer-toolbar {
+  margin-bottom: 0;
+  margin-top: 0.75rem;
+}
+
+.mobile-fullcalendar .fc .fc-timegrid-axis {
+  width: 2.5rem;
+}
+
+.mobile-fullcalendar .fc .fc-timegrid-slot-label-cushion {
+  font-size: 0.65rem;
+}
+
+.mobile-fullcalendar .fc .fc-timegrid-event {
+  min-height: 1.75rem;
+}
+
+.mobile-fullcalendar .fc .fc-event-title,
+.mobile-fullcalendar .fc .fc-event-time {
+  font-size: 0.65rem;
+}
+
 
 

@@ -4,6 +4,7 @@ import { checkAuth } from "@/shared/utils/check-auth";
 import { toAmount } from "@/shared/utils/money";
 import { personFullName } from "@/shared/utils/person-name";
 import { reconcileCommissionSettlementsForUser } from "@/shared/utils/commissions";
+import { toDateKey } from "@/shared/utils/payroll-settings";
 
 export async function GET() {
   const auth = await checkAuth();
@@ -102,11 +103,18 @@ export async function GET() {
             },
           },
           branch: { select: { name: true } },
+          payrollWeekLine: {
+            select: {
+              payrollWeek: {
+                select: { periodStart: true, periodEnd: true },
+              },
+            },
+          },
         },
       }),
       prisma.branchStock.findMany({
         where: {
-          stock: { gt: 0 },
+          quantity: { gt: 0 },
           branch: {
             accountBranches: { some: { accountId: auth.user.id } },
           },
@@ -158,6 +166,12 @@ export async function GET() {
         paidAt: payment.paidAt.toISOString(),
         notes: payment.notes ?? "",
         branch: payment.branch?.name ?? null,
+        periodStart: payment.payrollWeekLine
+          ? toDateKey(payment.payrollWeekLine.payrollWeek.periodStart)
+          : null,
+        periodEnd: payment.payrollWeekLine
+          ? toDateKey(payment.payrollWeekLine.payrollWeek.periodEnd)
+          : null,
         registeredBy:
           personFullName(payment.registeredBy.person) !== "—"
             ? personFullName(payment.registeredBy.person)
@@ -167,7 +181,7 @@ export async function GET() {
         productId: row.product.id,
         productName: row.product.name,
         branchName: row.branch.name,
-        stock: row.stock,
+        stock: row.quantity,
       })),
     });
   } catch (error) {

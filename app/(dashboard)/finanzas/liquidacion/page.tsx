@@ -20,7 +20,7 @@ import {
 } from "@/shared/utils/payroll-settings";
 import { useAuth } from "@/src/features/auth";
 import { isManagementRole, isOwnerRole } from "@/shared/utils/roles";
-import { payPayrollWeekLine } from "@/src/features/payroll/services/payroll-service";
+import { requestPayrollWeekLinePayment } from "@/src/features/payroll/services/payroll-service";
 import NextLink from "next/link";
 
 type Line = {
@@ -38,6 +38,10 @@ type Line = {
   totalAmount: number;
   notes: string | null;
   employeeConfirmedAt: string | null;
+  paymentRequestedAt: string | null;
+  paymentAcceptedAt: string | null;
+  paymentRejectedAt: string | null;
+  paymentRequestMethod: string | null;
   paidAt: string | null;
   paidAmount: number;
   paidMethod: string | null;
@@ -181,9 +185,9 @@ export default function PayrollWeekPage() {
   const payModal = useOverlayState();
   const [lineToPay, setLineToPay] = useState<Line | null>(null);
   const [payMethod, setPayMethod] = useState<PaymentMethodValue>("transfer");
+  const selectedWeekId = selected?.id ?? null;
 
   const load = useCallback(async () => {
-    setLoading(true);
     try {
       const res = await fetch(apiUrl("/api/finance/payroll-weeks"), {
         credentials: "include",
@@ -201,7 +205,33 @@ export default function PayrollWeekPage() {
           id: number | null;
         };
       };
-      setWeeks(Array.isArray(json.weeks) ? json.weeks : []);
+      const loadedWeeks = Array.isArray(json.weeks) ? json.weeks : [];
+      setWeeks(loadedWeeks);
+      const refreshedSelected = selectedWeekId
+        ? loadedWeeks.find((week) => week.id === selectedWeekId)
+        : null;
+      if (refreshedSelected?.lines) {
+        const paymentState = new Map(
+          refreshedSelected.lines.map((line) => [line.id, line]),
+        );
+        setLines((current) =>
+          current.map((line) => {
+            const refreshed = paymentState.get(line.id);
+            return refreshed
+              ? {
+                  ...line,
+                  paymentRequestedAt: refreshed.paymentRequestedAt,
+                  paymentAcceptedAt: refreshed.paymentAcceptedAt,
+                  paymentRejectedAt: refreshed.paymentRejectedAt,
+                  paymentRequestMethod: refreshed.paymentRequestMethod,
+                  paidAt: refreshed.paidAt,
+                  paidAmount: refreshed.paidAmount,
+                  paidMethod: refreshed.paidMethod,
+                }
+              : line;
+          }),
+        );
+      }
       setAllowAdmin(Boolean(json.payrollAllowBranchAdmin));
       if (json.payrollWeekStartLabel) {
         setWeekStartLabel(json.payrollWeekStartLabel);
@@ -212,10 +242,15 @@ export default function PayrollWeekPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedWeekId]);
 
   useEffect(() => {
-    void load();
+    const timer = window.setTimeout(() => void load(), 0);
+    const refreshTimer = window.setInterval(() => void load(), 8000);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearInterval(refreshTimer);
+    };
   }, [load]);
 
   const applyWeek = (w: Week) => {
@@ -409,12 +444,12 @@ export default function PayrollWeekPage() {
     if (!selected || !lineToPay) return;
     setPending(true);
     try {
-      const updated = (await payPayrollWeekLine({
+      const updated = (await requestPayrollWeekLinePayment({
         weekId: selected.id,
         lineId: lineToPay.id,
         method: payMethod,
       })) as Week;
-      toast.success(`Pago confirmado · ${lineToPay.employeeName}`);
+      toast.success(`Solicitud enviada · ${lineToPay.employeeName}`);
       payModal.close();
       setLineToPay(null);
       if (updated?.id) applyWeek(updated);
@@ -430,7 +465,7 @@ export default function PayrollWeekPage() {
     <div className="flex flex-col gap-6">
       <PageHeader
         title="Sueldos / liquidación"
-        description="Armá la semana, ajustá descuentos y confirmá el pago de cada empleado."
+        description="Armá la semana, ajustá descuentos y enviá cada pago para validación del empleado."
         icon={<CircleDollar className="size-5" />}
         action={
           <NextLink
@@ -710,6 +745,24 @@ export default function PayrollWeekPage() {
                         >
                           Pagado
                         </span>
+                      ) : l.paymentRejectedAt ? (
+                        <div className="flex flex-col items-end gap-1">
+                          <span className="text-xs text-danger">
+                            Rechazado por empleado
+                          </span>
+                          <Button
+                            size="sm"
+                            variant="secondary"
+                            isDisabled={pending}
+                            onPress={() => askPay(l)}
+                          >
+                            Reenviar solicitud
+                          </Button>
+                        </div>
+                      ) : l.paymentRequestedAt ? (
+                        <span className="text-warning">
+                          Esperando empleado
+                        </span>
                       ) : canPay && l.totalAmount > 0 ? (
                         <Button
                           size="sm"
@@ -717,7 +770,7 @@ export default function PayrollWeekPage() {
                           isDisabled={pending}
                           onPress={() => askPay(l)}
                         >
-                          Confirmar pago
+                          Solicitar pago
                         </Button>
                       ) : (
                         <span className="text-muted">—</span>
@@ -748,13 +801,15 @@ export default function PayrollWeekPage() {
 
       <ConfirmDialog
         state={payModal}
-        title="Confirmar pago"
+        title="Solicitar confirmación de pago"
         description={
           lineToPay ? (
             <div className="flex flex-col gap-3">
               <p>
-                Se registra {formatMoney(lineToPay.totalAmount)} a{" "}
-                <strong>{lineToPay.employeeName}</strong>.
+                Se enviará a <strong>{lineToPay.employeeName}</strong> una
+                solicitud para validar el pago de{" "}
+                {formatMoney(lineToPay.totalAmount)}. El pago se registrará
+                cuando el empleado lo acepte.
               </p>
               <SelectField
                 label="Método"
@@ -770,10 +825,10 @@ export default function PayrollWeekPage() {
               />
             </div>
           ) : (
-            "Confirmar el pago de esta liquidación."
+            "Solicitar al empleado que confirme el pago."
           )
         }
-        confirmLabel="Confirmar pago"
+        confirmLabel="Enviar solicitud"
         pending={pending}
         onConfirm={() => void confirmPay()}
       />

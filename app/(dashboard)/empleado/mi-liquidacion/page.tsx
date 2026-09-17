@@ -48,12 +48,13 @@ export default function MyPayrollPage() {
   }, []);
 
   useEffect(() => {
-    void load();
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
 
-  const confirm = async (lineId: number) => {
+  const confirmLine = async (lineId: number) => {
     if (
-      !confirm(
+      !window.confirm(
         "¿Confirmás que revisaste lo producido y los descuentos de esta semana?",
       )
     ) {
@@ -120,7 +121,7 @@ export default function MyPayrollPage() {
                     <Button
                       size="sm"
                       isDisabled={pending}
-                      onPress={() => void confirm(l.id)}
+                      onPress={() => void confirmLine(l.id)}
                     >
                       Confirmar revisión
                     </Button>

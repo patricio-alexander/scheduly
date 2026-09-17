@@ -6,8 +6,11 @@ import {
 
 export const APPOINTMENTS_ROOM = "appointments";
 
+export function accountSocketRoom(accountId: number) {
+  return `account:${accountId}`;
+}
+
 declare global {
-  // eslint-disable-next-line no-var
   var __schedulyIo: IOServer | undefined;
 }
 
@@ -35,6 +38,23 @@ function emitAll(event: string, payload: unknown) {
 
 export function invalidateDashboard(reason: string) {
   emitAll("dashboard:invalidate", { reason, at: Date.now() });
+}
+
+export function emitPayrollPaymentRequested(
+  accountId: number,
+  payload: unknown,
+) {
+  const io = getIO();
+  if (!io) {
+    console.warn(
+      "[socket] IO no inicializado · payroll:payment-requested no emitido",
+    );
+    return;
+  }
+  io.to(accountSocketRoom(accountId)).emit(
+    "payroll:payment-requested",
+    toClientPayload(payload),
+  );
 }
 
 export function emitAppointmentCreated(event: unknown) {

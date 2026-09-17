@@ -83,6 +83,12 @@ export function serializeWeek(
       totalAmount: number;
       notes: string | null;
       employeeConfirmedAt: Date | null;
+      paymentRequestedAt: Date | null;
+      paymentRequestedById: number | null;
+      paymentRequestMethod: string | null;
+      paymentRequestNotes: string | null;
+      paymentAcceptedAt: Date | null;
+      paymentRejectedAt: Date | null;
       payments?: Array<{
         paidAt: Date;
         amount: number;
@@ -136,6 +142,12 @@ export function serializeWeek(
       totalAmount: toAmount(l.totalAmount),
       notes: l.notes,
       employeeConfirmedAt: l.employeeConfirmedAt?.toISOString() ?? null,
+      paymentRequestedAt: l.paymentRequestedAt?.toISOString() ?? null,
+      paymentRequestedById: l.paymentRequestedById,
+      paymentRequestMethod: l.paymentRequestMethod,
+      paymentRequestNotes: l.paymentRequestNotes,
+      paymentAcceptedAt: l.paymentAcceptedAt?.toISOString() ?? null,
+      paymentRejectedAt: l.paymentRejectedAt?.toISOString() ?? null,
       paidAt: l.payments?.[0]?.paidAt.toISOString() ?? null,
       paidAmount: toAmount(l.payments?.[0]?.amount ?? 0),
       paidMethod: l.payments?.[0]?.method ?? null,

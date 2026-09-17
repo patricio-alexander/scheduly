@@ -42,7 +42,7 @@ export async function registerEmployeePayment(
   return json;
 }
 
-export async function payPayrollWeekLine(params: {
+export async function requestPayrollWeekLinePayment(params: {
   weekId: number;
   lineId: number;
   method: "cash" | "card" | "transfer";

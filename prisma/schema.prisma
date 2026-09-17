@@ -1,6 +1,8 @@
 generator client {
   provider = "prisma-client"
-  /** Carpeta writable (generated/prisma quedó owned by root y no regenera). */
+  /**
+   * Carpeta writable (generated/prisma quedó owned by root y no regenera).
+   */
   output   = "../generated/prisma-runtime"
 }
 
@@ -116,7 +118,9 @@ model Role {
   accountRoles AccountRole[]
 }
 
-/** Persona física (EdDeli Users). Login vive en Account (1:1). */
+/**
+ * Persona física (EdDeli Users). Login vive en Account (1:1).
+ */
 model Person {
   id             Int       @id @default(autoincrement())
   ci             String?   @unique
@@ -129,48 +133,56 @@ model Person {
   gender         String?
   photo          String?   @db.Text
 
-  /** Una persona → una sola cuenta de acceso. */
-  account       Account?
-  personData    PersonData?
-  notifications Notification[]
-  cashShifts    CashShift[]
+  /**
+   * Una persona → una sola cuenta de acceso.
+   */
+  account            Account?
+  personData         PersonData?
+  notifications      Notification[]
+  cashShifts         CashShift[]
   cashShiftMovements CashShiftMovement[]
-  taskItemsAssigned TaskItem[] @relation("TaskAssignee")
-  taskItemsChecked  TaskItem[] @relation("TaskChecker")
-  appointments  Appointment[] @relation("AppointmentStaff")
-  commissionRecords CommissionRecord[]
-  employeePayments  EmployeePayment[]
-  employeeVouchers  EmployeeVoucher[]
+  taskItemsAssigned  TaskItem[]          @relation("TaskAssignee")
+  taskItemsChecked   TaskItem[]          @relation("TaskChecker")
+  appointments       Appointment[]       @relation("AppointmentStaff")
+  commissionRecords  CommissionRecord[]
+  employeePayments   EmployeePayment[]
+  employeeVouchers   EmployeeVoucher[]
 }
 
-/** Cuenta de acceso (EdDeli Account). Puede tener varios roles. */
+/**
+ * Cuenta de acceso (EdDeli Account). Puede tener varios roles.
+ */
 model Account {
   id       Int     @id @default(autoincrement())
   username String? @unique
   password String?
-  /** FK 1:1 con Person: un usuario solo puede tener una cuenta. */
+  /**
+   * FK 1:1 con Person: un usuario solo puede tener una cuenta.
+   */
   userId   Int?    @unique
   isActive Boolean @default(true)
 
-  person Person? @relation(fields: [userId], references: [id])
-  roles  AccountRole[]
+  person   Person?         @relation(fields: [userId], references: [id])
+  roles    AccountRole[]
   branches AccountBranch[]
 
-  stockMovementsCreated StockMovement[] @relation("MovementCreator")
-  branchesCreated       Branch[]        @relation("BranchCreator")
-  branchesManaged       Branch[]        @relation("BranchManager")
-  expensesCreated       Expense[]       @relation("ExpenseCreator")
-  incomesCreated        Income[]        @relation("IncomeCreator")
-  salesSold             Sale[]          @relation("SaleSeller")
-  paymentsCreated       FinancePayment[] @relation("PaymentCreator")
-  cashClosesCreated     CashClose[]      @relation("CashCloseCreator")
-  payrollWeeksCreated   PayrollWeek[]    @relation("PayrollWeekCreator")
-  payrollWeekLines      PayrollWeekLine[] @relation("PayrollWeekLineEmployee")
+  stockMovementsCreated      StockMovement[]   @relation("MovementCreator")
+  branchesCreated            Branch[]          @relation("BranchCreator")
+  branchesManaged            Branch[]          @relation("BranchManager")
+  expensesCreated            Expense[]         @relation("ExpenseCreator")
+  incomesCreated             Income[]          @relation("IncomeCreator")
+  salesSold                  Sale[]            @relation("SaleSeller")
+  paymentsCreated            FinancePayment[]  @relation("PaymentCreator")
+  cashClosesCreated          CashClose[]       @relation("CashCloseCreator")
+  payrollWeeksCreated        PayrollWeek[]     @relation("PayrollWeekCreator")
+  payrollWeekLines           PayrollWeekLine[] @relation("PayrollWeekLineEmployee")
   employeePaymentsRegistered EmployeePayment[] @relation("EmployeePaymentRegistrar")
   employeeVouchersRegistered EmployeeVoucher[] @relation("EmployeeVoucherRegistrar")
 }
 
-/** Vincula una cuenta a uno o más locales. isPrimary = local que administra/trabaja. */
+/**
+ * Vincula una cuenta a uno o más locales. isPrimary = local que administra/trabaja.
+ */
 model AccountBranch {
   id        Int     @id @default(autoincrement())
   accountId Int
@@ -197,7 +209,9 @@ model AccountRole {
   @@index([roleId])
 }
 
-/** Datos de contacto de la persona (EdDeli UserData). */
+/**
+ * Datos de contacto de la persona (EdDeli UserData).
+ */
 model PersonData {
   id                 Int     @id @default(autoincrement())
   idUser             Int     @unique
@@ -275,12 +289,14 @@ model Category {
   mixMatchLabel      String? @db.VarChar(120)
   mixMatchProductIds Json?
   parentId           Int?
-  /** Comisión % por defecto para productos de la categoría (si el producto no define la suya). */
+  /**
+   * Comisión % por defecto para productos de la categoría (si el producto no define la suya).
+   */
   commissionPct      Float   @default(0)
 
-  parent   Category?  @relation("CategoryTree", fields: [parentId], references: [id])
-  children Category[] @relation("CategoryTree")
-  products Product[]
+  parent            Category?          @relation("CategoryTree", fields: [parentId], references: [id])
+  children          Category[]         @relation("CategoryTree")
+  products          Product[]
   pricingTierGroups PricingTierGroup[]
 }
 
@@ -306,7 +322,9 @@ model Product {
   stock                Float       @default(0)
   minStock             Float       @default(0)
   price                Float       @default(0)
-  /** Comisión % venta producto (0 = hereda de categoría). */
+  /**
+   * Comisión % venta producto (0 = hereda de categoría).
+   */
   commissionPct        Float       @default(0)
   supplierPrice        Float       @default(0)
   wholesaleRules       Json?
@@ -324,22 +342,22 @@ model Product {
   createdAt            DateTime    @default(now())
   updatedAt            DateTime    @updatedAt
 
-  unit       Unit      @relation(fields: [unitId], references: [id])
-  category   Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
-  genericOf  Product?  @relation("GenericPresentations", fields: [genericProductId], references: [id])
+  unit          Unit      @relation(fields: [unitId], references: [id])
+  category      Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  genericOf     Product?  @relation("GenericPresentations", fields: [genericProductId], references: [id])
   presentations Product[] @relation("GenericPresentations")
 
-  recipesAsFinal Recipe[] @relation("RecipeFinal")
-  recipesAsRaw   Recipe[] @relation("RecipeRaw")
-  movements      StockMovement[]
-  branchStocks   BranchStock[]
-  branchProducts BranchProduct[]
-  saleLines      SaleLine[]
-  purchaseLines  PurchaseOrderLine[]
-  homeProducts   HomeProduct[]
-  catalogEntries CatalogEntry[]
+  recipesAsFinal      Recipe[]             @relation("RecipeFinal")
+  recipesAsRaw        Recipe[]             @relation("RecipeRaw")
+  movements           StockMovement[]
+  branchStocks        BranchStock[]
+  branchProducts      BranchProduct[]
+  saleLines           SaleLine[]
+  purchaseLines       PurchaseOrderLine[]
+  homeProducts        HomeProduct[]
+  catalogEntries      CatalogEntry[]
   appointmentProducts AppointmentProduct[]
-  rewards        Reward[]
+  rewards             Reward[]
 
   @@index([categoryId])
   @@index([type])
@@ -386,47 +404,49 @@ model StockMovement {
 // ——— Locales / caja (EdDeli Store*) ———
 
 model Branch {
-  id                 Int                @id @default(autoincrement())
-  name               String             @db.VarChar(120)
-  address            String             @db.VarChar(250)
-  description        String?            @db.Text
-  imageUrl           String?            @db.VarChar(500)
-  phone              String?            @db.VarChar(40)
-  email              String?            @db.VarChar(120)
-  city               String?            @db.VarChar(100)
-  province           String?            @db.VarChar(100)
-  latitude           Float?
-  longitude          Float?
-  position           Int                @default(0)
-  isActive           Boolean            @default(true)
-  isVisible          Boolean            @default(true)
-  locationKind       BranchLocationKind @default(vitrina)
-  establishmentCode  String             @default("001") @db.VarChar(3)
-  emissionPointCode  String             @default("001") @db.VarChar(3)
-  /** Cuenta encargada principal de este local (puede haber más admins vinculados). */
-  managerAccountId   Int?
-  createdBy          Int?
-  createdAt          DateTime           @default(now())
-  updatedAt          DateTime           @updatedAt
+  id                Int                @id @default(autoincrement())
+  name              String             @db.VarChar(120)
+  address           String             @db.VarChar(250)
+  description       String?            @db.Text
+  imageUrl          String?            @db.VarChar(500)
+  phone             String?            @db.VarChar(40)
+  email             String?            @db.VarChar(120)
+  city              String?            @db.VarChar(100)
+  province          String?            @db.VarChar(100)
+  latitude          Float?
+  longitude         Float?
+  position          Int                @default(0)
+  isActive          Boolean            @default(true)
+  isVisible         Boolean            @default(true)
+  locationKind      BranchLocationKind @default(vitrina)
+  establishmentCode String             @default("001") @db.VarChar(3)
+  emissionPointCode String             @default("001") @db.VarChar(3)
+  /**
+   * Cuenta encargada principal de este local (puede haber más admins vinculados).
+   */
+  managerAccountId  Int?
+  createdBy         Int?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
 
-  creator        Account?         @relation("BranchCreator", fields: [createdBy], references: [id])
-  manager        Account?         @relation("BranchManager", fields: [managerAccountId], references: [id], onDelete: SetNull)
-  accountBranches AccountBranch[]
-  cashRegisters  CashRegister[]
-  shelves        BranchShelf[]
-  stocks         BranchStock[]
-  products       BranchProduct[]
-  cashShifts     CashShift[]
-  salesDelivered SaleLine[]       @relation("SaleLineDeliveredBranch")
-  purchaseOrders PurchaseOrder[]  @relation("PurchaseReceivedBranch")
+  creator            Account?                   @relation("BranchCreator", fields: [createdBy], references: [id])
+  manager            Account?                   @relation("BranchManager", fields: [managerAccountId], references: [id], onDelete: SetNull)
+  accountBranches    AccountBranch[]
+  cashRegisters      CashRegister[]
+  shelves            BranchShelf[]
+  stocks             BranchStock[]
+  products           BranchProduct[]
+  cashShifts         CashShift[]
+  salesDelivered     SaleLine[]                 @relation("SaleLineDeliveredBranch")
+  purchaseOrders     PurchaseOrder[]            @relation("PurchaseReceivedBranch")
   recurringTemplates RecurringExpenseTemplate[]
-  appointments   Appointment[]
-  serviceBranches ServiceBranch[]
+  appointments       Appointment[]
+  serviceBranches    ServiceBranch[]
   electronicInvoices ElectronicInvoice[]
-  cashCloses     CashClose[]
-  payrollWeekLines PayrollWeekLine[]
-  employeePayments EmployeePayment[]
-  employeeVouchers EmployeeVoucher[]
+  cashCloses         CashClose[]
+  payrollWeekLines   PayrollWeekLine[]
+  employeePayments   EmployeePayment[]
+  employeeVouchers   EmployeeVoucher[]
 
   @@index([isActive, position])
   @@index([managerAccountId])
@@ -459,7 +479,7 @@ model BranchShelf {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  branch         Branch         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  branch         Branch          @relation(fields: [storeId], references: [id], onDelete: Cascade)
   branchProducts BranchProduct[]
 
   @@index([storeId])
@@ -493,9 +513,9 @@ model CashShift {
   createdAt            DateTime        @default(now())
   updatedAt            DateTime        @updatedAt
 
-  person       Person        @relation(fields: [userId], references: [id])
-  branch       Branch?       @relation(fields: [storeId], references: [id])
-  cashRegister CashRegister? @relation(fields: [activeCashRegisterId], references: [id])
+  person       Person              @relation(fields: [userId], references: [id])
+  branch       Branch?             @relation(fields: [storeId], references: [id])
+  cashRegister CashRegister?       @relation(fields: [activeCashRegisterId], references: [id])
   movements    CashShiftMovement[]
   sales        Sale[]
 
@@ -572,47 +592,53 @@ model Customer {
   phone          String?
   address        String?
   email          String?
-  /** Acceso portal cliente (hash). Null = sin cuenta pública. */
+  /**
+   * Acceso portal cliente (hash). Null = sin cuenta pública.
+   */
   password       String?
   isActive       Boolean  @default(true)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  sales         Sale[]
-  itemGroups    ItemGroup[]
-  financePayments FinancePayment[]
-  appointments  Appointment[]
-  loyalty       CustomerLoyalty?
-  pointTransactions PointTransaction[]
+  sales              Sale[]
+  itemGroups         ItemGroup[]
+  financePayments    FinancePayment[]
+  appointments       Appointment[]
+  loyalty            CustomerLoyalty?
+  pointTransactions  PointTransaction[]
   electronicInvoices ElectronicInvoice[]
 }
 
-/** Venta / pedido POS (EdDeli Order). */
+/**
+ * Venta / pedido POS (EdDeli Order).
+ */
 model Sale {
-  id               Int        @id @default(autoincrement())
-  customerId       Int
-  status           SaleStatus @default(pendiente)
-  notes            String?    @db.Text
-  shiftId          Int?
-  cashRegisterId   Int?
-  sellerAccountId  Int?
-  paymentMethod    String?    @db.VarChar(40)
-  /** Medio / banco del cuadre cuando el cobro es transferencia/tarjeta/efectivo. */
-  paymentMediumId  Int?
-  paidAt           DateTime?
-  documentType     String?    @db.VarChar(30)
-  date             DateTime   @default(now())
-  financeIncomeId  Int?
-  createdAt        DateTime   @default(now())
-  updatedAt        DateTime   @updatedAt
+  id              Int        @id @default(autoincrement())
+  customerId      Int
+  status          SaleStatus @default(pendiente)
+  notes           String?    @db.Text
+  shiftId         Int?
+  cashRegisterId  Int?
+  sellerAccountId Int?
+  paymentMethod   String?    @db.VarChar(40)
+  /**
+   * Medio / banco del cuadre cuando el cobro es transferencia/tarjeta/efectivo.
+   */
+  paymentMediumId Int?
+  paidAt          DateTime?
+  documentType    String?    @db.VarChar(30)
+  date            DateTime   @default(now())
+  financeIncomeId Int?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
 
-  customer      Customer       @relation(fields: [customerId], references: [id])
-  shift         CashShift?     @relation(fields: [shiftId], references: [id])
-  cashRegister  CashRegister?  @relation(fields: [cashRegisterId], references: [id])
-  seller        Account?       @relation("SaleSeller", fields: [sellerAccountId], references: [id])
-  paymentMedium PaymentMedium? @relation(fields: [paymentMediumId], references: [id], onDelete: SetNull)
-  lines         SaleLine[]
-  installments  SalePaymentInstallment[]
+  customer           Customer                 @relation(fields: [customerId], references: [id])
+  shift              CashShift?               @relation(fields: [shiftId], references: [id])
+  cashRegister       CashRegister?            @relation(fields: [cashRegisterId], references: [id])
+  seller             Account?                 @relation("SaleSeller", fields: [sellerAccountId], references: [id])
+  paymentMedium      PaymentMedium?           @relation(fields: [paymentMediumId], references: [id], onDelete: SetNull)
+  lines              SaleLine[]
+  installments       SalePaymentInstallment[]
   electronicInvoices ElectronicInvoice[]
 
   @@index([customerId, date])
@@ -637,10 +663,10 @@ model SaleLine {
   packKey          String?   @db.VarChar(64)
   packName         String?   @db.VarChar(120)
 
-  sale             Sale    @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product          Product @relation(fields: [productId], references: [id])
-  deliveredBranch  Branch? @relation("SaleLineDeliveredBranch", fields: [deliveredStoreId], references: [id])
-  itemGroupItems   ItemGroupItem[]
+  sale            Sale            @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product         Product         @relation(fields: [productId], references: [id])
+  deliveredBranch Branch?         @relation("SaleLineDeliveredBranch", fields: [deliveredStoreId], references: [id])
+  itemGroupItems  ItemGroupItem[]
 
   @@index([orderId])
   @@index([productId])
@@ -650,7 +676,9 @@ model SalePaymentInstallment {
   id                 Int       @id @default(autoincrement())
   orderId            Int
   sequence           Int       @default(1)
-  /** null = crédito abierto sin fecha de pago */
+  /**
+   * null = crédito abierto sin fecha de pago
+   */
   dueDate            DateTime? @db.Date
   amount             Float
   notes              String?
@@ -698,22 +726,22 @@ model Supplier {
 }
 
 model PurchaseOrder {
-  id              Int                 @id @default(autoincrement())
-  supplierId      Int
-  date            DateTime            @default(now())
-  notes           String?             @db.Text
-  status          PurchaseOrderStatus @default(pendiente)
-  receivedAt      DateTime?
-  receivedStoreId Int?
-  paidAt          DateTime?
-  paymentMethod   String?
+  id               Int                 @id @default(autoincrement())
+  supplierId       Int
+  date             DateTime            @default(now())
+  notes            String?             @db.Text
+  status           PurchaseOrderStatus @default(pendiente)
+  receivedAt       DateTime?
+  receivedStoreId  Int?
+  paidAt           DateTime?
+  paymentMethod    String?
   financeExpenseId Int?
-  invoiceNumber   String?
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
+  invoiceNumber    String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
 
-  supplier       Supplier             @relation(fields: [supplierId], references: [id])
-  receivedBranch Branch?              @relation("PurchaseReceivedBranch", fields: [receivedStoreId], references: [id])
+  supplier       Supplier                          @relation(fields: [supplierId], references: [id])
+  receivedBranch Branch?                           @relation("PurchaseReceivedBranch", fields: [receivedStoreId], references: [id])
   lines          PurchaseOrderLine[]
   installments   PurchaseOrderPaymentInstallment[]
   payments       SupplierOrderPayment[]
@@ -724,18 +752,18 @@ model PurchaseOrder {
 }
 
 model PurchaseOrderLine {
-  id               Int       @id @default(autoincrement())
-  orderId          Int
-  productId        Int
-  quantity         Float
-  unitPrice        Float     @default(0)
-  discount         Float     @default(0)
-  taxRate          Float     @default(0)
-  packKey          String?
-  packName         String?
+  id        Int     @id @default(autoincrement())
+  orderId   Int
+  productId Int
+  quantity  Float
+  unitPrice Float   @default(0)
+  discount  Float   @default(0)
+  taxRate   Float   @default(0)
+  packKey   String?
+  packName  String?
 
-  purchaseOrder PurchaseOrder @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  product       Product       @relation(fields: [productId], references: [id])
+  purchaseOrder PurchaseOrder      @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product       Product            @relation(fields: [productId], references: [id])
   packItems     SupplierPackItem[]
 
   @@index([orderId])
@@ -782,20 +810,20 @@ model SupplierPack {
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
-  supplier Supplier            @relation(fields: [supplierId], references: [id])
+  supplier Supplier               @relation(fields: [supplierId], references: [id])
   items    SupplierPackItem[]
   payments SupplierOrderPayment[]
 }
 
 model SupplierPackItem {
-  id                    Int    @id @default(autoincrement())
-  packId                Int
-  supplierOrderId       Int?
-  supplierOrderItemId   Int    @unique
-  quantity              Float  @default(0)
-  allocatedUnitPrice    Float  @default(0)
-  previousUnitPrice     Float?
-  allocatedLineTotal    Float  @default(0)
+  id                  Int    @id @default(autoincrement())
+  packId              Int
+  supplierOrderId     Int?
+  supplierOrderItemId Int    @unique
+  quantity            Float  @default(0)
+  allocatedUnitPrice  Float  @default(0)
+  previousUnitPrice   Float?
+  allocatedLineTotal  Float  @default(0)
 
   pack              SupplierPack      @relation(fields: [packId], references: [id], onDelete: Cascade)
   purchaseOrder     PurchaseOrder?    @relation(fields: [supplierOrderId], references: [id])
@@ -891,7 +919,9 @@ model ItemGroupItem {
   @@unique([orderItemId])
 }
 
-/** Cobro a cliente por grupo de ítems (EdDeli Payment). */
+/**
+ * Cobro a cliente por grupo de ítems (EdDeli Payment).
+ */
 model FinancePayment {
   id         Int           @id @default(autoincrement())
   customerId Int
@@ -911,39 +941,39 @@ model FinancePayment {
 }
 
 model RecurringExpenseTemplate {
-  id               Int      @id @default(autoincrement())
-  storeId          Int?
-  name             String
-  category         String?
-  amountType       String?
-  frequency        String?
-  baseAmount       Float    @default(0)
-  dueDayOfMonth    Int?
-  dueMonth         Int?
-  provider         String?
-  note             String?  @db.Text
-  reminderEnabled  Boolean  @default(false)
-  isActive         Boolean  @default(true)
-  createdBy        Int?
-  createdAt        DateTime @default(now())
-  updatedAt        DateTime @updatedAt
+  id              Int      @id @default(autoincrement())
+  storeId         Int?
+  name            String
+  category        String?
+  amountType      String?
+  frequency       String?
+  baseAmount      Float    @default(0)
+  dueDayOfMonth   Int?
+  dueMonth        Int?
+  provider        String?
+  note            String?  @db.Text
+  reminderEnabled Boolean  @default(false)
+  isActive        Boolean  @default(true)
+  createdBy       Int?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
 
-  branch       Branch?                      @relation(fields: [storeId], references: [id])
-  occurrences  RecurringExpenseOccurrence[]
+  branch      Branch?                      @relation(fields: [storeId], references: [id])
+  occurrences RecurringExpenseOccurrence[]
 }
 
 model RecurringExpenseOccurrence {
-  id            Int      @id @default(autoincrement())
-  templateId    Int
-  periodKey     String
-  amount        Float    @default(0)
-  status        String   @default("pending")
-  expenseId     Int?
-  paidDate      DateTime?
-  dueDate       DateTime?
-  note          String?
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id         Int       @id @default(autoincrement())
+  templateId Int
+  periodKey  String
+  amount     Float     @default(0)
+  status     String    @default("pending")
+  expenseId  Int?
+  paidDate   DateTime?
+  dueDate    DateTime?
+  note       String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
 
   template RecurringExpenseTemplate @relation(fields: [templateId], references: [id], onDelete: Cascade)
 
@@ -951,22 +981,22 @@ model RecurringExpenseOccurrence {
 }
 
 model FinancialObligation {
-  id                    Int      @id @default(autoincrement())
-  direction             String
-  partyType             String?
-  customerId            Int?
-  partyName             String?
-  concept               String?
-  originalAmount        Float    @default(0)
-  openDate              DateTime?
-  dueDate               DateTime?
-  status                String?
-  initialFinanceType    String?
-  initialFinanceId      Int?
-  note                  String?  @db.Text
-  createdBy             Int?
-  createdAt             DateTime @default(now())
-  updatedAt             DateTime @updatedAt
+  id                 Int       @id @default(autoincrement())
+  direction          String
+  partyType          String?
+  customerId         Int?
+  partyName          String?
+  concept            String?
+  originalAmount     Float     @default(0)
+  openDate           DateTime?
+  dueDate            DateTime?
+  status             String?
+  initialFinanceType String?
+  initialFinanceId   Int?
+  note               String?   @db.Text
+  createdBy          Int?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
 
   payments ObligationPayment[]
 }
@@ -989,19 +1019,19 @@ model ObligationPayment {
 }
 
 model DocumentAttachment {
-  id           Int      @id @default(autoincrement())
-  entityType   String
-  entityId     Int
-  batchKey     String?
-  filePath     String
-  originalName String?
-  mimeType     String?
-  sizeBytes    Int?
-  label        String?
+  id            Int      @id @default(autoincrement())
+  entityType    String
+  entityId      Int
+  batchKey      String?
+  filePath      String
+  originalName  String?
+  mimeType      String?
+  sizeBytes     Int?
+  label         String?
   invoiceNumber String?
-  uploadedBy   Int?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  uploadedBy    Int?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@index([entityType, entityId])
 }
@@ -1103,29 +1133,37 @@ model TaskPlan {
 }
 
 model TaskItem {
-  id               Int              @id @default(autoincrement())
-  planId           Int
-  title            String
-  assignedUserId   Int?
-  status           TaskItemStatus   @default(todo)
-  priority         TaskItemPriority @default(medium)
-  dueDate          DateTime?        @db.Date
-  actionType       String?
-  actionPayload    Json?
-  /** Clave estable para mandatos de bots / onboarding (owner.config, etc.) */
-  mandateKey       String?
-  /** Quién originó el mandato: programmer | owner | admin */
-  createdByRole    String?
-  /** El sistema detectó cumplimiento; aún falta confirmación de Dueña */
+  id                Int              @id @default(autoincrement())
+  planId            Int
+  title             String
+  assignedUserId    Int?
+  status            TaskItemStatus   @default(todo)
+  priority          TaskItemPriority @default(medium)
+  dueDate           DateTime?        @db.Date
+  actionType        String?
+  actionPayload     Json?
+  /**
+   * Clave estable para mandatos de bots / onboarding (owner.config, etc.)
+   */
+  mandateKey        String?
+  /**
+   * Quién originó el mandato: programmer | owner | admin
+   */
+  createdByRole     String?
+  /**
+   * El sistema detectó cumplimiento; aún falta confirmación de Dueña
+   */
   systemSuggestedAt DateTime?
-  checkedAt        DateTime?
-  checkedByUserId  Int?
-  /** Confirmación explícita de la Dueña (check final) */
-  ownerConfirmedAt DateTime?
-  resultNote       String?          @db.Text
-  sortOrder        Int              @default(0)
-  createdAt        DateTime         @default(now())
-  updatedAt        DateTime         @updatedAt
+  checkedAt         DateTime?
+  checkedByUserId   Int?
+  /**
+   * Confirmación explícita de la Dueña (check final)
+   */
+  ownerConfirmedAt  DateTime?
+  resultNote        String?          @db.Text
+  sortOrder         Int              @default(0)
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
   plan      TaskPlan @relation(fields: [planId], references: [id], onDelete: Cascade)
   assignee  Person?  @relation("TaskAssignee", fields: [assignedUserId], references: [id])
@@ -1149,55 +1187,55 @@ model License {
 }
 
 model SystemLog {
-  id          Int       @id @default(autoincrement())
-  httpMethod  String?   @db.Text
-  action      String?   @db.Text
-  endPoint    String?   @db.Text
-  description String?   @db.Text
-  system      String?   @db.Text
-  date        DateTime  @default(now())
+  id          Int      @id @default(autoincrement())
+  httpMethod  String?  @db.Text
+  action      String?  @db.Text
+  endPoint    String?  @db.Text
+  description String?  @db.Text
+  system      String?  @db.Text
+  date        DateTime @default(now())
 }
 
 model AppSettings {
-  id                           Int      @id @default(1)
-  name                         String   @db.VarChar(255)
-  alias                        String   @db.VarChar(80)
-  version                      String   @default("1.0.0") @db.VarChar(32)
-  description                  String?  @db.Text
-  author                       String?  @db.VarChar(120)
-  logoPath                     String?  @db.VarChar(255)
-  iconPath                     String?  @db.VarChar(255)
-  phone                        String?  @db.VarChar(40)
-  socialWhatsapp               String?  @db.VarChar(255)
-  socialFacebook               String?  @db.VarChar(255)
-  socialInstagram              String?  @db.VarChar(255)
-  socialTiktok                 String?  @db.VarChar(255)
-  socialEmail                  String?  @db.VarChar(120)
-  mediaFolderPrefix            String   @default("sistema") @db.VarChar(80)
-  cajaQuickCategoryMatch       String?  @db.VarChar(80)
-  walkInCustomerLabel          String   @default("Consumidor Final") @db.VarChar(80)
-  timezone                     String   @default("America/Guayaquil") @db.VarChar(64)
-  showPublicCatalog            Boolean  @default(true)
-  showPublicStoresPropia       Boolean  @default(true)
-  showPublicStoresVitrina      Boolean  @default(true)
-  multiStockEnabled            Boolean  @default(true)
-  showProductCostInSelect      Boolean  @default(false)
-  moneyDisplayDecimals         Int      @default(2)
-  moneyRoundingMode            String   @default("up") @db.VarChar(16)
-  ordersAllowDeliverStockAdjust Boolean @default(true)
-  financeAllowAdminCorrections Boolean  @default(true)
-  cajaAllowCreateProductFromSelect Boolean @default(true)
-  cajaAllowEditProductFromCart Boolean @default(true)
-  cajaSuggestUpdateProductPrice Boolean @default(true)
-  receiptDetailSettings        String?  @db.Text
-  themePalette                 String?  @db.Text
-  accentColor                  String   @default("#D4AF37")
-  successColor                 String   @default("#22C55E")
-  warningColor                 String   @default("#F0B429")
-  dangerColor                  String   @default("#F04438")
-  operationFlags               Json?
-  updatedAt                    DateTime @updatedAt
-  createdAt                    DateTime @default(now())
+  id                               Int      @id @default(1)
+  name                             String   @db.VarChar(255)
+  alias                            String   @db.VarChar(80)
+  version                          String   @default("1.0.0") @db.VarChar(32)
+  description                      String?  @db.Text
+  author                           String?  @db.VarChar(120)
+  logoPath                         String?  @db.VarChar(255)
+  iconPath                         String?  @db.VarChar(255)
+  phone                            String?  @db.VarChar(40)
+  socialWhatsapp                   String?  @db.VarChar(255)
+  socialFacebook                   String?  @db.VarChar(255)
+  socialInstagram                  String?  @db.VarChar(255)
+  socialTiktok                     String?  @db.VarChar(255)
+  socialEmail                      String?  @db.VarChar(120)
+  mediaFolderPrefix                String   @default("sistema") @db.VarChar(80)
+  cajaQuickCategoryMatch           String?  @db.VarChar(80)
+  walkInCustomerLabel              String   @default("Consumidor Final") @db.VarChar(80)
+  timezone                         String   @default("America/Guayaquil") @db.VarChar(64)
+  showPublicCatalog                Boolean  @default(true)
+  showPublicStoresPropia           Boolean  @default(true)
+  showPublicStoresVitrina          Boolean  @default(true)
+  multiStockEnabled                Boolean  @default(true)
+  showProductCostInSelect          Boolean  @default(false)
+  moneyDisplayDecimals             Int      @default(2)
+  moneyRoundingMode                String   @default("up") @db.VarChar(16)
+  ordersAllowDeliverStockAdjust    Boolean  @default(true)
+  financeAllowAdminCorrections     Boolean  @default(true)
+  cajaAllowCreateProductFromSelect Boolean  @default(true)
+  cajaAllowEditProductFromCart     Boolean  @default(true)
+  cajaSuggestUpdateProductPrice    Boolean  @default(true)
+  receiptDetailSettings            String?  @db.Text
+  themePalette                     String?  @db.Text
+  accentColor                      String   @default("#D4AF37")
+  successColor                     String   @default("#22C55E")
+  warningColor                     String   @default("#F0B429")
+  dangerColor                      String   @default("#F04438")
+  operationFlags                   Json?
+  updatedAt                        DateTime @updatedAt
+  createdAt                        DateTime @default(now())
 }
 
 model AppEntitlement {
@@ -1211,72 +1249,72 @@ model AppEntitlement {
 }
 
 model SriBillingSettings {
-  id                         Int       @id @default(1)
-  enabled                    Boolean   @default(false)
-  environment                String    @default("pruebas")
-  ruc                        String?
-  legalName                  String?
-  tradeName                  String?
-  matrixAddress              String?   @db.Text
-  establishmentAddress       String?   @db.Text
-  establishmentCode          String    @default("001") @db.VarChar(3)
-  emissionPointCode          String    @default("001") @db.VarChar(3)
-  phone                      String?
-  email                      String?
-  accountingRequired         Boolean   @default(true)
-  specialTaxpayerResolution  String?
-  taxRegime                  String?
-  nextInvoiceSequential      Int       @default(1)
-  certificateRelativePath    String?
-  certificatePasswordEnc     String?   @db.Text
-  certificateFileName        String?
-  certificateUploadedAt      DateTime?
-  notes                      String?   @db.Text
-  enableSendInvoiceEmail     Boolean   @default(false)
-  smtpHost                   String?
-  smtpPort                   Int?
-  smtpSecure                 Boolean   @default(true)
-  smtpUser                   String?
-  smtpPassEnc                String?   @db.Text
-  smtpFrom                   String?
-  invoiceEmailDailyLimit     Int?
-  invoiceEmailsSentDate      DateTime? @db.Date
-  invoiceEmailsSentCount     Int       @default(0)
-  createdAt                  DateTime  @default(now())
-  updatedAt                  DateTime  @updatedAt
+  id                        Int       @id @default(1)
+  enabled                   Boolean   @default(false)
+  environment               String    @default("pruebas")
+  ruc                       String?
+  legalName                 String?
+  tradeName                 String?
+  matrixAddress             String?   @db.Text
+  establishmentAddress      String?   @db.Text
+  establishmentCode         String    @default("001") @db.VarChar(3)
+  emissionPointCode         String    @default("001") @db.VarChar(3)
+  phone                     String?
+  email                     String?
+  accountingRequired        Boolean   @default(true)
+  specialTaxpayerResolution String?
+  taxRegime                 String?
+  nextInvoiceSequential     Int       @default(1)
+  certificateRelativePath   String?
+  certificatePasswordEnc    String?   @db.Text
+  certificateFileName       String?
+  certificateUploadedAt     DateTime?
+  notes                     String?   @db.Text
+  enableSendInvoiceEmail    Boolean   @default(false)
+  smtpHost                  String?
+  smtpPort                  Int?
+  smtpSecure                Boolean   @default(true)
+  smtpUser                  String?
+  smtpPassEnc               String?   @db.Text
+  smtpFrom                  String?
+  invoiceEmailDailyLimit    Int?
+  invoiceEmailsSentDate     DateTime? @db.Date
+  invoiceEmailsSentCount    Int       @default(0)
+  createdAt                 DateTime  @default(now())
+  updatedAt                 DateTime  @updatedAt
 }
 
 model ElectronicInvoice {
-  id                  Int                      @id @default(autoincrement())
-  environment         String                   @default("pruebas")
-  documentType        String                   @default("factura")
-  establishmentCode   String?
-  emissionPointCode   String?
-  sequential          String?
-  accessKey           String?                  @unique
-  authorizationNumber String?
-  authorizationDate   DateTime?
-  status              ElectronicInvoiceStatus  @default(draft)
-  customerId          Int?
-  orderId             Int?
-  branchId            Int?
-  buyerName           String?
-  buyerIdentification String?
-  buyerIdentificationType String?              @default("05")
-  buyerAddress        String?
-  buyerEmail          String?
-  buyerPhone          String?
-  subtotal            Float                    @default(0)
-  ivaAmount           Float                    @default(0)
-  iceTotal            Float                    @default(0)
-  total               Float                    @default(0)
-  currency            String                   @default("USD")
-  lines               Json?
-  xmlPath             String?
-  pdfPath             String?
-  payloadJson         Json?
-  createdAt           DateTime                 @default(now())
-  updatedAt           DateTime                 @updatedAt
+  id                      Int                     @id @default(autoincrement())
+  environment             String                  @default("pruebas")
+  documentType            String                  @default("factura")
+  establishmentCode       String?
+  emissionPointCode       String?
+  sequential              String?
+  accessKey               String?                 @unique
+  authorizationNumber     String?
+  authorizationDate       DateTime?
+  status                  ElectronicInvoiceStatus @default(draft)
+  customerId              Int?
+  orderId                 Int?
+  branchId                Int?
+  buyerName               String?
+  buyerIdentification     String?
+  buyerIdentificationType String?                 @default("05")
+  buyerAddress            String?
+  buyerEmail              String?
+  buyerPhone              String?
+  subtotal                Float                   @default(0)
+  ivaAmount               Float                   @default(0)
+  iceTotal                Float                   @default(0)
+  total                   Float                   @default(0)
+  currency                String                  @default("USD")
+  lines                   Json?
+  xmlPath                 String?
+  pdfPath                 String?
+  payloadJson             Json?
+  createdAt               DateTime                @default(now())
+  updatedAt               DateTime                @updatedAt
 
   customer Customer? @relation(fields: [customerId], references: [id])
   sale     Sale?     @relation(fields: [orderId], references: [id])
@@ -1290,11 +1328,11 @@ model ElectronicInvoice {
 // ============================================================
 
 model Service {
-  id              Int    @id @default(autoincrement())
+  id              Int     @id @default(autoincrement())
   name            String
   price           Float
-  durationMinutes Int    @default(30)
-  commissionPct   Float  @default(15)
+  durationMinutes Int     @default(30)
+  commissionPct   Float   @default(15)
   isActive        Boolean @default(true)
 
   appointmentServices AppointmentService[]
@@ -1316,12 +1354,12 @@ model Appointment {
   createdAt       DateTime          @default(now())
   updatedAt       DateTime          @updatedAt
 
-  customer Customer @relation(fields: [customerId], references: [id])
-  staff    Person   @relation("AppointmentStaff", fields: [userId], references: [id])
-  branch   Branch?  @relation(fields: [branchId], references: [id])
-  services AppointmentService[]
-  products AppointmentProduct[]
-  payment  AppointmentPayment?
+  customer   Customer             @relation(fields: [customerId], references: [id])
+  staff      Person               @relation("AppointmentStaff", fields: [userId], references: [id])
+  branch     Branch?              @relation(fields: [branchId], references: [id])
+  services   AppointmentService[]
+  products   AppointmentProduct[]
+  payment    AppointmentPayment?
   commission CommissionRecord?
 
   @@index([appointmentDate])
@@ -1353,14 +1391,16 @@ model AppointmentProduct {
 }
 
 model AppointmentPayment {
-  id               Int      @id @default(autoincrement())
-  appointmentId    Int      @unique
-  amount           Float
-  method           String
-  /** Medio / banco del cuadre (De Una, Loja, Pichincha…). */
-  paymentMediumId  Int?
-  paidAt           DateTime @default(now())
-  notes            String   @default("")
+  id              Int      @id @default(autoincrement())
+  appointmentId   Int      @unique
+  amount          Float
+  method          String
+  /**
+   * Medio / banco del cuadre (De Una, Loja, Pichincha…).
+   */
+  paymentMediumId Int?
+  paidAt          DateTime @default(now())
+  notes           String   @default("")
 
   appointment   Appointment    @relation(fields: [appointmentId], references: [id], onDelete: Cascade)
   paymentMedium PaymentMedium? @relation(fields: [paymentMediumId], references: [id], onDelete: SetNull)
@@ -1392,9 +1432,13 @@ model ServicePromotion {
   isActive      Boolean   @default(true)
   serviceIds    Json
   branchIds     Json
-  /** Productos del catálogo ligados a la promo (fidelización / combo). */
+  /**
+   * Productos del catálogo ligados a la promo (fidelización / combo).
+   */
   productIds    Json?
-  /** Días de semana activos (0=dom … 6=sáb). Null/[] = todos los días del rango. */
+  /**
+   * Días de semana activos (0=dom … 6=sáb). Null/[] = todos los días del rango.
+   */
   weekdays      Json?
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
@@ -1446,8 +1490,8 @@ model Reward {
   discountPct Float?
   createdAt   DateTime @default(now())
 
-  service     Service? @relation(fields: [serviceId], references: [id], onDelete: SetNull)
-  product     Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  service     Service?           @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+  product     Product?           @relation(fields: [productId], references: [id], onDelete: SetNull)
   redemptions PointTransaction[]
 }
 
@@ -1466,7 +1510,9 @@ model FeedPost {
 
 model CommissionRecord {
   id            Int       @id @default(autoincrement())
-  /** Person.id del empleado (staff de la cita). */
+  /**
+   * Person.id del empleado (staff de la cita).
+   */
   userId        Int
   appointmentId Int       @unique
   baseAmount    Float
@@ -1481,16 +1527,20 @@ model CommissionRecord {
   @@index([userId, settledAt])
 }
 
-/** Pago de comisiones / anticipo al empleado (Person.id). */
+/**
+ * Pago de comisiones / anticipo al empleado (Person.id).
+ */
 model EmployeePayment {
-  id             Int      @id @default(autoincrement())
-  /** Person.id del empleado. */
-  userId         Int
-  branchId       Int?
-  registeredById Int
-  amount         Float
-  method         String   @default("cash") @db.VarChar(20)
-  notes          String?  @db.Text
+  id                Int      @id @default(autoincrement())
+  /**
+   * Person.id del empleado.
+   */
+  userId            Int
+  branchId          Int?
+  registeredById    Int
+  amount            Float
+  method            String   @default("cash") @db.VarChar(20)
+  notes             String?  @db.Text
   paidAt            DateTime @default(now())
   payrollWeekLineId Int?
   createdAt         DateTime @default(now())
@@ -1501,7 +1551,6 @@ model EmployeePayment {
   payrollWeekLine PayrollWeekLine? @relation(fields: [payrollWeekLineId], references: [id], onDelete: SetNull)
 
   @@index([payrollWeekLineId])
-
   @@index([userId, paidAt])
   @@index([branchId, paidAt])
 }
@@ -1513,7 +1562,9 @@ model EmployeePayment {
  */
 model EmployeeVoucher {
   id             Int       @id @default(autoincrement())
-  /** Person.id del empleado que recibe el adelanto. */
+  /**
+   * Person.id del empleado que recibe el adelanto.
+   */
   userId         Int
   branchId       Int?
   registeredById Int
@@ -1534,7 +1585,9 @@ model EmployeeVoucher {
   @@index([issuedAt])
 }
 
-/** Medios / bancos del cuadre (sin eliminación dura: isActive=false). */
+/**
+ * Medios / bancos del cuadre (sin eliminación dura: isActive=false).
+ */
 model PaymentMedium {
   id        Int      @id @default(autoincrement())
   name      String   @db.VarChar(120)
@@ -1552,7 +1605,9 @@ model PaymentMedium {
   @@index([isActive, position])
 }
 
-/** Cuadre diario de caja por sucursal y medio de pago. */
+/**
+ * Cuadre diario de caja por sucursal y medio de pago.
+ */
 model CashClose {
   id            Int      @id @default(autoincrement())
   branchId      Int
@@ -1583,12 +1638,16 @@ model CashCloseLine {
   @@unique([cashCloseId, paymentMediumId])
 }
 
-/** Liquidación / pago semanal (firma = confirmación del empleado). */
+/**
+ * Liquidación / pago semanal (firma = confirmación del empleado).
+ */
 model PayrollWeek {
   id          Int      @id @default(autoincrement())
   periodStart DateTime @db.Date
   periodEnd   DateTime @db.Date
-  /** draft | published | closed */
+  /**
+   * draft | published | closed
+   */
   status      String   @default("draft") @db.VarChar(20)
   notes       String?  @db.Text
   createdById Int
@@ -1607,9 +1666,13 @@ model PayrollWeekLine {
   payrollWeekId        Int
   accountId            Int
   branchId             Int?
-  /** Se · comisión servicios (auto + editable) */
+  /**
+   * Se · comisión servicios (auto + editable)
+   */
   producedAmount       Float     @default(0)
-  /** Pr · comisión productos (auto + editable) */
+  /**
+   * Pr · comisión productos (auto + editable)
+   */
   salesAmount          Float     @default(0)
   vouchersAmount       Float     @default(0)
   cafeteriaAmount      Float     @default(0)
@@ -1619,12 +1682,21 @@ model PayrollWeekLine {
   totalAmount          Float     @default(0)
   notes                String?   @db.Text
   employeeConfirmedAt  DateTime?
+  /**
+   * Solicitud emitida por administración; el pago se registra cuando el empleado la acepta.
+   */
+  paymentRequestedAt   DateTime?
+  paymentRequestedById Int?
+  paymentRequestMethod String?   @db.VarChar(20)
+  paymentRequestNotes  String?   @db.Text
+  paymentAcceptedAt    DateTime?
+  paymentRejectedAt    DateTime?
   createdAt            DateTime  @default(now())
   updatedAt            DateTime  @updatedAt
 
-  payrollWeek PayrollWeek      @relation(fields: [payrollWeekId], references: [id], onDelete: Cascade)
-  account     Account          @relation("PayrollWeekLineEmployee", fields: [accountId], references: [id])
-  branch      Branch?          @relation(fields: [branchId], references: [id])
+  payrollWeek PayrollWeek       @relation(fields: [payrollWeekId], references: [id], onDelete: Cascade)
+  account     Account           @relation("PayrollWeekLineEmployee", fields: [accountId], references: [id])
+  branch      Branch?           @relation(fields: [branchId], references: [id])
   payments    EmployeePayment[]
 
   @@unique([payrollWeekId, accountId])
