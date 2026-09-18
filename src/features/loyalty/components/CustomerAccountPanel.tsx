@@ -4,7 +4,10 @@ import { useCallback, useEffect, useState } from "react";
 import { Button, toast, useOverlayState } from "@heroui/react";
 import CrownDiamond from "@gravity-ui/icons/CrownDiamond";
 import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
-import { formatRewardApplyLabel } from "@/shared/utils/reward-apply";
+import {
+  formatRewardApplyLabel,
+  rewardApplyTypeFromRecord,
+} from "@/shared/utils/reward-apply";
 import { RewardPointsMeter } from "./RewardPointsMeter";
 import {
   fetchCustomerAccount,
@@ -41,6 +44,9 @@ export function CustomerAccountPanel({
   const [loading, setLoading] = useState(true);
   const [redeemingId, setRedeemingId] = useState<number | null>(null);
   const [redeemTarget, setRedeemTarget] = useState<LoyaltyReward | null>(null);
+  const [rewardFilter, setRewardFilter] = useState<"product" | "service">(
+    "product",
+  );
   const confirmState = useOverlayState();
 
   const load = useCallback(async () => {
@@ -49,33 +55,40 @@ export function CustomerAccountPanel({
       const data = await fetchCustomerAccount();
       setRewards(data.rewards);
       setTransactions(data.transactions);
-      await refresh();
     } catch {
       // session expired
     } finally {
       setLoading(false);
     }
-  }, [refresh]);
+  }, []);
 
+  const customerId = customer?.id ?? null;
   useEffect(() => {
-    if (customer) void load();
-  }, [customer, load]);
+    if (!customerId) return;
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
+  }, [customerId, load]);
 
   const openRedeemConfirm = (reward: LoyaltyReward) => {
     if (!customer || customer.points < reward.pointsCost) return;
+    if (rewardApplyTypeFromRecord(reward) !== "product") return;
     setRedeemTarget(reward);
     confirmState.open();
   };
 
   const handleConfirmRedeem = async () => {
     if (!redeemTarget) return;
+    if (rewardApplyTypeFromRecord(redeemTarget) !== "product") return;
 
     setRedeemingId(redeemTarget.id);
     try {
-      const result = await redeemReward(redeemTarget.id);
-      toast.success(result.message);
+      await redeemReward(redeemTarget.id);
+      toast.success(
+        "Premio canjeado. Acércate al local para reclamarlo físicamente.",
+      );
       confirmState.close();
       setRedeemTarget(null);
+      await refresh();
       await load();
     } catch (e) {
       toast.danger(e instanceof Error ? e.message : "No se pudo canjear");
@@ -95,6 +108,10 @@ export function CustomerAccountPanel({
     return <div className="h-40 animate-pulse rounded-2xl bg-surface-secondary" />;
   }
 
+  const filteredRewards = rewards.filter(
+    (reward) => rewardApplyTypeFromRecord(reward) === rewardFilter,
+  );
+
   return (
     <div className="flex flex-col gap-6">
       <section className="rounded-2xl border border-accent/30 bg-accent/5 p-5">
@@ -110,13 +127,39 @@ export function CustomerAccountPanel({
 
       <section className="space-y-3">
         <h2 className="text-lg font-semibold">Premios disponibles</h2>
-        {rewards.length === 0 ? (
-          <p className="text-sm text-muted">No hay premios activos por ahora.</p>
+        <div className="inline-flex rounded-xl border border-separator p-1">
+          {(
+            [
+              ["product", "Productos"],
+              ["service", "Servicios"],
+            ] as const
+          ).map(([key, label]) => (
+            <button
+              key={key}
+              type="button"
+              onClick={() => setRewardFilter(key)}
+              className={`md-btn rounded-lg px-3 py-1.5 text-sm font-medium ${
+                rewardFilter === key
+                  ? "bg-accent text-accent-foreground"
+                  : "text-muted hover:text-foreground"
+              }`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {filteredRewards.length === 0 ? (
+          <p className="text-sm text-muted">
+            {rewardFilter === "product"
+              ? "No hay premios de producto por ahora."
+              : "No hay premios de servicio por ahora."}
+          </p>
         ) : (
           <ul className="grid gap-3">
-            {rewards.map((reward) => {
+            {filteredRewards.map((reward) => {
               const canRedeem = customer.points >= reward.pointsCost;
               const applyLabel = formatRewardApplyLabel(reward);
+              const isProduct = rewardApplyTypeFromRecord(reward) === "product";
               return (
                 <li
                   key={reward.id}
@@ -127,12 +170,18 @@ export function CustomerAccountPanel({
                       <h3 className="font-semibold">{reward.name}</h3>
                       <p className="mt-1 text-sm text-muted">{reward.description}</p>
                       {applyLabel ? (
-                        <p className="mt-1 text-xs font-medium text-accent">{applyLabel}</p>
+                        <p className="mt-1 text-xs font-medium text-accent">
+                          {applyLabel}
+                        </p>
                       ) : (
                         <p className="mt-1 text-xs text-muted">Beneficio general</p>
                       )}
                     </div>
-                    <CrownDiamond width={24} height={24} className="shrink-0 text-accent" />
+                    <CrownDiamond
+                      width={24}
+                      height={24}
+                      className="shrink-0 text-accent"
+                    />
                   </div>
                   <div className="mt-3">
                     <RewardPointsMeter
@@ -141,19 +190,26 @@ export function CustomerAccountPanel({
                       label={reward.name}
                     />
                   </div>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    className="mt-3"
-                    isDisabled={!canRedeem || redeemingId === reward.id}
-                    onPress={() => openRedeemConfirm(reward)}
-                  >
-                    {redeemingId === reward.id
-                      ? "Canjeando..."
-                      : canRedeem
-                        ? "Reclamar premio"
-                        : "Puntos insuficientes"}
-                  </Button>
+                  {isProduct ? (
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      className="mt-3"
+                      isDisabled={!canRedeem || redeemingId === reward.id}
+                      onPress={() => openRedeemConfirm(reward)}
+                    >
+                      {redeemingId === reward.id
+                        ? "Canjeando..."
+                        : canRedeem
+                          ? "Reclamar"
+                          : "Puntos insuficientes"}
+                    </Button>
+                  ) : (
+                    <p className="mt-3 text-xs text-muted">
+                      Este premio se aplica en el local al tomar el servicio. No se
+                      reclama desde aquí.
+                    </p>
+                  )}
                 </li>
               );
             })}
@@ -195,13 +251,17 @@ export function CustomerAccountPanel({
           state={confirmState}
           title="Confirmar canje"
           status="accent"
-          confirmLabel="Reclamar premio"
+          confirmLabel="Confirmar y retirar en local"
           pending={redeemingId === redeemTarget.id}
           description={
             <div className="space-y-2">
               <p>
                 ¿Canjear <strong>{redeemTarget.name}</strong> por{" "}
                 <strong>{redeemTarget.pointsCost} puntos</strong>?
+              </p>
+              <p className="text-sm text-muted">
+                Acércate al local para reclamar este premio físicamente. El
+                personal te lo entregará en caja.
               </p>
               {formatRewardApplyLabel(redeemTarget) ? (
                 <p className="text-sm text-muted">{formatRewardApplyLabel(redeemTarget)}</p>

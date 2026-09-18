@@ -6,9 +6,16 @@ type Tx = Omit<
   "$connect" | "$disconnect" | "$on" | "$transaction" | "$extends"
 >;
 
+export type LoyaltyRedeemSource = "customer" | "admin" | "appointment";
+
 export async function redeemRewardForCustomer(
   tx: Tx,
-  params: { customerId: number; rewardId: number; appointmentId?: number },
+  params: {
+    customerId: number;
+    rewardId: number;
+    appointmentId?: number;
+    source?: LoyaltyRedeemSource;
+  },
 ) {
   const [reward, loyalty, settings] = await Promise.all([
     tx.reward.findUnique({ where: { id: params.rewardId } }),
@@ -46,6 +53,9 @@ export async function redeemRewardForCustomer(
     update: { points: nextPoints, tier },
   });
 
+  const source = params.source ?? "customer";
+  const pendingPickup = source === "customer" && Boolean(reward.productId);
+
   await tx.pointTransaction.create({
     data: {
       customerId: params.customerId,
@@ -53,6 +63,8 @@ export async function redeemRewardForCustomer(
       reason: `Canje: ${reward.name}`,
       rewardId: reward.id,
       appointmentId: params.appointmentId ?? null,
+      source,
+      deliveredAt: pendingPickup ? null : new Date(),
     },
   });
 

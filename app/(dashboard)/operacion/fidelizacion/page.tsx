@@ -26,7 +26,7 @@ export default function LoyaltyHubPage() {
         action={
           <Link
             href={appRoutes.loyalty.customerPortal}
-            className="inline-flex rounded-xl border border-separator px-3 py-2 text-sm font-medium hover:bg-surface-secondary"
+            className="md-btn inline-flex rounded-xl border border-separator px-3 py-2 text-sm font-medium hover:bg-surface-secondary"
           >
             Portal cliente →
           </Link>
@@ -46,7 +46,7 @@ export default function LoyaltyHubPage() {
             key={key}
             type="button"
             onClick={() => setTab(key)}
-            className={`shrink-0 rounded-lg px-4 py-2 text-sm font-medium transition-colors ${
+            className={`md-btn shrink-0 rounded-lg px-4 py-2 text-sm font-medium ${
               tab === key
                 ? "bg-accent text-accent-foreground"
                 : "text-muted hover:text-foreground"

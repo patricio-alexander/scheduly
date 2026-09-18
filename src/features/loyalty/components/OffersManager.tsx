@@ -318,7 +318,7 @@ export function OffersManager() {
                         <button
                           key={w.d}
                           type="button"
-                          className={`rounded-lg px-2.5 py-1.5 text-xs font-semibold transition-colors ${
+                          className={`md-btn rounded-lg px-2.5 py-1.5 text-xs font-semibold ${
                             on
                               ? "bg-accent text-accent-foreground"
                               : "bg-surface-secondary text-muted hover:text-foreground"

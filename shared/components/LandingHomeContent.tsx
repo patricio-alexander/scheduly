@@ -220,13 +220,13 @@ export function LandingHomeContent({
               isPanel ? "mt-6" : "mt-9"
             }`}
           >
-            <Link href={appRoutes.booking}>
+            <Link href={isPanel ? appRoutes.booking : appRoutes.loyalty.customerPortal}>
               <Button
                 variant="primary"
                 size="lg"
                 className="min-w-[160px] gap-2 px-7 shadow-[0_0_28px_color-mix(in_srgb,var(--accent)_35%,transparent)]"
               >
-                Reservar
+                {isPanel ? "Reservar" : "Abrir panel"}
                 <ArrowRight width={16} height={16} />
               </Button>
             </Link>

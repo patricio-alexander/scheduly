@@ -2,6 +2,7 @@ import { apiUrl } from "@/shared/utils/api";
 import type {
   CustomerAccountUser,
   CustomerPointTransaction,
+  CustomerAppointment,
   EligibleCustomer,
   EligibleCustomersResponse,
   LoyaltyRedemptionRecord,
@@ -142,6 +143,7 @@ export async function fetchCustomerAccount(): Promise<{
   customer: CustomerAccountUser;
   rewards: LoyaltyReward[];
   transactions: CustomerPointTransaction[];
+  appointments: CustomerAppointment[];
   loyaltyRules: {
     pointsPerAppointment: number;
     silverThreshold: number;
@@ -150,12 +152,27 @@ export async function fetchCustomerAccount(): Promise<{
 }> {
   const res = await fetch(apiUrl("/api/customer-auth/me"), {
     credentials: "include",
+    cache: "no-store",
   });
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { message?: string } | null;
     throw new Error(body?.message ?? "Error al cargar cuenta");
   }
-  return res.json();
+  const data = (await res.json()) as {
+    customer: CustomerAccountUser;
+    rewards: LoyaltyReward[];
+    transactions: CustomerPointTransaction[];
+    appointments?: CustomerAppointment[];
+    loyaltyRules: {
+      pointsPerAppointment: number;
+      silverThreshold: number;
+      goldThreshold: number;
+    };
+  };
+  return {
+    ...data,
+    appointments: data.appointments ?? [],
+  };
 }
 
 export async function redeemReward(rewardId: number): Promise<{
@@ -194,6 +211,24 @@ export async function redeemRewardForCustomerAsAdmin(
   if (!res.ok) {
     const body = (await res.json().catch(() => null)) as { message?: string } | null;
     throw new Error(body?.message ?? "Error al canjear");
+  }
+  return res.json();
+}
+
+export async function markRewardDelivered(transactionId: number): Promise<{
+  id: number;
+  deliveredAt: string | null;
+  message: string;
+}> {
+  const res = await fetch(apiUrl("/api/loyalty/redeem/admin/deliver"), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ transactionId }),
+  });
+  if (!res.ok) {
+    const body = (await res.json().catch(() => null)) as { message?: string } | null;
+    throw new Error(body?.message ?? "Error al confirmar la entrega");
   }
   return res.json();
 }

@@ -13,6 +13,7 @@ import Clock from "@gravity-ui/icons/Clock";
 import CircleDollar from "@gravity-ui/icons/CircleDollar";
 import type { FinanceHeroSummary } from "@/shared/utils/dashboard-finance-hero";
 import { Skeleton } from "@/shared/components/ui";
+import { useAnimatedNumber } from "../hooks/useAnimatedNumber";
 
 const SLIDE_MS = 6000;
 
@@ -55,6 +56,7 @@ type MetricCardProps = {
   icon: ReactNode;
   tone?: Tone;
   primary?: boolean;
+  amount?: number;
   className?: string;
   footer?: ReactNode;
   onMouseEnter?: () => void;
@@ -68,11 +70,16 @@ function MetricCard({
   icon,
   tone = "accent",
   primary = false,
+  amount,
   className = "",
   footer,
   onMouseEnter,
   onMouseLeave,
 }: MetricCardProps) {
+  const animatedAmount = useAnimatedNumber(amount ?? 0, primary && amount != null);
+  const displayValue =
+    primary && amount != null ? formatCurrency(animatedAmount) : value;
+
   return (
     <div
       className={`dashboard-metric ${
@@ -86,11 +93,12 @@ function MetricCard({
         <span className={`dashboard-metric__icon ${toneBg[tone]}`}>{icon}</span>
       </div>
       <p
+        key={primary ? amount : undefined}
         className={`dashboard-metric__value ${
-          primary ? "dashboard-metric__value--xl" : ""
+          primary ? "dashboard-metric__value--xl dashboard-metric__value--count" : ""
         } ${toneClass[tone]}`}
       >
-        {value}
+        {displayValue}
       </p>
       <p className="dashboard-metric__hint">{subtitle}</p>
       {footer}
@@ -242,6 +250,7 @@ export function FinanceHeroCards({ summary, loading }: FinanceHeroCardsProps) {
         primary
         className="col-span-2"
         title="Total dinero"
+        amount={summary.balance}
         value={formatCurrency(summary.balance)}
         subtitle={`Ingresos − gastos · ${summary.periodLabel}`}
         icon={<CircleDollar width={18} height={18} />}

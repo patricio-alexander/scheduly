@@ -5,7 +5,9 @@ import Link from "next/link";
 import Person from "@gravity-ui/icons/Person";
 import CrownDiamond from "@gravity-ui/icons/CrownDiamond";
 import Gift from "@gravity-ui/icons/Gift";
-import { Chip } from "@heroui/react";
+import { Button, Chip, toast, useOverlayState } from "@heroui/react";
+import { ConfirmDialog } from "@/shared/components/ConfirmDialog";
+import { customerFullName } from "@/shared/utils/person-name";
 import { formatRewardApplyLabel } from "@/shared/utils/reward-apply";
 import { ContentCard, EmptyState } from "@/shared/components/ui";
 import { appRoutes } from "@/shared/utils/app-routes";
@@ -63,22 +65,55 @@ function RewardDetail({
 export function EligibleCustomersPanel() {
   const [customers, setCustomers] = useState<EligibleCustomer[]>([]);
   const [recentRedemptions, setRecentRedemptions] = useState<LoyaltyRedemptionRecord[]>([]);
+  const [claimedProducts, setClaimedProducts] = useState<LoyaltyRedemptionRecord[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deliverTarget, setDeliverTarget] = useState<LoyaltyRedemptionRecord | null>(null);
+  const [deliveringId, setDeliveringId] = useState<number | null>(null);
+  const deliverConfirm = useOverlayState();
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const load = useCallback(async (opts?: { silent?: boolean }) => {
+    if (!opts?.silent) setLoading(true);
     try {
       const data = await loyaltyService.fetchEligibleCustomers();
-      setCustomers(data.customers);
-      setRecentRedemptions(data.recentRedemptions);
+      setCustomers(data.customers ?? []);
+      setRecentRedemptions(data.recentRedemptions ?? []);
+      setClaimedProducts(data.claimedProducts ?? []);
+    } catch {
+      setCustomers([]);
+      setRecentRedemptions([]);
+      setClaimedProducts([]);
     } finally {
-      setLoading(false);
+      if (!opts?.silent) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    void load();
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
   }, [load]);
+
+  const openDeliverConfirm = (entry: LoyaltyRedemptionRecord) => {
+    setDeliverTarget(entry);
+    deliverConfirm.open();
+  };
+
+  const handleConfirmDeliver = async () => {
+    if (!deliverTarget) return;
+    setDeliveringId(deliverTarget.id);
+    try {
+      const result = await loyaltyService.markRewardDelivered(deliverTarget.id);
+      toast.success(result.message);
+      deliverConfirm.close();
+      setDeliverTarget(null);
+      await load({ silent: true });
+    } catch (error) {
+      toast.danger(
+        error instanceof Error ? error.message : "No se pudo confirmar la entrega",
+      );
+    } finally {
+      setDeliveringId(null);
+    }
+  };
 
   if (loading) {
     return (
@@ -94,12 +129,70 @@ export function EligibleCustomersPanel() {
 
   return (
     <div className="flex flex-col gap-4">
+      <ContentCard>
+        <div className="flex flex-col gap-4 p-4 sm:p-6">
+          <div>
+            <h2 className="text-base font-semibold">Reclamados para entregar</h2>
+            <p className="text-sm text-muted">
+              Clientes que pidieron canjear un premio de producto. Confirmá
+              Entregado cuando se lo den en el local.
+            </p>
+          </div>
+
+          {claimedProducts.length === 0 ? (
+            <p className="text-sm text-muted">
+              Nadie ha reclamado un premio de producto todavía.
+            </p>
+          ) : (
+            <ul className="divide-y divide-separator">
+              {claimedProducts.map((entry) => (
+                <li
+                  key={entry.id}
+                  className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-start sm:justify-between"
+                >
+                  <div className="flex min-w-0 gap-3">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-success/10 text-success">
+                      <Gift width={18} height={18} />
+                    </div>
+                    <div className="min-w-0">
+                      <p className="font-medium">{entry.customerName}</p>
+                      <p className="text-sm text-muted">
+                        {[entry.customerPhone, entry.customerEmail]
+                          .filter(Boolean)
+                          .join(" · ") || "Sin contacto"}
+                      </p>
+                      <p className="mt-1 text-xs text-muted">
+                        {formatRedeemedAt(entry.redeemedAt)}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex min-w-0 flex-col items-stretch gap-2 sm:max-w-sm sm:items-end">
+                    <Chip size="sm" variant="primary">
+                      Pendiente de entrega
+                    </Chip>
+                    <RewardDetail reward={entry.reward} align="right" />
+                    <Button
+                      size="sm"
+                      variant="primary"
+                      isDisabled={deliveringId === entry.id}
+                      onPress={() => openDeliverConfirm(entry)}
+                    >
+                      {deliveringId === entry.id ? "Confirmando..." : "Entregado"}
+                    </Button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      </ContentCard>
+
       {emptyEligible ? (
         <ContentCard>
           <EmptyState
             icon={<CrownDiamond width={32} height={32} />}
             title="Sin clientes listos para canjear"
-            description="Aparecerán aquí cuando tengan puntos suficientes para al menos un premio activo."
+            description="Aparecerán aquí cuando tengan puntos suficientes para un premio de producto."
           />
         </ContentCard>
       ) : (
@@ -107,11 +200,13 @@ export function EligibleCustomersPanel() {
           <div className="flex flex-col gap-4 p-4 sm:p-6">
             <div className="flex flex-wrap items-start justify-between gap-3">
               <div>
-                <h2 className="text-base font-semibold">Clientes que pueden reclamar premio</h2>
+                <h2 className="text-base font-semibold">Pueden reclamar producto</h2>
                 <p className="text-sm text-muted">
                   {customers.length}{" "}
-                  {customers.length === 1 ? "cliente con puntos" : "clientes con puntos"} suficientes
-                  para canjear.
+                  {customers.length === 1
+                    ? "cliente con puntos"
+                    : "clientes con puntos"}{" "}
+                  suficientes para un premio de producto.
                 </p>
               </div>
               <Link
@@ -134,7 +229,7 @@ export function EligibleCustomersPanel() {
                     </div>
                     <div className="min-w-0">
                       <p className="font-medium">
-                        {customer.name} {customer.lastnames}
+                        {customerFullName(customer)}
                       </p>
                       <p className="text-sm text-muted">
                         {customer.email} · {customer.phone}
@@ -235,6 +330,24 @@ export function EligibleCustomersPanel() {
           )}
         </div>
       </ContentCard>
+
+      {deliverTarget ? (
+        <ConfirmDialog
+          state={deliverConfirm}
+          title="Confirmar entrega"
+          status="success"
+          confirmLabel="Marcar entregado"
+          pending={deliveringId === deliverTarget.id}
+          description={
+            <p>
+              ¿Confirmás que le entregaron{" "}
+              <strong>{deliverTarget.reward.name}</strong> a{" "}
+              <strong>{deliverTarget.customerName}</strong> en el local?
+            </p>
+          }
+          onConfirm={handleConfirmDeliver}
+        />
+      ) : null}
     </div>
   );
 }

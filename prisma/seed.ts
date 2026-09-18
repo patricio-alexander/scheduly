@@ -2404,8 +2404,8 @@ async function seedTestData(prisma: PrismaClient, admin: SeedAccount) {
   await prisma.customerLoyalty.create({
     data: {
       customerId: customers[0].id,
-      points: 100,
-      tier: "bronze",
+      points: 400,
+      tier: "gold",
     },
   });
 

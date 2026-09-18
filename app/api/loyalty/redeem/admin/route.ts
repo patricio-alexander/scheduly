@@ -1,53 +1,10 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { checkAuth } from "@/shared/utils/check-auth";
-import { getUserPrimaryBranchId } from "@/shared/utils/branches";
+import { customerLastnames } from "@/shared/utils/person-name";
 import { redeemRewardForCustomer } from "@/shared/utils/loyalty-redeem";
-import { isBranchAdminRole, isManagementRole, isOwnerRole } from "@/shared/utils/roles";
-
-async function assertCustomerAccess(
-  customerId: number,
-  role: string,
-  userId: number,
-) {
-  const customer = await prisma.customer.findUnique({
-    where: { id: customerId },
-    select: {
-      id: true,
-      name: true,
-      lastnames: true,
-      loyalty: { select: { points: true, tier: true } },
-    },
-  });
-
-  if (!customer) {
-    return { ok: false as const, status: 404, message: "Cliente no encontrado" };
-  }
-
-  if (!isOwnerRole(role) && isBranchAdminRole(role)) {
-    const branchId = await getUserPrimaryBranchId(prisma, userId);
-    if (!branchId) {
-      return { ok: false as const, status: 403, message: "No autorizado" };
-    }
-
-    const linked = await prisma.customer.findFirst({
-      where: {
-        id: customerId,
-        OR: [
-          { appointments: { some: { branchId } } },
-          { productSales: { some: { branchId } } },
-        ],
-      },
-      select: { id: true },
-    });
-
-    if (!linked) {
-      return { ok: false as const, status: 403, message: "Cliente fuera de tu sucursal" };
-    }
-  }
-
-  return { ok: true as const, customer };
-}
+import { assertLoyaltyCustomerAccess } from "@/shared/utils/loyalty-customer-access";
+import { isManagementRole } from "@/shared/utils/roles";
 
 export async function POST(request: Request) {
   const auth = await checkAuth();
@@ -69,17 +26,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ message: "Premio inválido" }, { status: 400 });
     }
 
-    const access = await assertCustomerAccess(
+    const access = await assertLoyaltyCustomerAccess({
       customerId,
-      auth.user.role,
-      auth.user.id,
-    );
+      role: auth.user.role,
+      userId: auth.user.id,
+    });
     if (!access.ok) {
       return NextResponse.json({ message: access.message }, { status: access.status });
     }
 
     const result = await prisma.$transaction(async (tx) =>
-      redeemRewardForCustomer(tx, { customerId, rewardId }),
+      redeemRewardForCustomer(tx, { customerId, rewardId, source: "admin" }),
     );
 
     return NextResponse.json({
@@ -87,7 +44,7 @@ export async function POST(request: Request) {
       customer: {
         id: access.customer.id,
         name: access.customer.name,
-        lastnames: access.customer.lastnames,
+        lastnames: customerLastnames(access.customer),
         points: result.pointsAfter,
         tier: result.tier,
       },

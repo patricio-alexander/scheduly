@@ -22,17 +22,21 @@ export function BranchSelect({
   label,
   placeholder = "Seleccionar sucursal",
   excludeBranchId,
-  className = "w-full",
+  className,
   isDisabled = false,
 }: BranchSelectProps) {
   const options = branches
     .filter((b) => b.isActive && b.id !== excludeBranchId)
+    .sort((a, b) => {
+      if (a.isMain !== b.isMain) return a.isMain ? -1 : 1;
+      return a.sortOrder - b.sortOrder || a.name.localeCompare(b.name);
+    })
     .map((b) => ({ id: String(b.id), label: b.name }));
 
   return (
     <SelectField
       label={label}
-      className={className}
+      className={className ?? "w-full"}
       placeholder={placeholder}
       selectedKey={value != null && value > 0 ? String(value) : null}
       onSelectionChange={(key) => onChange(key != null ? Number(key) : null)}

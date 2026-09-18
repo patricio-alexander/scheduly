@@ -1,6 +1,7 @@
 export { BranchSelector } from "./components/BranchSelector";
 export { BranchPicker } from "./components/BranchPicker";
 export { BranchSelect, ProductComboBox } from "./components/BranchSelect";
+export { BranchSwitch } from "./components/BranchSwitch";
 export { StaffSelector } from "./components/StaffSelector";
 export { useBranches } from "./hooks/useBranches";
 export type { BranchRecord } from "./hooks/useBranches";

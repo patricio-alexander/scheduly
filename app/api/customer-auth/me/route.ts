@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { checkCustomerAuth } from "@/shared/utils/check-customer-auth";
+import { listCustomerUpcomingAppointments } from "@/shared/utils/portal-appointments";
 import { rewardApplyInclude } from "@/shared/utils/reward-apply";
 
 export async function GET() {
@@ -8,7 +9,7 @@ export async function GET() {
   if (!auth.ok) return auth.response;
 
   try {
-    const [transactions, settings] = await Promise.all([
+    const [transactions, settings, appointments] = await Promise.all([
       prisma.pointTransaction.findMany({
         where: { customerId: auth.customer.id },
         orderBy: { createdAt: "desc" },
@@ -18,6 +19,7 @@ export async function GET() {
         },
       }),
       prisma.loyaltySettings.findUnique({ where: { id: 1 } }),
+      listCustomerUpcomingAppointments(auth.customer.id),
     ]);
 
     const rewards = await prisma.reward.findMany({
@@ -36,6 +38,7 @@ export async function GET() {
         goldThreshold: 300,
       },
       rewards,
+      appointments,
       transactions: transactions.map((t) => ({
         id: t.id,
         points: t.points,

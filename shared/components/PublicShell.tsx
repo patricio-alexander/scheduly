@@ -2,8 +2,13 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useTheme } from "next-themes";
 import { useEffect, useState, type ReactNode } from "react";
+import ArrowChevronLeft from "@gravity-ui/icons/ArrowChevronLeft";
 import Calendar from "@gravity-ui/icons/Calendar";
+import Moon from "@gravity-ui/icons/Moon";
+import Person from "@gravity-ui/icons/Person";
+import Sun from "@gravity-ui/icons/Sun";
 import { Button } from "@heroui/react";
 import { apiUrl } from "@/shared/utils/api";
 import { appRoutes } from "@/shared/utils/app-routes";
@@ -17,23 +22,6 @@ type PublicBusiness = Pick<
   BusinessProfile,
   "businessName" | "address" | "logoPath"
 >;
-
-const NAV_ITEMS = [
-  { key: "home" as const, href: appRoutes.home, label: "Inicio" },
-  { key: "booking" as const, href: appRoutes.booking, label: "Reservar" },
-  {
-    key: "myTurn" as const,
-    href: appRoutes.loyalty.myTurn,
-    label: "Mi turno",
-  },
-  {
-    key: "catalog" as const,
-    href: appRoutes.loyalty.publicCatalog,
-    label: "Catálogo",
-  },
-  { key: "promos" as const, href: appRoutes.loyalty.promos, label: "Promos" },
-  { key: "feed" as const, href: appRoutes.loyalty.feed, label: "Novedades" },
-];
 
 function navLinkClass(isActive: boolean, cta = false) {
   const base = "scheduly-nav-link";
@@ -56,9 +44,18 @@ export function PublicShell({
     | "promos";
 }) {
   const router = useRouter();
+  const { resolvedTheme, setTheme } = useTheme();
   const { customer, logout } = useCustomerAuth();
   const [loggingOut, setLoggingOut] = useState(false);
   const [logoPath, setLogoPath] = useState<string | null>(null);
+  const [themeReady, setThemeReady] = useState(false);
+  const showPanelBack = active !== "home" && active !== "account";
+  const isDark = themeReady && resolvedTheme === "dark";
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setThemeReady(true), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -91,7 +88,7 @@ export function PublicShell({
   };
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-background text-foreground">
+    <div className="relative flex min-h-dvh flex-col overflow-x-hidden bg-background text-foreground">
       <div
         className="pointer-events-none absolute inset-0"
         style={{
@@ -128,31 +125,37 @@ export function PublicShell({
             </span>
           </Link>
 
-          <nav className="scheduly-nav" aria-label="Navegación principal">
-            {NAV_ITEMS.map((item) => (
-              <Link
-                key={item.key}
-                href={item.href}
-                className={navLinkClass(active === item.key)}
-              >
-                {item.label}
-              </Link>
-            ))}
+          <nav className="scheduly-nav" aria-label="Acciones de cuenta">
+            <button
+              type="button"
+              className="scheduly-navbar__icon-btn shrink-0"
+              aria-label={
+                isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"
+              }
+              title={isDark ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+              onClick={() => setTheme(isDark ? "light" : "dark")}
+            >
+              {isDark ? (
+                <Sun width={16} height={16} />
+              ) : (
+                <Moon width={16} height={16} />
+              )}
+            </button>
+            <Link
+              href={appRoutes.loyalty.customerPortal}
+              className={`${navLinkClass(active === "account", Boolean(customer))} gap-2`}
+              aria-current={active === "account" ? "page" : undefined}
+            >
+              <Person width={16} height={16} />
+              <span>Mi cuenta</span>
+            </Link>
             {!customer ? (
-              <>
-                <Link
-                  href={appRoutes.loyalty.customerPortal}
-                  className={navLinkClass(active === "account")}
-                >
-                  Mi cuenta
-                </Link>
-                <Link
-                  href={appRoutes.login}
-                  className={navLinkClass(false, true)}
-                >
-                  Ingresar
-                </Link>
-              </>
+              <Link
+                href={appRoutes.login}
+                className={navLinkClass(false, true)}
+              >
+                Ingresar
+              </Link>
             ) : (
               <>
                 <span className="hidden px-2 text-sm text-muted sm:inline">
@@ -175,7 +178,21 @@ export function PublicShell({
         </div>
       </header>
 
-      <main className="relative z-10">{children}</main>
+      {showPanelBack ? (
+        <div className="relative z-10 border-b border-separator bg-surface/70 backdrop-blur-sm">
+          <div className="mx-auto flex max-w-5xl px-4 py-2 sm:px-6">
+            <Link
+              href={appRoutes.loyalty.customerPortal}
+              className="md-btn inline-flex items-center gap-1.5 rounded-lg px-1.5 py-1 text-sm font-medium text-muted hover:text-foreground"
+            >
+              <ArrowChevronLeft width={14} height={14} />
+              Volver al panel
+            </Link>
+          </div>
+        </div>
+      ) : null}
+
+      <main className="relative z-10 flex min-h-0 flex-1 flex-col">{children}</main>
     </div>
   );
 }

@@ -19,6 +19,7 @@ export async function POST(request: Request) {
       redeemRewardForCustomer(tx, {
         customerId: auth.customer.id,
         rewardId,
+        source: "customer",
       }),
     );
 

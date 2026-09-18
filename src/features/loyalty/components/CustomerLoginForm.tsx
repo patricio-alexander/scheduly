@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { Button, toast } from "@heroui/react";
 import { useCustomerAuth } from "../hooks/useCustomerAuth";
 
@@ -65,10 +64,7 @@ export function CustomerLoginForm({
         {pending ? "Ingresando..." : "Iniciar sesión"}
       </Button>
       <p className="text-center text-xs text-muted">
-        ¿Sin cuenta?{" "}
-        <Link href="/mi-cuenta" className="font-medium text-accent hover:underline">
-          Más información
-        </Link>
+        ¿Sin cuenta? Pide al local que la active con tu correo o cédula.
       </p>
     </form>
   );

@@ -4,11 +4,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Button } from "@heroui/react";
 import ArrowChevronLeft from "@gravity-ui/icons/ArrowChevronLeft";
 import ArrowChevronRight from "@gravity-ui/icons/ArrowChevronRight";
+import LockOpen from "@gravity-ui/icons/LockOpen";
+import Lock from "@gravity-ui/icons/Lock";
+import ScalesBalanced from "@gravity-ui/icons/ScalesBalanced";
 import { apiUrl } from "@/shared/utils/api";
 import { formatMoney } from "@/shared/utils/money";
 import { useAuth } from "@/src/features/auth";
 import { isManagementRole } from "@/shared/utils/roles";
-import { BranchSelect, useBranches } from "@/src/features/branches";
+import { BranchSwitch, useBranches } from "@/src/features/branches";
 import { EmployeeProductionPanel } from "./EmployeeProductionPanel";
 import { ShiftDesk } from "./ShiftDesk";
 import { CashClosePanel } from "./CashClosePanel";
@@ -19,6 +22,32 @@ import type {
 } from "./EmployeeProductionPanel";
 
 type DeskSection = "apertura" | "cierre" | "cuadre";
+
+const CASH_SECTIONS: Array<{
+  id: DeskSection;
+  label: string;
+  hint: string;
+  Icon: typeof LockOpen;
+}> = [
+  {
+    id: "apertura",
+    label: "Apertura",
+    hint: "Abrir la caja del día",
+    Icon: LockOpen,
+  },
+  {
+    id: "cierre",
+    label: "Cierre",
+    hint: "Cerrar y revisar el día",
+    Icon: Lock,
+  },
+  {
+    id: "cuadre",
+    label: "Cuadre",
+    hint: "Contar y cuadrar el efectivo",
+    Icon: ScalesBalanced,
+  },
+];
 
 type DailyTab = "empleados" | "gastos";
 
@@ -335,28 +364,24 @@ export function CashSupervision() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-[1100px] flex-col gap-2.5">
-      <div className="flex flex-wrap items-center gap-2">
-        <div className="mr-auto min-w-0">
+    <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-2.5">
+      <div className="cash-page-head">
+        <div className="cash-page-head__title">
           <h1 className="truncate text-lg font-bold tracking-tight">Caja</h1>
           <p className="text-[11px] text-muted">
             Apertura, cierre de caja y cuadre por día
           </p>
         </div>
 
-        {canPickBranch && activeBranches.length > 0 ? (
-          <BranchSelect
+        {canPickBranch && activeBranches.length > 1 ? (
+          <BranchSwitch
             branches={activeBranches}
             value={branchId}
-            onChange={(id) => {
-              if (id) setBranchId(id);
-            }}
-            label="Sucursal"
-            className="w-48"
+            onChange={setBranchId}
           />
         ) : null}
 
-        <div className="flex items-center gap-1">
+        <div className="cash-page-head__dates">
           <Button
             isIconOnly
             size="sm"
@@ -412,167 +437,176 @@ export function CashSupervision() {
         />
       ) : null}
 
-      {loadingDay ? (
-        <div className="flex flex-col gap-1.5">
-          <div className="cash-metrics cash-metrics--kpis">
-            {Array.from({ length: 3 }).map((_, index) => (
-              <div
-                key={`kpi-${index}`}
-                className={`cash-skeleton h-[5.75rem] ${
-                  index === 2 ? "cash-metric--primary" : ""
-                }`}
-              />
-            ))}
-          </div>
-          <div className="cash-metrics">
-            {Array.from({ length: 4 }).map((_, index) => (
-              <div key={index} className="cash-skeleton h-9" />
-            ))}
-          </div>
-        </div>
-      ) : dayError ? (
-        <ErrorState
-          message={dayError}
-          onRetry={() => void loadDaily(selectedDate)}
-        />
-      ) : daily ? (
-        <>
-          <MetricsBar
-            summary={daily.summary}
-            commissions={
-              commissionSummary?.total ?? daily.employeeSummary?.total ?? 0
-            }
-            tickets={
-              commissionSummary?.ticketsCount ??
-              daily.employeeSummary?.ticketsCount
-            }
-          />
-          <p className="cash-formula">
-            <span>Efectivo {formatMoney(daily.summary.openingCashTotal)}</span>
-            <span aria-hidden>+</span>
-            <span>
-              ventas efec. {formatMoney(daily.summary.salesCash ?? 0)}
-            </span>
-            <span aria-hidden>−</span>
-            <span>gastos {formatMoney(daily.summary.cashOutTotal)}</span>
-            {(daily.summary.cashInMovementsTotal ?? 0) > 0 ? (
-              <>
-                <span aria-hidden>+</span>
-                <span>
-                  entradas{" "}
-                  {formatMoney(daily.summary.cashInMovementsTotal ?? 0)}
-                </span>
-              </>
-            ) : null}
-            <span aria-hidden>=</span>
-            <span className="font-semibold text-warning">
-              esperado {formatMoney(daily.summary.closingCashTotal)}
-            </span>
-          </p>
-          <div className="mt-1.5 border-t border-separator pt-2">
-            {commissionLabel ? (
-              <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted">
-                {commissionLabel}
-              </p>
-            ) : null}
-            <EmployeeProductionPanel
-              key={
-                commissionFromDay
-                  ? daily.date
-                  : (commissionWeek?.weekStart ?? "commissions")
-              }
-              employees={commissionEmployees}
-              summary={commissionSummary}
-              showTickets={commissionFromDay}
-            />
-          </div>
-        </>
-      ) : null}
-
       <div
-        className="dashboard-period w-full"
+        className="cash-section-switch"
         role="tablist"
-        aria-label="Sección del día"
+        aria-label="Sección de caja"
       >
-        {(
-          [
-            ["apertura", "Apertura"],
-            ["cierre", "Cierre de caja"],
-            ["cuadre", "Cuadre"],
-          ] as const
-        ).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            role="tab"
-            aria-selected={section === id}
-            className={`dashboard-period__btn !px-3 !py-1 ${
-              section === id ? "dashboard-period__btn--active" : ""
-            }`}
-            onClick={() => setSection(id)}
-          >
-            {label}
-          </button>
-        ))}
+        {CASH_SECTIONS.map(({ id, label, Icon }) => {
+          const selected = section === id;
+          return (
+            <button
+              key={id}
+              type="button"
+              role="tab"
+              aria-selected={selected}
+              className={`cash-section-switch__btn ${
+                selected ? "cash-section-switch__btn--active" : ""
+              }`}
+              onClick={() => setSection(id)}
+            >
+              <Icon width={16} height={16} />
+              <span>{label}</span>
+            </button>
+          );
+        })}
       </div>
+      <p className="cash-section-switch__hint">
+        {CASH_SECTIONS.find((item) => item.id === section)?.hint}
+      </p>
 
-      {section === "apertura" ? (
-        <AperturaDay date={selectedDate} daily={daily} storeId={branchId} />
-      ) : null}
-      {section === "cierre" ? (
-        <DailyView
-          daily={daily}
-          loading={loadingDay}
-          selectedDate={selectedDate}
-          tab={tab}
-          onTab={setTab}
-          onRetry={() => void loadDaily(selectedDate, true)}
-          storeId={branchId}
-          fallbackEmployees={commissionFromDay ? [] : commissionEmployees}
-          fallbackSummary={commissionFromDay ? null : commissionSummary}
-        />
-      ) : null}
-      {section === "cuadre" ? (
-        <CashClosePanel
-          date={selectedDate}
-          branchId={branchId}
-          suggestedLines={
-            daily?.summary.closeMedia ?? daily?.summary.paymentMedia
-          }
-          suggestedExpenses={daily?.summary.cashOutTotal ?? 0}
-          openingCash={daily?.summary.openingCashTotal ?? 0}
-          salesCash={daily?.summary.salesCash ?? 0}
-          cashIn={daily?.summary.cashInMovementsTotal ?? 0}
-          expectedCash={daily?.summary.closingCashTotal}
-          countedCash={
-            daily?.shifts.length &&
-            daily.shifts.every((shift) => shift.status !== "open")
-              ? daily.shifts.reduce(
-                  (sum, shift) => sum + Number(shift.countedCashOnDay ?? 0),
-                  0,
-                )
-              : null
-          }
-        />
-      ) : null}
+      <div className="cash-layout">
+        <div className="cash-layout__body">
+          {dayError ? (
+            <ErrorState
+              message={dayError}
+              onRetry={() => void loadDaily(selectedDate)}
+            />
+          ) : daily ? (
+            <p className="cash-formula">
+              <span>
+                Efectivo {formatMoney(daily.summary.openingCashTotal)}
+              </span>
+              <span aria-hidden>+</span>
+              <span>
+                ventas efec. {formatMoney(daily.summary.salesCash ?? 0)}
+              </span>
+              <span aria-hidden>−</span>
+              <span>gastos {formatMoney(daily.summary.cashOutTotal)}</span>
+              {(daily.summary.cashInMovementsTotal ?? 0) > 0 ? (
+                <>
+                  <span aria-hidden>+</span>
+                  <span>
+                    entradas{" "}
+                    {formatMoney(daily.summary.cashInMovementsTotal ?? 0)}
+                  </span>
+                </>
+              ) : null}
+              <span aria-hidden>=</span>
+              <span className="font-semibold text-warning">
+                esperado {formatMoney(daily.summary.closingCashTotal)}
+              </span>
+            </p>
+          ) : loadingDay ? (
+            <div className="cash-skeleton h-8" />
+          ) : null}
+
+          <div className="cash-section-panel" role="tabpanel">
+            {section === "apertura" ? (
+              <AperturaDay
+                date={selectedDate}
+                daily={daily}
+                storeId={branchId}
+              />
+            ) : null}
+            {section === "cierre" ? (
+              <DailyView
+                daily={daily}
+                loading={loadingDay}
+                selectedDate={selectedDate}
+                tab={tab}
+                onTab={setTab}
+                onRetry={() => void loadDaily(selectedDate, true)}
+                storeId={branchId}
+                fallbackEmployees={commissionFromDay ? [] : commissionEmployees}
+                fallbackSummary={
+                  commissionFromDay ? null : commissionSummary
+                }
+              />
+            ) : null}
+            {section === "cuadre" ? (
+              <CashClosePanel
+                date={selectedDate}
+                branchId={branchId}
+                suggestedLines={
+                  daily?.summary.closeMedia ?? daily?.summary.paymentMedia
+                }
+                suggestedExpenses={daily?.summary.cashOutTotal ?? 0}
+                openingCash={daily?.summary.openingCashTotal ?? 0}
+                salesCash={daily?.summary.salesCash ?? 0}
+                cashIn={daily?.summary.cashInMovementsTotal ?? 0}
+                expectedCash={daily?.summary.closingCashTotal}
+                countedCash={
+                  daily?.shifts.length &&
+                  daily.shifts.every((shift) => shift.status !== "open")
+                    ? daily.shifts.reduce(
+                        (sum, shift) =>
+                          sum + Number(shift.countedCashOnDay ?? 0),
+                        0,
+                      )
+                    : null
+                }
+              />
+            ) : null}
+          </div>
+
+          {daily && section !== "cierre" ? (
+            <div className="mt-2 border-t border-separator pt-2">
+              {commissionLabel ? (
+                <p className="mb-1 text-[10px] font-semibold uppercase tracking-wide text-muted">
+                  {commissionLabel}
+                </p>
+              ) : null}
+              <EmployeeProductionPanel
+                key={
+                  commissionFromDay
+                    ? daily.date
+                    : (commissionWeek?.weekStart ?? "commissions")
+                }
+                employees={commissionEmployees}
+                summary={commissionSummary}
+                showTickets={commissionFromDay}
+              />
+            </div>
+          ) : null}
+        </div>
+
+        <aside className="cash-layout__kpis" aria-label="Resumen de caja">
+          {loadingDay ? (
+            <div className="cash-kpi-rail">
+              <div className="cash-skeleton h-[4.25rem]" />
+              {Array.from({ length: 7 }).map((_, index) => (
+                <div key={index} className="cash-skeleton h-8" />
+              ))}
+            </div>
+          ) : daily ? (
+            <MetricsBar
+              summary={daily.summary}
+              commissions={
+                commissionSummary?.total ?? daily.employeeSummary?.total ?? 0
+              }
+              tickets={
+                commissionSummary?.ticketsCount ??
+                daily.employeeSummary?.ticketsCount
+              }
+            />
+          ) : null}
+        </aside>
+      </div>
     </div>
   );
 }
 
-function Metric({
+function MetricRow({
   label,
   value,
   hint,
   tone,
-  primary = false,
-  kpi = false,
 }: {
   label: string;
   value: number;
   hint?: string;
   tone?: "accent" | "success" | "danger" | "warning";
-  primary?: boolean;
-  kpi?: boolean;
 }) {
   const toneClass =
     tone === "accent"
@@ -585,27 +619,12 @@ function Metric({
             ? "text-warning"
             : "";
   return (
-    <div
-      className={[
-        "cash-metric",
-        primary ? "cash-metric--primary" : "",
-        kpi ? "cash-metric--kpi" : "",
-        tone ? `cash-metric--${tone}` : "",
-      ]
-        .filter(Boolean)
-        .join(" ")}
-    >
-      <span className="cash-metric__heading">
-        <span className="cash-metric__label">{label}</span>
-      </span>
-      <span
-        className={`cash-metric__value ${
-          primary ? "cash-metric__value--xl" : ""
-        } ${toneClass}`}
-      >
-        {formatMoney(value)}
-      </span>
-      {hint ? <span className="cash-metric__hint">{hint}</span> : null}
+    <div className="cash-kpi-row" title={hint}>
+      <p className="cash-kpi-row__label">
+        {label}
+        {hint ? <span className="cash-kpi-row__hint"> · {hint}</span> : null}
+      </p>
+      <p className={`cash-kpi-row__value ${toneClass}`}>{formatMoney(value)}</p>
     </div>
   );
 }
@@ -690,7 +709,7 @@ function MetricsBar({
     summary.openingMedia && summary.openingMedia.length > 0
       ? summary.openingMedia
       : fallbackOpeningMedia(summary)
-  ).filter((medium) => isMoneyMedium(medium.kind));
+  ).filter((medium) => isMoneyMedium(medium.kind) && medium.amount > 0);
   const cobrosTotal = cobros.reduce((sum, item) => sum + item.amount, 0);
   const services = Number(summary.servicesTotal ?? 0);
   const products = Number(summary.productsTotal ?? 0);
@@ -700,11 +719,18 @@ function MetricsBar({
       Number(summary.openingTransferTotal ?? 0);
   const totalCaja = Number((opening + sales).toFixed(2));
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="cash-metrics cash-metrics--kpis">
-        <Metric
-          kpi
-          label="Total servicios"
+    <div className="cash-kpi-rail">
+      <div className="cash-kpi-rail__hero">
+        <p className="cash-kpi-rail__hero-label">Total caja</p>
+        <p className="cash-kpi-rail__hero-value">{formatMoney(totalCaja)}</p>
+        <p className="cash-kpi-rail__hero-hint">
+          Inicial {formatMoney(opening)} + ventas {formatMoney(sales)}
+        </p>
+      </div>
+
+      <div className="cash-kpi-rail__list">
+        <MetricRow
+          label="Servicios"
           value={services}
           hint={
             summary.servicesCount
@@ -712,9 +738,8 @@ function MetricsBar({
               : "Sin servicios"
           }
         />
-        <Metric
-          kpi
-          label="Total productos"
+        <MetricRow
+          label="Productos"
           value={products}
           hint={
             summary.productsCount
@@ -722,17 +747,7 @@ function MetricsBar({
               : "Sin productos"
           }
         />
-        <Metric
-          kpi
-          primary
-          label="Total caja"
-          value={totalCaja}
-          hint={`Inicial ${formatMoney(opening)} + ventas ${formatMoney(sales)}`}
-          tone="accent"
-        />
-      </div>
-      <div className="cash-metrics">
-        <Metric
+        <MetricRow
           label="Caja inicial"
           value={opening}
           hint={`Efectivo ${formatMoney(summary.openingCashTotal)}${
@@ -741,7 +756,7 @@ function MetricsBar({
               : ""
           }`}
         />
-        <Metric
+        <MetricRow
           label="Ventas"
           value={sales}
           hint={
@@ -749,19 +764,19 @@ function MetricsBar({
           }
           tone="accent"
         />
-        <Metric
+        <MetricRow
           label="Gastos"
           value={expenses}
           hint={expenses > 0 ? "Salidas de caja" : "Sin egresos"}
           tone="danger"
         />
-        <Metric
+        <MetricRow
           label="Neto"
           value={net}
           hint="Ventas − gastos"
           tone={net >= 0 ? "success" : "danger"}
         />
-        <Metric
+        <MetricRow
           label="Comisiones"
           value={commissions}
           hint={
@@ -770,50 +785,56 @@ function MetricsBar({
           tone="warning"
         />
       </div>
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-        Apertura
-      </p>
-      <div className="cash-methods">
-        {apertura.map((medium) => (
-          <Metric
-            key={`open-${medium.id}`}
-            label={medium.name}
-            value={medium.amount}
-            hint={
-              String(medium.kind).toLowerCase() === "cash"
-                ? "Efectivo al abrir"
-                : "Saldo al abrir"
-            }
-            tone={medium.amount > 0 ? "accent" : undefined}
-          />
-        ))}
-      </div>
-      <p className="text-[10px] font-semibold uppercase tracking-wide text-muted">
-        Cobros del día
-      </p>
-      <div className="cash-methods">
-        {cobros.map((medium) => {
-          const share =
-            cobrosTotal > 0
-              ? Math.round((medium.amount / cobrosTotal) * 100)
-              : 0;
-          return (
-            <Metric
-              key={`pay-${medium.id}`}
-              label={medium.name}
-              value={medium.amount}
-              hint={
-                medium.count > 0
-                  ? `${medium.count} cobro${medium.count === 1 ? "" : "s"} · ${share}%`
-                  : cobrosTotal > 0
-                    ? `${share}%`
-                    : "Sin cobros"
-              }
-              tone={medium.amount > 0 ? "accent" : undefined}
-            />
-          );
-        })}
-      </div>
+
+      {apertura.length > 0 ? (
+        <>
+          <p className="cash-kpi-rail__group">Apertura</p>
+          <div className="cash-kpi-rail__list">
+            {apertura.map((medium) => (
+              <MetricRow
+                key={`open-${medium.id}`}
+                label={medium.name}
+                value={medium.amount}
+                hint={
+                  String(medium.kind).toLowerCase() === "cash"
+                    ? "Efectivo al abrir"
+                    : "Saldo al abrir"
+                }
+                tone={medium.amount > 0 ? "accent" : undefined}
+              />
+            ))}
+          </div>
+        </>
+      ) : null}
+
+      {cobros.length > 0 ? (
+        <>
+          <p className="cash-kpi-rail__group">Cobros del día</p>
+          <div className="cash-kpi-rail__list">
+            {cobros.map((medium) => {
+              const share =
+                cobrosTotal > 0
+                  ? Math.round((medium.amount / cobrosTotal) * 100)
+                  : 0;
+              return (
+                <MetricRow
+                  key={`pay-${medium.id}`}
+                  label={medium.name}
+                  value={medium.amount}
+                  hint={
+                    medium.count > 0
+                      ? `${medium.count} cobro${medium.count === 1 ? "" : "s"} · ${share}%`
+                      : cobrosTotal > 0
+                        ? `${share}%`
+                        : "Sin cobros"
+                  }
+                  tone={medium.amount > 0 ? "accent" : undefined}
+                />
+              );
+            })}
+          </div>
+        </>
+      ) : null}
     </div>
   );
 }

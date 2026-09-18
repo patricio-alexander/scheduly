@@ -12,7 +12,9 @@ import {
 
 export function DashboardShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const compactMain = pathname.startsWith(appRoutes.operation.cash);
+  const compactMain =
+    pathname.startsWith(appRoutes.operation.cash) ||
+    pathname.startsWith(appRoutes.operation.shifts);
   const isInicio = pathname === appRoutes.inicio;
   const mainPad = compactMain
     ? "p-2 sm:p-2.5 md:p-3"

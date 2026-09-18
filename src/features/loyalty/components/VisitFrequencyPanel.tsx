@@ -8,6 +8,7 @@ import { ContentCard, EmptyState } from "@/shared/components/ui";
 import { apiUrl } from "@/shared/utils/api";
 import { appRoutes } from "@/shared/utils/app-routes";
 import { formatDateTime } from "@/shared/utils/datetime-display";
+import { customerFullName } from "@/shared/utils/person-name";
 
 type VisitRow = {
   id: number;
@@ -88,7 +89,7 @@ export function VisitFrequencyPanel() {
             >
               <div className="min-w-0">
                 <p className="font-medium">
-                  {r.name} {r.lastnames}
+                  {customerFullName(r)}
                 </p>
                 <p className="text-xs text-muted">
                   {r.visitCount} visita{r.visitCount === 1 ? "" : "s"}

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/shared/utils/prisma";
 import { verifyPassword } from "@/shared/utils/password";
 import { findPortalCustomerByIdentifier } from "@/shared/utils/portal-customer-lookup";
+import { listCustomerUpcomingAppointments } from "@/shared/utils/portal-appointments";
 
 /**
  * Canal público: consultar turnos con cédula o correo + clave del portal.
@@ -38,38 +39,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const now = new Date();
-    const from = new Date(now);
-    from.setDate(from.getDate() - 1);
-
-    const appointments = await prisma.appointment.findMany({
-      where: {
-        customerId: found.id,
-        status: { notIn: ["cancelled"] },
-        appointmentDate: { gte: from },
-      },
-      orderBy: { appointmentDate: "asc" },
-      take: 12,
-      include: {
-        services: {
-          include: {
-            service: {
-              select: { id: true, name: true, durationMinutes: true },
-            },
-          },
-        },
-        staff: {
-          select: {
-            id: true,
-            firstName: true,
-            secondName: true,
-            firstLastName: true,
-            secondLastName: true,
-          },
-        },
-        branch: { select: { id: true, name: true } },
-      },
-    });
+    const appointments = await listCustomerUpcomingAppointments(found.id);
 
     return NextResponse.json({
       customer: {
@@ -79,30 +49,7 @@ export async function POST(request: Request) {
         cedula: found.cedula,
         identificationType: found.identType,
       },
-      appointments: appointments.map((a) => {
-        const staffName = [
-          a.staff?.firstName,
-          a.staff?.secondName,
-          a.staff?.firstLastName,
-          a.staff?.secondLastName,
-        ]
-          .filter(Boolean)
-          .join(" ")
-          .trim();
-        return {
-          id: a.id,
-          title: a.title,
-          status: a.status,
-          appointmentDate: a.appointmentDate.toISOString(),
-          branchName: a.branch?.name ?? null,
-          staffName: staffName || null,
-          services: a.services.map((s) => ({
-            id: s.service.id,
-            name: s.service.name,
-            durationMinutes: s.service.durationMinutes,
-          })),
-        };
-      }),
+      appointments,
     });
   } catch (error) {
     console.error("POST /api/public/mi-turno", error);

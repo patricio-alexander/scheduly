@@ -6,6 +6,7 @@ export { EligibleCustomersPanel } from "./components/EligibleCustomersPanel";
 export { VisitFrequencyPanel } from "./components/VisitFrequencyPanel";
 export { CustomerLoginForm } from "./components/CustomerLoginForm";
 export { CustomerAccountPanel } from "./components/CustomerAccountPanel";
+export { CustomerPublicDashboard } from "./components/CustomerPublicDashboard";
 export type {
   LoyaltyReward,
   LoyaltyOffer,
@@ -15,4 +16,5 @@ export type {
   EligibleCustomersResponse,
   LoyaltyRedemptionRecord,
   CustomerAccountUser,
+  CustomerAppointment,
 } from "./types";

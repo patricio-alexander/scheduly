@@ -182,6 +182,7 @@ export async function POST(
           customerId: appointment.customerId,
           rewardId,
           appointmentId,
+          source: "appointment",
         });
 
         const rewardNote =

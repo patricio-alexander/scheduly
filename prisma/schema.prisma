@@ -1464,18 +1464,22 @@ model CustomerLoyalty {
 }
 
 model PointTransaction {
-  id            Int      @id @default(autoincrement())
+  id            Int       @id @default(autoincrement())
   customerId    Int
   points        Int
   reason        String
   appointmentId Int?
   rewardId      Int?
-  createdAt     DateTime @default(now())
+  /** customer = canje pedido desde el portal; admin/appointment = ya aplicado en local */
+  source        String    @default("customer")
+  deliveredAt   DateTime?
+  createdAt     DateTime  @default(now())
 
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   reward   Reward?  @relation(fields: [rewardId], references: [id], onDelete: SetNull)
 
   @@index([customerId, createdAt])
+  @@index([source, deliveredAt])
 }
 
 model Reward {

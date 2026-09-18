@@ -73,6 +73,16 @@ export interface CustomerPointTransaction {
   createdAt: string;
 }
 
+export interface CustomerAppointment {
+  id: number;
+  title: string;
+  status: string;
+  appointmentDate: string;
+  branchName: string | null;
+  staffName: string | null;
+  services: Array<{ id: number; name: string; durationMinutes: number }>;
+}
+
 export interface EligibleCustomer {
   id: number;
   name: string;
@@ -97,8 +107,11 @@ export interface LoyaltyRedemptionRecord {
   id: number;
   customerId: number;
   customerName: string;
+  customerEmail: string;
+  customerPhone: string;
   points: number;
   redeemedAt: string;
+  pendingPickup?: boolean;
   reward: {
     id: number;
     name: string;
@@ -112,4 +125,5 @@ export interface LoyaltyRedemptionRecord {
 export interface EligibleCustomersResponse {
   customers: EligibleCustomer[];
   recentRedemptions: LoyaltyRedemptionRecord[];
+  claimedProducts: LoyaltyRedemptionRecord[];
 }

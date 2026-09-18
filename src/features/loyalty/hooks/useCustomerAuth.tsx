@@ -32,6 +32,7 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
     try {
       const res = await fetch(apiUrl("/api/customer-auth/me"), {
         credentials: "include",
+        cache: "no-store",
       });
       if (!res.ok) {
         setCustomer(null);
@@ -48,12 +49,14 @@ export function CustomerAuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     let cancelled = false;
-    (async () => {
-      await refresh();
-      if (!cancelled) setLoading(false);
-    })();
+    const timer = window.setTimeout(() => {
+      void refresh().finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    }, 0);
     return () => {
       cancelled = true;
+      window.clearTimeout(timer);
     };
   }, [refresh]);
 
